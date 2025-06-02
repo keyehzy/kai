@@ -44,6 +44,7 @@ struct Ast {
   virtual ~Ast() = default;
 
   virtual void dump(std::ostream &os) const = 0;
+  virtual void to_string(std::ostream &os, int indent = 0) const = 0;
 
  protected:
   explicit Ast(Type type) : type(type) {}
@@ -76,6 +77,7 @@ struct Ast::Block final : public Ast {
   }
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 typedef uint64_t Value;
@@ -90,6 +92,7 @@ struct Ast::FunctionDeclaration final : public Ast {
         body(std::move(body)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::VariableDeclaration final : public Ast {
@@ -102,6 +105,7 @@ struct Ast::VariableDeclaration final : public Ast {
         initializer(std::move(initializer)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::LessThan final : public Ast {
@@ -112,6 +116,7 @@ struct Ast::LessThan final : public Ast {
       : Ast(Type::LessThan), left(std::move(left)), right(std::move(right)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::Literal final : public Ast {
@@ -120,6 +125,7 @@ struct Ast::Literal final : public Ast {
   Literal(Value value) : Ast(Type::Literal), value(value) {}
 
   void dump(std::ostream &os) const override { os << "Literal(" << value << ")"; }
+  void to_string(std::ostream &os, int) const override { os << value; }
 };
 
 struct Ast::Variable final : public Ast {
@@ -128,6 +134,7 @@ struct Ast::Variable final : public Ast {
   Variable(std::string name) : Ast(Type::Variable), name(name) {}
 
   void dump(std::ostream &os) const override { os << "Variable(" << name << ")"; }
+  void to_string(std::ostream &os, int) const override { os << name; }
 };
 
 struct Ast::Increment final : public Ast {
@@ -137,6 +144,7 @@ struct Ast::Increment final : public Ast {
       : Ast(Type::Increment), variable(std::move(variable)) {}
 
   void dump(std::ostream &os) const override { os << "Increment(" << variable->name << ")"; }
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::While final : public Ast {
@@ -147,6 +155,7 @@ struct Ast::While final : public Ast {
       : Ast(Type::While), condition(std::move(condition)), body(std::move(body)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::Assignment final : public Ast {
@@ -157,6 +166,7 @@ struct Ast::Assignment final : public Ast {
       : Ast(Type::Assignment), name(name), value(std::move(value)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::Return final : public Ast {
@@ -165,6 +175,7 @@ struct Ast::Return final : public Ast {
   Return(std::unique_ptr<Ast> value) : Ast(Type::Return), value(std::move(value)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::IfElse final : public Ast {
@@ -180,6 +191,7 @@ struct Ast::IfElse final : public Ast {
         else_body(std::move(else_body)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct Ast::Add final : public Ast {
@@ -190,6 +202,7 @@ struct Ast::Add final : public Ast {
       : Ast(Type::Add), left(std::move(left)), right(std::move(right)) {}
 
   void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
 };
 
 struct AstInterpreter {
@@ -201,32 +214,32 @@ struct AstInterpreter {
     exit_scope();
   }
 
-  int interpret_variable(const Ast::Variable &variable) {
+  Value interpret_variable(const Ast::Variable &variable) {
     auto it = find_variable_scope(variable.name);
     assert(it != scopes.rend());
     return it->at(variable.name);
   }
 
-  int interpret_literal(const Ast::Literal &literal) { return literal.value; }
+  Value interpret_literal(const Ast::Literal &literal) { return literal.value; }
 
-  int interpret_less_than(const Ast::LessThan &less_than) {
+  Value interpret_less_than(const Ast::LessThan &less_than) {
     return interpret(*less_than.left) < interpret(*less_than.right);
   }
 
-  int interpret_variable_declaration(const Ast::VariableDeclaration &variable_declaration) {
+  Value interpret_variable_declaration(const Ast::VariableDeclaration &variable_declaration) {
     assert(find_variable_scope(variable_declaration.name) == scopes.rend());
     return current_scope()[variable_declaration.name] = interpret(*variable_declaration.initializer);
   }
 
-  int interpret_increment(const Ast::Increment &increment) {
+  Value interpret_increment(const Ast::Increment &increment) {
     auto it = find_variable_scope(increment.variable->name);
     assert(it != scopes.rend());
     return it->at(increment.variable->name)++;
   }
 
-  int interpret_block(const Ast::Block &block) {
+  Value interpret_block(const Ast::Block &block) {
     push_scope();
-    int result = 0;
+    Value result = 0;
     for (const auto &child : block.children) {
       result = interpret(*child);
     }
@@ -234,29 +247,29 @@ struct AstInterpreter {
     return result;
   }
 
-  int interpret_while(const Ast::While &while_loop) {
-    int result = 0;
+  Value interpret_while(const Ast::While &while_loop) {
+    Value result = 0;
     while (interpret(*while_loop.condition)) {
       result = interpret_block(*while_loop.body);
     }
     return result;
   }
 
-  int interpret_function_declaration(const Ast::FunctionDeclaration &function_declaration) {
+  Value interpret_function_declaration(const Ast::FunctionDeclaration &function_declaration) {
     return interpret_block(*function_declaration.body);
   }
 
-  int interpret_assignment(const Ast::Assignment &assignment) {
+  Value interpret_assignment(const Ast::Assignment &assignment) {
     auto it = find_variable_scope(assignment.name);
     assert(it != scopes.rend());
     return it->at(assignment.name) = interpret(*assignment.value);
   }
 
-  int interpret_return(const Ast::Return &return_statement) {
+  Value interpret_return(const Ast::Return &return_statement) {
     return interpret(*return_statement.value);
   }
 
-  int interpret_if_else(const Ast::IfElse &if_else) {
+  Value interpret_if_else(const Ast::IfElse &if_else) {
     if (interpret(*if_else.condition)) {
       return interpret_block(*if_else.body);
     } else {
@@ -264,9 +277,9 @@ struct AstInterpreter {
     }
   }
 
-  int interpret_add(const Ast::Add &add) { return interpret(*add.left) + interpret(*add.right); }
+  Value interpret_add(const Ast::Add &add) { return interpret(*add.left) + interpret(*add.right); }
 
-  int interpret(const Ast &ast) {
+  Value interpret(const Ast &ast) {
     switch (ast.type) {
       case Ast::Type::Variable:
         return interpret_variable(ast_cast<Ast::Variable const &>(ast));
@@ -304,11 +317,11 @@ struct AstInterpreter {
     scopes.pop_back();
   }
 
-  std::unordered_map<std::string, int> &current_scope() {
+  std::unordered_map<std::string, Value> &current_scope() {
     return scopes.back();
   }
 
-  std::vector<std::unordered_map<std::string, int>>::reverse_iterator find_variable_scope(const std::string &name) {
+  std::vector<std::unordered_map<std::string, Value>>::reverse_iterator find_variable_scope(const std::string &name) {
     auto it = scopes.rbegin();
     for (; it != scopes.rend(); ++it) {
       if (it->find(name) != it->end()) {
@@ -318,5 +331,5 @@ struct AstInterpreter {
     return it;
   }
 
-  std::vector<std::unordered_map<std::string, int>> scopes;
+  std::vector<std::unordered_map<std::string, Value>> scopes;
 };
