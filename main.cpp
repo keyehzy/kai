@@ -5,6 +5,14 @@
 
 #include "ast.h"
 
+template <typename Derived_Reference, typename Base>
+Derived_Reference derived_cast(Base &base) {
+  using Derived = std::remove_reference_t<Derived_Reference>;
+  static_assert(std::is_base_of_v<Base, Derived>);
+  static_assert(!std::is_base_of_v<Derived, Base>);
+  return static_cast<Derived_Reference>(base);
+}
+
 namespace kai {
 namespace bytecode {
 
@@ -35,7 +43,7 @@ struct Bytecode::Instruction {
     AddImmediate,
   };
 
-  Type type;
+  Type type_;
 
   struct Move;
   struct Load;
@@ -50,8 +58,10 @@ struct Bytecode::Instruction {
 
   virtual void dump() const = 0;
 
+  Type type() const { return type_; }
+
 protected:
-  Instruction(Type type) : type(type) {}
+  Instruction(Type type) : type_(type) {}
 };
 
 struct Bytecode::Instruction::Move final : Bytecode::Instruction {
@@ -223,7 +233,7 @@ public:
     for (size_t i = 0; i < blocks_.size(); ++i) {
       auto& block = blocks_[i];
       if (!block.instructions.empty()) {
-        auto last_type = block.instructions.back()->type;
+        auto last_type = block.instructions.back()->type();
         if (last_type != Bytecode::Instruction::Type::Jump &&
             last_type != Bytecode::Instruction::Type::JumpConditional &&
             last_type != Bytecode::Instruction::Type::Return) {
@@ -239,6 +249,8 @@ public:
       blocks_[i].dump();
     }
   }
+
+  const std::vector<Bytecode::BasicBlock>& blocks() const { return blocks_; }
 
 private:
   Bytecode::BasicBlock& current_block() {
@@ -342,6 +354,83 @@ private:
   Bytecode::RegisterAllocator reg_alloc_;
 };
 
+class BytecodeInterpreter {
+public:
+  Bytecode::Value interpret(const std::vector<Bytecode::BasicBlock>& blocks) {
+    for(;;) {
+      const auto& block = blocks[block_index];
+      for (const auto& instr : block.instructions) {
+        switch(instr->type()) {
+        case Bytecode::Instruction::Type::Move:
+          interpret_move(derived_cast<Bytecode::Instruction::Move const&>(*instr));
+          break;
+        case Bytecode::Instruction::Type::Load:
+          interpret_load(derived_cast<Bytecode::Instruction::Load const&>(*instr));
+          break;
+        case Bytecode::Instruction::Type::LessThan:
+          interpret_less_than(derived_cast<Bytecode::Instruction::LessThan const&>(*instr));
+          break;
+        case Bytecode::Instruction::Type::Jump:
+          interpret_jump(derived_cast<Bytecode::Instruction::Jump const&>(*instr));
+          break;
+        case Bytecode::Instruction::Type::JumpConditional:
+          interpret_jump_conditional(derived_cast<Bytecode::Instruction::JumpConditional const&>(*instr));
+          break;
+        case Bytecode::Instruction::Type::Return:
+          return registers_[derived_cast<Bytecode::Instruction::Return const&>(*instr).reg];
+        case Bytecode::Instruction::Type::Add:
+          interpret_add(derived_cast<Bytecode::Instruction::Add const&>(*instr));
+          break;
+        case Bytecode::Instruction::Type::AddImmediate:
+          interpret_add_immediate(derived_cast<Bytecode::Instruction::AddImmediate const&>(*instr));
+          break;
+        default:
+          assert(0);
+          break;
+        }
+      }
+    }
+    assert(0);
+    return Bytecode::Value(-1);
+  }
+
+private:
+  void interpret_move(Bytecode::Instruction::Move const& move) {
+    registers_[move.dst] = registers_[move.src];
+  }
+
+  void interpret_load(Bytecode::Instruction::Load const& load) {
+    registers_[load.dst] = load.value;
+  }
+
+  void interpret_less_than(Bytecode::Instruction::LessThan const& less_than) {
+    registers_[less_than.dst] = registers_[less_than.lhs] < registers_[less_than.rhs];
+  }
+
+  void interpret_jump(Bytecode::Instruction::Jump const& jump) {
+    block_index = jump.label;
+  }
+
+  void interpret_jump_conditional(Bytecode::Instruction::JumpConditional const& jump_cond) {
+    if (registers_[jump_cond.cond]) {
+      block_index = jump_cond.label1;
+    } else {
+      block_index = jump_cond.label2;
+    }
+  }
+
+  void interpret_add(Bytecode::Instruction::Add const& add) {
+    registers_[add.dst] = registers_[add.src1] + registers_[add.src2];
+  }
+
+  void interpret_add_immediate(Bytecode::Instruction::AddImmediate const& add_imm) {
+    registers_[add_imm.dst] = registers_[add_imm.src] + add_imm.value;
+  }
+
+  u64 block_index = 0;
+  std::unordered_map<Bytecode::Register, Bytecode::Value> registers_;
+};
+
 } // namespace bytecode
 } // namepsace kai
 
@@ -386,6 +475,9 @@ int main() {
   gen.visit_block(fib);
   gen.finalize();
   gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  std::cout << interp.interpret(gen.blocks()) << "\n";
 
   return 0;
 }
