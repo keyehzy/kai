@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace kai {
+namespace ast {
 
 struct Ast {
   enum class Type {
@@ -333,3 +335,5 @@ struct AstInterpreter {
 
   std::vector<std::unordered_map<std::string, Value>> scopes;
 };
+} // namespace ast
+} // namespace kai

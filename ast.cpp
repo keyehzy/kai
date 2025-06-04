@@ -1,5 +1,7 @@
 #include "ast.h"
 
+namespace kai {
+namespace ast {
 void Ast::Block::dump(std::ostream &os) const {
   os << "Block(";
   for (const auto &child : children) {
@@ -135,3 +137,5 @@ void Ast::Add::to_string(std::ostream &os, int indent) const {
   os << " + ";
   right->to_string(os, indent);
 }
+} // namespace ast
+} // namespace kai
