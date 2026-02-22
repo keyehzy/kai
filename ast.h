@@ -24,6 +24,7 @@ struct Ast {
     Return,
     IfElse,
     Add,
+    Multiply,
   };
 
   struct FunctionDeclaration;
@@ -38,6 +39,7 @@ struct Ast {
   struct Return;
   struct IfElse;
   struct Add;
+  struct Multiply;
 
   Type type;
 
@@ -209,6 +211,17 @@ struct Ast::Add final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::Multiply final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  Multiply(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::Multiply), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct AstInterpreter {
   AstInterpreter() {
     push_scope();
@@ -283,6 +296,10 @@ struct AstInterpreter {
 
   Value interpret_add(const Ast::Add &add) { return interpret(*add.left) + interpret(*add.right); }
 
+  Value interpret_multiply(const Ast::Multiply &multiply) {
+    return interpret(*multiply.left) * interpret(*multiply.right);
+  }
+
   Value interpret(const Ast &ast) {
     switch (ast.type) {
       case Ast::Type::Variable:
@@ -309,6 +326,8 @@ struct AstInterpreter {
         return interpret_if_else(ast_cast<Ast::IfElse const &>(ast));
       case Ast::Type::Add:
         return interpret_add(ast_cast<Ast::Add const &>(ast));
+      case Ast::Type::Multiply:
+        return interpret_multiply(ast_cast<Ast::Multiply const &>(ast));
     }
     assert(false);
   }

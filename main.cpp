@@ -13,6 +13,10 @@ std::unique_ptr<Ast::Add> add(std::unique_ptr<Ast> left, std::unique_ptr<Ast> ri
   return std::make_unique<Ast::Add>(std::move(left), std::move(right));
 }
 
+std::unique_ptr<Ast::Multiply> mul(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right) {
+  return std::make_unique<Ast::Multiply>(std::move(left), std::move(right));
+}
+
 std::unique_ptr<Ast::LessThan> lt(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right) {
   return std::make_unique<Ast::LessThan>(std::move(left), std::move(right));
 }
@@ -65,6 +69,20 @@ Ast::Block fibonacci_example() {
   return std::move(*decl_body);
 }
 
+Ast::Block factorial_example() {
+  auto decl_body = std::make_unique<Ast::Block>();
+  decl_body->append(decl("n", lit(5)));
+  decl_body->append(decl("result", lit(1)));
+  decl_body->append(decl("i", lit(1)));
+
+  auto block = std::make_unique<Ast::Block>();
+  block->append(assign("result", mul(var("result"), var("i"))));
+  block->append(inc("i"));
+  decl_body->append(while_loop(lt(var("i"), add(var("n"), lit(1))), std::move(block)));
+  decl_body->append(ret(var("result")));
+  return std::move(*decl_body);
+}
+
 void test_fibonacci() {
   auto fib = fibonacci_example();
   kai::bytecode::BytecodeGenerator gen;
@@ -76,7 +94,19 @@ void test_fibonacci() {
   assert(interp.interpret(gen.blocks()) == 55);
 }
 
+void test_factorial() {
+  auto factorial = factorial_example();
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(factorial);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 120);
+}
+
 int main() {
   test_fibonacci();
+  test_factorial();
   return 0;
 }

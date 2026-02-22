@@ -68,6 +68,13 @@ void Bytecode::Instruction::AddImmediate::dump() const {
   std::printf("Add r%zu, r%zu, %zu", dst, src, value);
 }
 
+Bytecode::Instruction::Multiply::Multiply(Register dst, Register src1, Register src2)
+    : Bytecode::Instruction(Type::Multiply), dst(dst), src1(src1), src2(src2) {}
+
+void Bytecode::Instruction::Multiply::dump() const {
+  std::printf("Multiply r%zu, r%zu, r%zu", dst, src1, src2);
+}
+
 void Bytecode::BasicBlock::dump() const {
   for (const auto &instr : instructions) {
     std::printf("  ");
@@ -113,6 +120,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Add:
       visit_add(ast_cast<Ast::Add const &>(ast));
+      break;
+    case Ast::Type::Multiply:
+      visit_multiply(ast_cast<Ast::Multiply const &>(ast));
       break;
     case Ast::Type::Assignment:
       visit_assignment(ast_cast<Ast::Assignment const &>(ast));
@@ -250,6 +260,15 @@ void BytecodeGenerator::visit_add(const Ast::Add &add) {
                                                      reg_right);
 }
 
+void BytecodeGenerator::visit_multiply(const Ast::Multiply &multiply) {
+  visit(*multiply.left);
+  auto reg_left = reg_alloc_.current();
+  visit(*multiply.right);
+  auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Multiply>(reg_alloc_.allocate(), reg_left,
+                                                          reg_right);
+}
+
 void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
   visit(*assignment.value);
   current_block().append<Bytecode::Instruction::Move>(vars_[assignment.name],
@@ -288,6 +307,10 @@ Bytecode::Value BytecodeInterpreter::interpret(
         case Bytecode::Instruction::Type::AddImmediate:
           interpret_add_immediate(
               ast::derived_cast<Bytecode::Instruction::AddImmediate const &>(*instr));
+          break;
+        case Bytecode::Instruction::Type::Multiply:
+          interpret_multiply(
+              ast::derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
           break;
         default:
           assert(false);
@@ -332,6 +355,11 @@ void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {
 void BytecodeInterpreter::interpret_add_immediate(
     const Bytecode::Instruction::AddImmediate &add_imm) {
   registers_[add_imm.dst] = registers_[add_imm.src] + add_imm.value;
+}
+
+void BytecodeInterpreter::interpret_multiply(
+    const Bytecode::Instruction::Multiply &multiply) {
+  registers_[multiply.dst] = registers_[multiply.src1] * registers_[multiply.src2];
 }
 
 }  // namespace bytecode

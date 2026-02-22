@@ -68,6 +68,14 @@ void Ast::Add::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::Multiply::dump(std::ostream &os) const {
+  os << "Multiply(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 std::string indent_str(int indent) {
   return std::string(2 * indent, ' ');
 }
@@ -135,6 +143,12 @@ void Ast::IfElse::to_string(std::ostream &os, int indent) const {
 void Ast::Add::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " + ";
+  right->to_string(os, indent);
+}
+
+void Ast::Multiply::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " * ";
   right->to_string(os, indent);
 }
 } // namespace ast
