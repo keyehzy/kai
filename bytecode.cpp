@@ -91,6 +91,9 @@ Bytecode::Register Bytecode::RegisterAllocator::current() { return register_coun
 
 void BytecodeGenerator::visit(const Ast &ast) {
   switch (ast.type) {
+    case Ast::Type::FunctionDeclaration:
+      visit_function_declaration(ast_cast<Ast::FunctionDeclaration const &>(ast));
+      break;
     case Ast::Type::Variable:
       visit_variable(ast_cast<Ast::Variable const &>(ast));
       break;
@@ -130,6 +133,11 @@ void BytecodeGenerator::visit(const Ast &ast) {
     default:
       assert(false);
   }
+}
+
+void BytecodeGenerator::visit_function_declaration(
+    const Ast::FunctionDeclaration &func_decl) {
+  visit_block(*func_decl.body);
 }
 
 void BytecodeGenerator::visit_block(const Ast::Block &block) {

@@ -83,6 +83,14 @@ Ast::Block factorial_example() {
   return std::move(*decl_body);
 }
 
+std::unique_ptr<Ast::FunctionDeclaration> function_example() {
+  auto decl_body = std::make_unique<Ast::Block>();
+  decl_body->append(decl("a", lit(4)));
+  decl_body->append(decl("b", lit(2)));
+  decl_body->append(ret(add(var("a"), var("b"))));
+  return std::make_unique<Ast::FunctionDeclaration>("sum", std::move(decl_body));
+}
+
 void test_fibonacci() {
   auto fib = fibonacci_example();
   kai::bytecode::BytecodeGenerator gen;
@@ -105,8 +113,20 @@ void test_factorial() {
   assert(interp.interpret(gen.blocks()) == 120);
 }
 
+void test_function_declaration() {
+  auto factorial = function_example();
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit(*factorial);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 6);
+}
+
 int main() {
   test_fibonacci();
   test_factorial();
+  test_function_declaration();
   return 0;
 }

@@ -168,6 +168,7 @@ class BytecodeGenerator {
 
   void visit_variable(const ast::Ast::Variable &var);
   void visit_literal(const ast::Ast::Literal &literal);
+  void visit_function_declaration(const ast::Ast::FunctionDeclaration &func_decl);
   void visit_variable_declaration(const ast::Ast::VariableDeclaration &var_decl);
   void visit_less_than(const ast::Ast::LessThan &less_than);
   void visit_increment(const ast::Ast::Increment &increment);
