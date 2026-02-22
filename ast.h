@@ -77,6 +77,8 @@ Derived ast_cast(const Ast &ast) {
 struct Ast::Block final : public Ast {
   std::vector<std::unique_ptr<Ast>> children;
 
+  Block() : Ast(Type::Block) {}
+
   void append(std::unique_ptr<Ast> node) { children.emplace_back(std::move(node)); }
 
   template <typename T, typename... Args>

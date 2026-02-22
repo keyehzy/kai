@@ -164,11 +164,25 @@ void test_subtract() {
   assert(interp.interpret(gen.blocks()) == 12);
 }
 
+void test_top_level_block_example() {
+  Ast::Block program;
+  program.append(ret(lit(42)));
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit(program);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 42);
+}
+
 int main() {
   test_fibonacci();
   test_factorial();
   test_function_declaration();
   test_if_else();
   test_subtract();
+  test_top_level_block_example();
   return 0;
 }
