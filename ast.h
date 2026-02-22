@@ -24,6 +24,7 @@ struct Ast {
     Return,
     IfElse,
     Add,
+    Subtract,
     Multiply,
   };
 
@@ -39,6 +40,7 @@ struct Ast {
   struct Return;
   struct IfElse;
   struct Add;
+  struct Subtract;
   struct Multiply;
 
   Type type;
@@ -211,6 +213,17 @@ struct Ast::Add final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::Subtract final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  Subtract(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::Subtract), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct Ast::Multiply final : public Ast {
   std::unique_ptr<Ast> left;
   std::unique_ptr<Ast> right;
@@ -296,6 +309,10 @@ struct AstInterpreter {
 
   Value interpret_add(const Ast::Add &add) { return interpret(*add.left) + interpret(*add.right); }
 
+  Value interpret_subtract(const Ast::Subtract &subtract) {
+    return interpret(*subtract.left) - interpret(*subtract.right);
+  }
+
   Value interpret_multiply(const Ast::Multiply &multiply) {
     return interpret(*multiply.left) * interpret(*multiply.right);
   }
@@ -326,6 +343,8 @@ struct AstInterpreter {
         return interpret_if_else(ast_cast<Ast::IfElse const &>(ast));
       case Ast::Type::Add:
         return interpret_add(ast_cast<Ast::Add const &>(ast));
+      case Ast::Type::Subtract:
+        return interpret_subtract(ast_cast<Ast::Subtract const &>(ast));
       case Ast::Type::Multiply:
         return interpret_multiply(ast_cast<Ast::Multiply const &>(ast));
     }

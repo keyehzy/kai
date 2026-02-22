@@ -68,6 +68,14 @@ void Ast::Add::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::Subtract::dump(std::ostream &os) const {
+  os << "Subtract(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::Multiply::dump(std::ostream &os) const {
   os << "Multiply(";
   left->dump(os);
@@ -143,6 +151,12 @@ void Ast::IfElse::to_string(std::ostream &os, int indent) const {
 void Ast::Add::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " + ";
+  right->to_string(os, indent);
+}
+
+void Ast::Subtract::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " - ";
   right->to_string(os, indent);
 }
 

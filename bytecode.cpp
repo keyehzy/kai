@@ -61,6 +61,13 @@ void Bytecode::Instruction::Add::dump() const {
   std::printf("Add r%zu, r%zu, r%zu", dst, src1, src2);
 }
 
+Bytecode::Instruction::Subtract::Subtract(Register dst, Register src1, Register src2)
+    : Bytecode::Instruction(Type::Subtract), dst(dst), src1(src1), src2(src2) {}
+
+void Bytecode::Instruction::Subtract::dump() const {
+  std::printf("Subtract r%zu, r%zu, r%zu", dst, src1, src2);
+}
+
 Bytecode::Instruction::AddImmediate::AddImmediate(Register dst, Register src, Value value)
     : Bytecode::Instruction(Type::AddImmediate), dst(dst), src(src), value(value) {}
 
@@ -123,6 +130,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Add:
       visit_add(ast_cast<Ast::Add const &>(ast));
+      break;
+    case Ast::Type::Subtract:
+      visit_subtract(ast_cast<Ast::Subtract const &>(ast));
       break;
     case Ast::Type::Multiply:
       visit_multiply(ast_cast<Ast::Multiply const &>(ast));
@@ -268,6 +278,15 @@ void BytecodeGenerator::visit_add(const Ast::Add &add) {
                                                      reg_right);
 }
 
+void BytecodeGenerator::visit_subtract(const Ast::Subtract &subtract) {
+  visit(*subtract.left);
+  auto reg_left = reg_alloc_.current();
+  visit(*subtract.right);
+  auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Subtract>(reg_alloc_.allocate(), reg_left,
+                                                          reg_right);
+}
+
 void BytecodeGenerator::visit_multiply(const Ast::Multiply &multiply) {
   visit(*multiply.left);
   auto reg_left = reg_alloc_.current();
@@ -311,6 +330,10 @@ Bytecode::Value BytecodeInterpreter::interpret(
                                 .reg];
         case Bytecode::Instruction::Type::Add:
           interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
+          break;
+        case Bytecode::Instruction::Type::Subtract:
+          interpret_subtract(
+              ast::derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
           break;
         case Bytecode::Instruction::Type::AddImmediate:
           interpret_add_immediate(
@@ -358,6 +381,11 @@ void BytecodeInterpreter::interpret_jump_conditional(
 
 void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {
   registers_[add.dst] = registers_[add.src1] + registers_[add.src2];
+}
+
+void BytecodeInterpreter::interpret_subtract(
+    const Bytecode::Instruction::Subtract &subtract) {
+  registers_[subtract.dst] = registers_[subtract.src1] - registers_[subtract.src2];
 }
 
 void BytecodeInterpreter::interpret_add_immediate(

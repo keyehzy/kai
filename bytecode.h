@@ -34,6 +34,7 @@ struct Bytecode::Instruction {
     JumpConditional,
     Return,
     Add,
+    Subtract,
     AddImmediate,
     Multiply,
   };
@@ -47,6 +48,7 @@ struct Bytecode::Instruction {
   struct JumpConditional;
   struct Return;
   struct Add;
+  struct Subtract;
   struct AddImmediate;
   struct Multiply;
 
@@ -116,6 +118,15 @@ struct Bytecode::Instruction::Add final : Bytecode::Instruction {
   Register src2;
 };
 
+struct Bytecode::Instruction::Subtract final : Bytecode::Instruction {
+  Subtract(Register dst, Register src1, Register src2);
+  void dump() const override;
+
+  Register dst;
+  Register src1;
+  Register src2;
+};
+
 struct Bytecode::Instruction::AddImmediate final : Bytecode::Instruction {
   AddImmediate(Register dst, Register src, Value value);
   void dump() const override;
@@ -176,6 +187,7 @@ class BytecodeGenerator {
   void visit_while(const ast::Ast::While &while_);
   void visit_return(const ast::Ast::Return &return_);
   void visit_add(const ast::Ast::Add &add);
+  void visit_subtract(const ast::Ast::Subtract &subtract);
   void visit_multiply(const ast::Ast::Multiply &multiply);
   void visit_assignment(const ast::Ast::Assignment &assignment);
 
@@ -195,6 +207,7 @@ class BytecodeInterpreter {
   void interpret_jump(const Bytecode::Instruction::Jump &jump);
   void interpret_jump_conditional(const Bytecode::Instruction::JumpConditional &jump_cond);
   void interpret_add(const Bytecode::Instruction::Add &add);
+  void interpret_subtract(const Bytecode::Instruction::Subtract &subtract);
   void interpret_add_immediate(const Bytecode::Instruction::AddImmediate &add_imm);
   void interpret_multiply(const Bytecode::Instruction::Multiply &multiply);
 

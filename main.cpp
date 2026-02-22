@@ -17,6 +17,10 @@ std::unique_ptr<Ast::Multiply> mul(std::unique_ptr<Ast> left, std::unique_ptr<As
   return std::make_unique<Ast::Multiply>(std::move(left), std::move(right));
 }
 
+std::unique_ptr<Ast::Subtract> sub(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right) {
+  return std::make_unique<Ast::Subtract>(std::move(left), std::move(right));
+}
+
 std::unique_ptr<Ast::LessThan> lt(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right) {
   return std::make_unique<Ast::LessThan>(std::move(left), std::move(right));
 }
@@ -143,10 +147,28 @@ void test_if_else() {
   assert(interp.interpret(gen.blocks()) == 7);
 }
 
+void test_subtract() {
+  auto difference = [] {
+    auto decl_body = std::make_unique<Ast::Block>();
+    decl_body->append(decl("a", lit(20)));
+    decl_body->append(decl("b", lit(8)));
+    decl_body->append(ret(sub(var("a"), var("b"))));
+    return std::move(*decl_body);
+  }();
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(difference);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 12);
+}
+
 int main() {
   test_fibonacci();
   test_factorial();
   test_function_declaration();
   test_if_else();
+  test_subtract();
   return 0;
 }
