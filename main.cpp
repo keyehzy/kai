@@ -65,7 +65,7 @@ Ast::Block fibonacci_example() {
   return std::move(*decl_body);
 }
 
-int main() {
+void test_fibonacci() {
   auto fib = fibonacci_example();
   kai::bytecode::BytecodeGenerator gen;
   gen.visit_block(fib);
@@ -73,7 +73,10 @@ int main() {
   gen.dump();
 
   kai::bytecode::BytecodeInterpreter interp;
-  std::cout << interp.interpret(gen.blocks()) << "\n";
+  assert(interp.interpret(gen.blocks()) == 55);
+}
 
+int main() {
+  test_fibonacci();
   return 0;
 }
