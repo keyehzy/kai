@@ -37,6 +37,7 @@ struct Bytecode::Instruction {
     Subtract,
     AddImmediate,
     Multiply,
+    Divide,
   };
 
   Type type_;
@@ -51,6 +52,7 @@ struct Bytecode::Instruction {
   struct Subtract;
   struct AddImmediate;
   struct Multiply;
+  struct Divide;
 
   virtual ~Instruction() = default;
 
@@ -145,6 +147,15 @@ struct Bytecode::Instruction::Multiply final : Bytecode::Instruction {
   Register src2;
 };
 
+struct Bytecode::Instruction::Divide final : Bytecode::Instruction {
+  Divide(Register dst, Register src1, Register src2);
+  void dump() const override;
+
+  Register dst;
+  Register src1;
+  Register src2;
+};
+
 struct Bytecode::BasicBlock {
   std::vector<std::unique_ptr<Instruction>> instructions;
 
@@ -189,6 +200,7 @@ class BytecodeGenerator {
   void visit_add(const ast::Ast::Add &add);
   void visit_subtract(const ast::Ast::Subtract &subtract);
   void visit_multiply(const ast::Ast::Multiply &multiply);
+  void visit_divide(const ast::Ast::Divide &divide);
   void visit_assignment(const ast::Ast::Assignment &assignment);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
@@ -210,6 +222,7 @@ class BytecodeInterpreter {
   void interpret_subtract(const Bytecode::Instruction::Subtract &subtract);
   void interpret_add_immediate(const Bytecode::Instruction::AddImmediate &add_imm);
   void interpret_multiply(const Bytecode::Instruction::Multiply &multiply);
+  void interpret_divide(const Bytecode::Instruction::Divide &divide);
 
   u64 block_index = 0;
   std::unordered_map<Bytecode::Register, Bytecode::Value> registers_;

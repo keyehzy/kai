@@ -26,6 +26,7 @@ struct Ast {
     Add,
     Subtract,
     Multiply,
+    Divide,
   };
 
   struct FunctionDeclaration;
@@ -42,6 +43,7 @@ struct Ast {
   struct Add;
   struct Subtract;
   struct Multiply;
+  struct Divide;
 
   Type type;
 
@@ -237,6 +239,17 @@ struct Ast::Multiply final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::Divide final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  Divide(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::Divide), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct AstInterpreter {
   AstInterpreter() {
     push_scope();
@@ -319,6 +332,10 @@ struct AstInterpreter {
     return interpret(*multiply.left) * interpret(*multiply.right);
   }
 
+  Value interpret_divide(const Ast::Divide &divide) {
+    return interpret(*divide.left) / interpret(*divide.right);
+  }
+
   Value interpret(const Ast &ast) {
     switch (ast.type) {
       case Ast::Type::Variable:
@@ -349,6 +366,8 @@ struct AstInterpreter {
         return interpret_subtract(ast_cast<Ast::Subtract const &>(ast));
       case Ast::Type::Multiply:
         return interpret_multiply(ast_cast<Ast::Multiply const &>(ast));
+      case Ast::Type::Divide:
+        return interpret_divide(ast_cast<Ast::Divide const &>(ast));
     }
     assert(false);
   }

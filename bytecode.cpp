@@ -82,6 +82,13 @@ void Bytecode::Instruction::Multiply::dump() const {
   std::printf("Multiply r%zu, r%zu, r%zu", dst, src1, src2);
 }
 
+Bytecode::Instruction::Divide::Divide(Register dst, Register src1, Register src2)
+    : Bytecode::Instruction(Type::Divide), dst(dst), src1(src1), src2(src2) {}
+
+void Bytecode::Instruction::Divide::dump() const {
+  std::printf("Divide r%zu, r%zu, r%zu", dst, src1, src2);
+}
+
 void Bytecode::BasicBlock::dump() const {
   for (const auto &instr : instructions) {
     std::printf("  ");
@@ -136,6 +143,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Multiply:
       visit_multiply(ast_cast<Ast::Multiply const &>(ast));
+      break;
+    case Ast::Type::Divide:
+      visit_divide(ast_cast<Ast::Divide const &>(ast));
       break;
     case Ast::Type::Assignment:
       visit_assignment(ast_cast<Ast::Assignment const &>(ast));
@@ -296,6 +306,15 @@ void BytecodeGenerator::visit_multiply(const Ast::Multiply &multiply) {
                                                           reg_right);
 }
 
+void BytecodeGenerator::visit_divide(const Ast::Divide &divide) {
+  visit(*divide.left);
+  auto reg_left = reg_alloc_.current();
+  visit(*divide.right);
+  auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Divide>(reg_alloc_.allocate(), reg_left,
+                                                        reg_right);
+}
+
 void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
   visit(*assignment.value);
   current_block().append<Bytecode::Instruction::Move>(vars_[assignment.name],
@@ -342,6 +361,9 @@ Bytecode::Value BytecodeInterpreter::interpret(
         case Bytecode::Instruction::Type::Multiply:
           interpret_multiply(
               ast::derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
+          break;
+        case Bytecode::Instruction::Type::Divide:
+          interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
           break;
         default:
           assert(false);
@@ -396,6 +418,10 @@ void BytecodeInterpreter::interpret_add_immediate(
 void BytecodeInterpreter::interpret_multiply(
     const Bytecode::Instruction::Multiply &multiply) {
   registers_[multiply.dst] = registers_[multiply.src1] * registers_[multiply.src2];
+}
+
+void BytecodeInterpreter::interpret_divide(const Bytecode::Instruction::Divide &divide) {
+  registers_[divide.dst] = registers_[divide.src1] / registers_[divide.src2];
 }
 
 }  // namespace bytecode

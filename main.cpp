@@ -17,6 +17,10 @@ std::unique_ptr<Ast::Multiply> mul(std::unique_ptr<Ast> left, std::unique_ptr<As
   return std::make_unique<Ast::Multiply>(std::move(left), std::move(right));
 }
 
+std::unique_ptr<Ast::Divide> div(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right) {
+  return std::make_unique<Ast::Divide>(std::move(left), std::move(right));
+}
+
 std::unique_ptr<Ast::Subtract> sub(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right) {
   return std::make_unique<Ast::Subtract>(std::move(left), std::move(right));
 }
@@ -164,6 +168,23 @@ void test_subtract() {
   assert(interp.interpret(gen.blocks()) == 12);
 }
 
+void test_divide() {
+  auto quotient = [] {
+    auto decl_body = std::make_unique<Ast::Block>();
+    decl_body->append(decl("a", lit(20)));
+    decl_body->append(decl("b", lit(5)));
+    decl_body->append(ret(div(var("a"), var("b"))));
+    return std::move(*decl_body);
+  }();
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(quotient);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 4);
+}
+
 void test_top_level_block_example() {
   Ast::Block program;
   program.append(ret(lit(42)));
@@ -183,6 +204,7 @@ int main() {
   test_function_declaration();
   test_if_else();
   test_subtract();
+  test_divide();
   test_top_level_block_example();
   return 0;
 }
