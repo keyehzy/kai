@@ -198,6 +198,35 @@ void test_top_level_block_example() {
   assert(interp.interpret(gen.blocks()) == 42);
 }
 
+void test_nested_if_inside_while() {
+  auto program = [] {
+    auto decl_body = std::make_unique<Ast::Block>();
+    decl_body->append(decl("n", lit(3)));
+    decl_body->append(decl("i", lit(0)));
+    decl_body->append(decl("x", lit(0)));
+
+    auto while_body = std::make_unique<Ast::Block>();
+    auto if_body = std::make_unique<Ast::Block>();
+    if_body->append(assign("x", add(var("x"), lit(10))));
+    auto else_body = std::make_unique<Ast::Block>();
+    else_body->append(assign("x", add(var("x"), lit(1))));
+    while_body->append(if_else(lt(var("i"), lit(1)), std::move(if_body), std::move(else_body)));
+    while_body->append(inc("i"));
+
+    decl_body->append(while_loop(lt(var("i"), var("n")), std::move(while_body)));
+    decl_body->append(ret(var("x")));
+    return std::move(*decl_body);
+  }();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(program);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 12);
+}
+
 int main() {
   test_fibonacci();
   test_factorial();
@@ -206,5 +235,6 @@ int main() {
   test_subtract();
   test_divide();
   test_top_level_block_example();
+  test_nested_if_inside_while();
   return 0;
 }

@@ -170,13 +170,16 @@ void BytecodeGenerator::visit_block(const Ast::Block &block) {
 void BytecodeGenerator::finalize() {
   for (size_t i = 0; i < blocks_.size(); ++i) {
     auto &block = blocks_[i];
+    bool has_terminator = false;
     if (!block.instructions.empty()) {
       auto last_type = block.instructions.back()->type();
-      if (last_type != Bytecode::Instruction::Type::Jump &&
-          last_type != Bytecode::Instruction::Type::JumpConditional &&
-          last_type != Bytecode::Instruction::Type::Return) {
-        block.append<Bytecode::Instruction::Jump>(i + 1);
-      }
+      has_terminator = last_type == Bytecode::Instruction::Type::Jump ||
+                       last_type == Bytecode::Instruction::Type::JumpConditional ||
+                       last_type == Bytecode::Instruction::Type::Return;
+    }
+
+    if (!has_terminator && i + 1 < blocks_.size()) {
+      block.append<Bytecode::Instruction::Jump>(i + 1);
     }
   }
 }
@@ -246,32 +249,36 @@ void BytecodeGenerator::visit_if_else(const Ast::IfElse &ifelse) {
   auto &jump_conditional =
       current_block().append<Bytecode::Instruction::JumpConditional>(reg_id, -1, -1);
 
+  auto if_body_label = static_cast<Bytecode::Label>(blocks_.size());
   visit_block(*ifelse.body);
-  auto label_after_body = current_label();
-  jump_conditional.label1 = label_after_body;
-  jump_conditional.label2 = label_after_body + 1;
   auto &jump_to_end = current_block().append<Bytecode::Instruction::Jump>(-1);
 
+  auto else_body_label = static_cast<Bytecode::Label>(blocks_.size());
   visit_block(*ifelse.else_body);
-  auto label_after_else = current_label();
-  jump_to_end.label = label_after_else + 1;
+  auto end_label = static_cast<Bytecode::Label>(blocks_.size());
   blocks_.emplace_back();
+
+  jump_conditional.label1 = if_body_label;
+  jump_conditional.label2 = else_body_label;
+  jump_to_end.label = end_label;
 }
 
 void BytecodeGenerator::visit_while(const Ast::While &while_) {
   blocks_.emplace_back();
+  auto condition_label = current_label();
   visit(*while_.condition);
   auto reg_id = reg_alloc_.current();
-  auto block_label = current_label();
   auto &jump_conditional =
       current_block().append<Bytecode::Instruction::JumpConditional>(reg_id, -1, -1);
 
+  auto body_label = static_cast<Bytecode::Label>(blocks_.size());
   visit_block(*while_.body);
-  auto label_after_body = current_label();
-  jump_conditional.label1 = label_after_body;
-  jump_conditional.label2 = label_after_body + 1;
-  current_block().append<Bytecode::Instruction::Jump>(block_label);
+  current_block().append<Bytecode::Instruction::Jump>(condition_label);
+  auto end_label = static_cast<Bytecode::Label>(blocks_.size());
   blocks_.emplace_back();
+
+  jump_conditional.label1 = body_label;
+  jump_conditional.label2 = end_label;
 }
 
 void BytecodeGenerator::visit_return(const Ast::Return &return_) {
