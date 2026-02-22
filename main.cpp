@@ -40,6 +40,13 @@ std::unique_ptr<Ast::While> while_loop(std::unique_ptr<Ast::LessThan> condition,
   return std::make_unique<Ast::While>(std::move(condition), std::move(body));
 }
 
+std::unique_ptr<Ast::IfElse> if_else(std::unique_ptr<Ast::LessThan> condition,
+                                     std::unique_ptr<Ast::Block> body,
+                                     std::unique_ptr<Ast::Block> else_body) {
+  return std::make_unique<Ast::IfElse>(std::move(condition), std::move(body),
+                                       std::move(else_body));
+}
+
 Ast::Block fibonacci_example() {
   // begin function declaration
   auto decl_body = std::make_unique<Ast::Block>();
@@ -80,6 +87,24 @@ Ast::Block factorial_example() {
   block->append(inc("i"));
   decl_body->append(while_loop(lt(var("i"), add(var("n"), lit(1))), std::move(block)));
   decl_body->append(ret(var("result")));
+  return std::move(*decl_body);
+}
+
+Ast::Block max_example() {
+  auto decl_body = std::make_unique<Ast::Block>();
+  decl_body->append(decl("a", lit(4)));
+  decl_body->append(decl("b", lit(7)));
+  decl_body->append(decl("max", lit(0)));
+
+  auto if_body = std::make_unique<Ast::Block>();
+  if_body->append(assign("max", var("a")));
+
+  auto else_body = std::make_unique<Ast::Block>();
+  else_body->append(assign("max", var("b")));
+
+  decl_body->append(
+      if_else(lt(var("b"), var("a")), std::move(if_body), std::move(else_body)));
+  decl_body->append(ret(var("max")));
   return std::move(*decl_body);
 }
 
@@ -124,9 +149,21 @@ void test_function_declaration() {
   assert(interp.interpret(gen.blocks()) == 6);
 }
 
+void test_if_else() {
+  auto max = max_example();
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(max);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 7);
+}
+
 int main() {
   test_fibonacci();
   test_factorial();
   test_function_declaration();
+  test_if_else();
   return 0;
 }
