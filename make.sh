@@ -8,5 +8,5 @@ CXXFLAGS="${CXXFLAGS:--O0 -g3 -Wall -Wextra -std=c++20}"
 CXX="${CXX:-clang++}"
 CC="${CC:-clang}"
 
-${CXX} ${CXXFLAGS} -o main main.cpp ast.cpp bytecode.cpp
-./main
+${CXX} ${CXXFLAGS} -o test/main test/main.cpp test/test_bytecode_*.cpp ast.cpp bytecode.cpp
+./test/main
