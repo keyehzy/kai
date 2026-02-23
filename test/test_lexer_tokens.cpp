@@ -101,3 +101,18 @@ TEST_CASE("test_lexer_recognizes_commas") {
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_basic_arithmetic_operators") {
+  const auto types = lex_types("a - b * c / d");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::minus,
+                       Token::Type::identifier,
+                       Token::Type::star,
+                       Token::Type::identifier,
+                       Token::Type::slash,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}
