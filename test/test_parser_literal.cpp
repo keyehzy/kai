@@ -85,3 +85,21 @@ TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
   REQUIRE(ast_cast<const Ast::Variable &>(*right.left).name == "c");
   REQUIRE(ast_cast<const Ast::Variable &>(*right.right).name == "d");
 }
+
+TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
+  kai::Parser parser("8 + 9 % 5");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Add);
+
+  const auto &add = ast_cast<const Ast::Add &>(*parsed);
+  REQUIRE(add.left->type == Ast::Type::Literal);
+  REQUIRE(add.right->type == Ast::Type::Modulo);
+
+  const auto &modulo = ast_cast<const Ast::Modulo &>(*add.right);
+  REQUIRE(modulo.left->type == Ast::Type::Literal);
+  REQUIRE(modulo.right->type == Ast::Type::Literal);
+  REQUIRE(ast_cast<const Ast::Literal &>(*modulo.left).value == 9);
+  REQUIRE(ast_cast<const Ast::Literal &>(*modulo.right).value == 5);
+}

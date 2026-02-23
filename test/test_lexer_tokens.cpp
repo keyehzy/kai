@@ -116,3 +116,14 @@ TEST_CASE("test_lexer_recognizes_basic_arithmetic_operators") {
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_modulo_operator") {
+  const auto types = lex_types("a % b");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::percent,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}

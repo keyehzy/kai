@@ -106,6 +106,13 @@ void Bytecode::Instruction::Divide::dump() const {
   std::printf("Divide r%zu, r%zu, r%zu", dst, src1, src2);
 }
 
+Bytecode::Instruction::Modulo::Modulo(Register dst, Register src1, Register src2)
+    : Bytecode::Instruction(Type::Modulo), dst(dst), src1(src1), src2(src2) {}
+
+void Bytecode::Instruction::Modulo::dump() const {
+  std::printf("Modulo r%zu, r%zu, r%zu", dst, src1, src2);
+}
+
 Bytecode::Instruction::ArrayCreate::ArrayCreate(Register dst,
                                                 std::vector<Register> elements)
     : Bytecode::Instruction(Type::ArrayCreate), dst(dst), elements(std::move(elements)) {}
@@ -198,6 +205,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Divide:
       visit_divide(ast_cast<Ast::Divide const &>(ast));
+      break;
+    case Ast::Type::Modulo:
+      visit_modulo(ast_cast<Ast::Modulo const &>(ast));
       break;
     case Ast::Type::ArrayLiteral:
       visit_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
@@ -411,6 +421,15 @@ void BytecodeGenerator::visit_divide(const Ast::Divide &divide) {
                                                         reg_right);
 }
 
+void BytecodeGenerator::visit_modulo(const Ast::Modulo &modulo) {
+  visit(*modulo.left);
+  auto reg_left = reg_alloc_.current();
+  visit(*modulo.right);
+  auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Modulo>(reg_alloc_.allocate(), reg_left,
+                                                        reg_right);
+}
+
 void BytecodeGenerator::visit_array_literal(const Ast::ArrayLiteral &array_literal) {
   std::vector<Bytecode::Register> element_regs;
   element_regs.reserve(array_literal.elements.size());
@@ -522,6 +541,10 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::Modulo:
+        interpret_modulo(ast::derived_cast<Bytecode::Instruction::Modulo const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::ArrayCreate:
         interpret_array_create(
             ast::derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
@@ -601,6 +624,10 @@ void BytecodeInterpreter::interpret_multiply(
 
 void BytecodeInterpreter::interpret_divide(const Bytecode::Instruction::Divide &divide) {
   registers_[divide.dst] = registers_[divide.src1] / registers_[divide.src2];
+}
+
+void BytecodeInterpreter::interpret_modulo(const Bytecode::Instruction::Modulo &modulo) {
+  registers_[modulo.dst] = registers_[modulo.src1] % registers_[modulo.src2];
 }
 
 void BytecodeInterpreter::interpret_array_create(

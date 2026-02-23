@@ -32,6 +32,11 @@ inline std::unique_ptr<Ast::Divide> div(std::unique_ptr<Ast> left,
   return std::make_unique<Ast::Divide>(std::move(left), std::move(right));
 }
 
+inline std::unique_ptr<Ast::Modulo> mod(std::unique_ptr<Ast> left,
+                                        std::unique_ptr<Ast> right) {
+  return std::make_unique<Ast::Modulo>(std::move(left), std::move(right));
+}
+
 inline std::unique_ptr<Ast::Subtract> sub(std::unique_ptr<Ast> left,
                                           std::unique_ptr<Ast> right) {
   return std::make_unique<Ast::Subtract>(std::move(left), std::move(right));

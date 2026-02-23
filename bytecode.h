@@ -39,6 +39,7 @@ struct Bytecode::Instruction {
     AddImmediate,
     Multiply,
     Divide,
+    Modulo,
     ArrayCreate,
     ArrayLoad,
     ArrayStore,
@@ -58,6 +59,7 @@ struct Bytecode::Instruction {
   struct AddImmediate;
   struct Multiply;
   struct Divide;
+  struct Modulo;
   struct ArrayCreate;
   struct ArrayLoad;
   struct ArrayStore;
@@ -172,6 +174,15 @@ struct Bytecode::Instruction::Divide final : Bytecode::Instruction {
   Register src2;
 };
 
+struct Bytecode::Instruction::Modulo final : Bytecode::Instruction {
+  Modulo(Register dst, Register src1, Register src2);
+  void dump() const override;
+
+  Register dst;
+  Register src1;
+  Register src2;
+};
+
 struct Bytecode::Instruction::ArrayCreate final : Bytecode::Instruction {
   ArrayCreate(Register dst, std::vector<Register> elements);
   void dump() const override;
@@ -244,6 +255,7 @@ class BytecodeGenerator {
   void visit_subtract(const ast::Ast::Subtract &subtract);
   void visit_multiply(const ast::Ast::Multiply &multiply);
   void visit_divide(const ast::Ast::Divide &divide);
+  void visit_modulo(const ast::Ast::Modulo &modulo);
   void visit_array_literal(const ast::Ast::ArrayLiteral &array_literal);
   void visit_index(const ast::Ast::Index &index);
   void visit_index_assignment(const ast::Ast::IndexAssignment &index_assignment);
@@ -273,6 +285,7 @@ class BytecodeInterpreter {
   void interpret_add_immediate(const Bytecode::Instruction::AddImmediate &add_imm);
   void interpret_multiply(const Bytecode::Instruction::Multiply &multiply);
   void interpret_divide(const Bytecode::Instruction::Divide &divide);
+  void interpret_modulo(const Bytecode::Instruction::Modulo &modulo);
   void interpret_array_create(const Bytecode::Instruction::ArrayCreate &array_create);
   void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
   void interpret_array_store(const Bytecode::Instruction::ArrayStore &array_store);

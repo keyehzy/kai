@@ -91,3 +91,21 @@ TEST_CASE("test_bytecode_divide") {
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 4);
 }
+
+TEST_CASE("test_bytecode_modulo") {
+    auto remainder = [] {
+      auto decl_body = std::make_unique<Ast::Block>();
+      decl_body->append(decl("a", lit(20)));
+      decl_body->append(decl("b", lit(6)));
+      decl_body->append(ret(mod(var("a"), var("b"))));
+      return std::move(*decl_body);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(remainder);
+    gen.finalize();
+    gen.dump();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 2);
+}

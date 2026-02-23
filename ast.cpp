@@ -96,6 +96,14 @@ void Ast::Divide::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::Modulo::dump(std::ostream &os) const {
+  os << "Modulo(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::ArrayLiteral::dump(std::ostream &os) const {
   os << "ArrayLiteral(";
   for (size_t i = 0; i < elements.size(); ++i) {
@@ -214,6 +222,12 @@ void Ast::Multiply::to_string(std::ostream &os, int indent) const {
 void Ast::Divide::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " / ";
+  right->to_string(os, indent);
+}
+
+void Ast::Modulo::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " % ";
   right->to_string(os, indent);
 }
 

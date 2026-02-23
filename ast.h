@@ -28,6 +28,7 @@ struct Ast {
     Subtract,
     Multiply,
     Divide,
+    Modulo,
     ArrayLiteral,
     Index,
     IndexAssignment,
@@ -49,6 +50,7 @@ struct Ast {
   struct Subtract;
   struct Multiply;
   struct Divide;
+  struct Modulo;
   struct ArrayLiteral;
   struct Index;
   struct IndexAssignment;
@@ -268,6 +270,17 @@ struct Ast::Divide final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::Modulo final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  Modulo(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::Modulo), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct Ast::ArrayLiteral final : public Ast {
   std::vector<std::unique_ptr<Ast>> elements;
 
@@ -398,6 +411,10 @@ struct AstInterpreter {
     return interpret(*divide.left) / interpret(*divide.right);
   }
 
+  Value interpret_modulo(const Ast::Modulo &modulo) {
+    return interpret(*modulo.left) % interpret(*modulo.right);
+  }
+
   Value interpret_array_literal(const Ast::ArrayLiteral &array_literal) {
     const auto handle = next_array_handle++;
     auto &array = arrays[handle];
@@ -462,6 +479,8 @@ struct AstInterpreter {
         return interpret_multiply(ast_cast<Ast::Multiply const &>(ast));
       case Ast::Type::Divide:
         return interpret_divide(ast_cast<Ast::Divide const &>(ast));
+      case Ast::Type::Modulo:
+        return interpret_modulo(ast_cast<Ast::Modulo const &>(ast));
       case Ast::Type::ArrayLiteral:
         return interpret_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
       case Ast::Type::Index:

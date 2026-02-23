@@ -38,7 +38,8 @@ std::unique_ptr<ast::Ast> Parser::parse_multiplicative() {
 
   while (true) {
     const Token::Type op = lexer_.peek().type;
-    if (op != Token::Type::star && op != Token::Type::slash) {
+    if (op != Token::Type::star && op != Token::Type::slash &&
+        op != Token::Type::percent) {
       return left;
     }
 
@@ -46,8 +47,10 @@ std::unique_ptr<ast::Ast> Parser::parse_multiplicative() {
     std::unique_ptr<ast::Ast> right = parse_primary();
     if (op == Token::Type::star) {
       left = std::make_unique<ast::Ast::Multiply>(std::move(left), std::move(right));
-    } else {
+    } else if (op == Token::Type::slash) {
       left = std::make_unique<ast::Ast::Divide>(std::move(left), std::move(right));
+    } else {
+      left = std::make_unique<ast::Ast::Modulo>(std::move(left), std::move(right));
     }
   }
 }
