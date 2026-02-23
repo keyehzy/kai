@@ -325,3 +325,22 @@ return x;
   REQUIRE(if_with_else.body->children.size() == 1);
   REQUIRE(if_with_else.else_body->children.size() == 1);
 }
+
+TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
+  kai::Parser parser("struct { x: 40, y: 2 }.x");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::FieldAccess);
+
+  const auto &field_access = ast_cast<const Ast::FieldAccess &>(*parsed);
+  REQUIRE(field_access.field == "x");
+  REQUIRE(field_access.object->type == Ast::Type::StructLiteral);
+
+  const auto &struct_literal = ast_cast<const Ast::StructLiteral &>(*field_access.object);
+  REQUIRE(struct_literal.fields.size() == 2);
+  REQUIRE(struct_literal.fields[0].first == "x");
+  REQUIRE(struct_literal.fields[1].first == "y");
+  REQUIRE(struct_literal.fields[0].second->type == Ast::Type::Literal);
+  REQUIRE(struct_literal.fields[1].second->type == Ast::Type::Literal);
+}

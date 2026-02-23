@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace kai {
@@ -37,6 +38,8 @@ struct Ast {
     ArrayLiteral,
     Index,
     IndexAssignment,
+    StructLiteral,
+    FieldAccess,
   };
 
   struct FunctionDeclaration;
@@ -64,6 +67,8 @@ struct Ast {
   struct ArrayLiteral;
   struct Index;
   struct IndexAssignment;
+  struct StructLiteral;
+  struct FieldAccess;
 
   Type type;
 
@@ -396,6 +401,27 @@ struct Ast::IndexAssignment final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::StructLiteral final : public Ast {
+  std::vector<std::pair<std::string, std::unique_ptr<Ast>>> fields;
+
+  explicit StructLiteral(std::vector<std::pair<std::string, std::unique_ptr<Ast>>> fields)
+      : Ast(Type::StructLiteral), fields(std::move(fields)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::FieldAccess final : public Ast {
+  std::unique_ptr<Ast> object;
+  std::string field;
+
+  FieldAccess(std::unique_ptr<Ast> object, std::string field)
+      : Ast(Type::FieldAccess), object(std::move(object)), field(std::move(field)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct AstInterpreter {
   AstInterpreter() {
     push_scope();
@@ -557,7 +583,7 @@ struct AstInterpreter {
   }
 
   Value interpret_array_literal(const Ast::ArrayLiteral &array_literal) {
-    const auto handle = next_array_handle++;
+    const auto handle = next_heap_handle++;
     auto &array = arrays[handle];
     array.reserve(array_literal.elements.size());
     for (const auto &element : array_literal.elements) {
@@ -584,6 +610,24 @@ struct AstInterpreter {
     assert(idx < it->second.size());
     it->second[idx] = value;
     return value;
+  }
+
+  Value interpret_struct_literal(const Ast::StructLiteral &struct_literal) {
+    const auto handle = next_heap_handle++;
+    auto &fields = structs[handle];
+    for (const auto &field : struct_literal.fields) {
+      fields[field.first] = interpret(*field.second);
+    }
+    return handle;
+  }
+
+  Value interpret_field_access(const Ast::FieldAccess &field_access) {
+    const auto handle = interpret(*field_access.object);
+    const auto struct_it = structs.find(handle);
+    assert(struct_it != structs.end());
+    const auto field_it = struct_it->second.find(field_access.field);
+    assert(field_it != struct_it->second.end());
+    return field_it->second;
   }
 
   Value interpret(const Ast &ast) {
@@ -639,6 +683,10 @@ struct AstInterpreter {
         return interpret_index(ast_cast<Ast::Index const &>(ast));
       case Ast::Type::IndexAssignment:
         return interpret_index_assignment(ast_cast<Ast::IndexAssignment const &>(ast));
+      case Ast::Type::StructLiteral:
+        return interpret_struct_literal(ast_cast<Ast::StructLiteral const &>(ast));
+      case Ast::Type::FieldAccess:
+        return interpret_field_access(ast_cast<Ast::FieldAccess const &>(ast));
     }
     assert(false);
   }
@@ -668,7 +716,8 @@ struct AstInterpreter {
   std::vector<std::unordered_map<std::string, Value>> scopes;
   std::unordered_map<std::string, const Ast::FunctionDeclaration *> functions;
   std::unordered_map<Value, std::vector<Value>> arrays;
-  Value next_array_handle = 1;
+  std::unordered_map<Value, std::unordered_map<std::string, Value>> structs;
+  Value next_heap_handle = 1;
   bool return_active_ = false;
   Value return_value_ = 0;
 };

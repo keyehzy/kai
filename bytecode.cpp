@@ -199,6 +199,32 @@ void Bytecode::Instruction::ArrayStore::dump() const {
   std::printf("ArrayStore r%zu, r%zu, r%zu", array, index, value);
 }
 
+Bytecode::Instruction::StructCreate::StructCreate(
+    Register dst, std::vector<std::pair<std::string, Register>> fields)
+    : Bytecode::Instruction(Type::StructCreate), dst(dst), fields(std::move(fields)) {}
+
+void Bytecode::Instruction::StructCreate::dump() const {
+  std::printf("StructCreate r%zu, {", dst);
+  for (size_t i = 0; i < fields.size(); ++i) {
+    if (i != 0) {
+      std::printf(", ");
+    }
+    std::printf("%s: r%zu", fields[i].first.c_str(), fields[i].second);
+  }
+  std::printf("}");
+}
+
+Bytecode::Instruction::StructLoad::StructLoad(Register dst, Register object,
+                                              std::string field)
+    : Bytecode::Instruction(Type::StructLoad),
+      dst(dst),
+      object(object),
+      field(std::move(field)) {}
+
+void Bytecode::Instruction::StructLoad::dump() const {
+  std::printf("StructLoad r%zu, r%zu, %s", dst, object, field.c_str());
+}
+
 void Bytecode::BasicBlock::dump() const {
   for (const auto &instr : instructions) {
     std::printf("  ");
@@ -286,6 +312,12 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::IndexAssignment:
       visit_index_assignment(ast_cast<Ast::IndexAssignment const &>(ast));
+      break;
+    case Ast::Type::StructLiteral:
+      visit_struct_literal(ast_cast<Ast::StructLiteral const &>(ast));
+      break;
+    case Ast::Type::FieldAccess:
+      visit_field_access(ast_cast<Ast::FieldAccess const &>(ast));
       break;
     case Ast::Type::Assignment:
       visit_assignment(ast_cast<Ast::Assignment const &>(ast));
@@ -601,6 +633,25 @@ void BytecodeGenerator::visit_index_assignment(
   current_block().append<Bytecode::Instruction::ArrayStore>(array_reg, index_reg, value_reg);
 }
 
+void BytecodeGenerator::visit_struct_literal(const Ast::StructLiteral &struct_literal) {
+  std::vector<std::pair<std::string, Bytecode::Register>> fields;
+  fields.reserve(struct_literal.fields.size());
+  for (const auto &field : struct_literal.fields) {
+    visit(*field.second);
+    fields.emplace_back(field.first, reg_alloc_.current());
+  }
+  current_block().append<Bytecode::Instruction::StructCreate>(reg_alloc_.allocate(),
+                                                              std::move(fields));
+}
+
+void BytecodeGenerator::visit_field_access(const Ast::FieldAccess &field_access) {
+  visit(*field_access.object);
+  const auto object_reg = reg_alloc_.current();
+  const auto dst_reg = reg_alloc_.allocate();
+  current_block().append<Bytecode::Instruction::StructLoad>(
+      dst_reg, object_reg, field_access.field);
+}
+
 void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
   visit(*assignment.value);
   current_block().append<Bytecode::Instruction::Move>(vars_[assignment.name],
@@ -615,7 +666,8 @@ Bytecode::Value BytecodeInterpreter::interpret(
   call_stack_.clear();
   registers_.clear();
   arrays_.clear();
-  next_array_id_ = 1;
+  structs_.clear();
+  next_heap_id_ = 1;
 
   for (;;) {
     assert(block_index < blocks.size());
@@ -721,6 +773,16 @@ Bytecode::Value BytecodeInterpreter::interpret(
       case Bytecode::Instruction::Type::ArrayStore:
         interpret_array_store(
             ast::derived_cast<Bytecode::Instruction::ArrayStore const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::StructCreate:
+        interpret_struct_create(
+            ast::derived_cast<Bytecode::Instruction::StructCreate const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::StructLoad:
+        interpret_struct_load(
+            ast::derived_cast<Bytecode::Instruction::StructLoad const &>(*instr));
         ++instr_index_;
         break;
       default:
@@ -834,7 +896,7 @@ void BytecodeInterpreter::interpret_modulo(const Bytecode::Instruction::Modulo &
 
 void BytecodeInterpreter::interpret_array_create(
     const Bytecode::Instruction::ArrayCreate &array_create) {
-  auto array_id = next_array_id_++;
+  auto array_id = next_heap_id_++;
   auto &array = arrays_[array_id];
   array.reserve(array_create.elements.size());
   for (auto element_reg : array_create.elements) {
@@ -862,6 +924,26 @@ void BytecodeInterpreter::interpret_array_store(
   assert(it != arrays_.end());
   assert(index < it->second.size());
   it->second[index] = value;
+}
+
+void BytecodeInterpreter::interpret_struct_create(
+    const Bytecode::Instruction::StructCreate &struct_create) {
+  auto struct_id = next_heap_id_++;
+  auto &fields = structs_[struct_id];
+  for (const auto &field : struct_create.fields) {
+    fields[field.first] = registers_[field.second];
+  }
+  registers_[struct_create.dst] = struct_id;
+}
+
+void BytecodeInterpreter::interpret_struct_load(
+    const Bytecode::Instruction::StructLoad &struct_load) {
+  const auto struct_id = registers_[struct_load.object];
+  const auto struct_it = structs_.find(struct_id);
+  assert(struct_it != structs_.end());
+  const auto field_it = struct_it->second.find(struct_load.field);
+  assert(field_it != struct_it->second.end());
+  registers_[struct_load.dst] = field_it->second;
 }
 
 }  // namespace bytecode

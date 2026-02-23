@@ -111,3 +111,18 @@ inline std::unique_ptr<Ast::IndexAssignment> idx_assign(
                                                 std::move(index_expr),
                                                 std::move(value_expr));
 }
+
+inline std::unique_ptr<Ast::StructLiteral> struct_lit(
+    std::initializer_list<std::pair<const char *, int>> fields) {
+  std::vector<std::pair<std::string, std::unique_ptr<Ast>>> values;
+  values.reserve(fields.size());
+  for (const auto &field : fields) {
+    values.emplace_back(field.first, lit(field.second));
+  }
+  return std::make_unique<Ast::StructLiteral>(std::move(values));
+}
+
+inline std::unique_ptr<Ast::FieldAccess> field_get(std::unique_ptr<Ast> object_expr,
+                                                   const char *field) {
+  return std::make_unique<Ast::FieldAccess>(std::move(object_expr), field);
+}

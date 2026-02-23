@@ -187,6 +187,24 @@ void Ast::IndexAssignment::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::StructLiteral::dump(std::ostream &os) const {
+  os << "StructLiteral(";
+  for (size_t i = 0; i < fields.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    os << fields[i].first << ": ";
+    fields[i].second->dump(os);
+  }
+  os << ")";
+}
+
+void Ast::FieldAccess::dump(std::ostream &os) const {
+  os << "FieldAccess(";
+  object->dump(os);
+  os << ", " << field << ")";
+}
+
 std::string indent_str(int indent) {
   return std::string(2 * indent, ' ');
 }
@@ -358,6 +376,24 @@ void Ast::IndexAssignment::to_string(std::ostream &os, int indent) const {
   os << "] = ";
   value->to_string(os, indent);
   os << "\n";
+}
+
+void Ast::StructLiteral::to_string(std::ostream &os, int indent) const {
+  (void)indent;
+  os << "struct { ";
+  for (size_t i = 0; i < fields.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    os << fields[i].first << ": ";
+    fields[i].second->to_string(os, indent);
+  }
+  os << " }";
+}
+
+void Ast::FieldAccess::to_string(std::ostream &os, int indent) const {
+  object->to_string(os, indent);
+  os << "." << field;
 }
 } // namespace ast
 } // namespace kai

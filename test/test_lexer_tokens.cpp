@@ -142,6 +142,26 @@ TEST_CASE("test_lexer_recognizes_array_index_assignment_tokens") {
                    });
 }
 
+TEST_CASE("test_lexer_recognizes_struct_literal_and_field_access_tokens") {
+  const auto types = lex_types("struct { x: 1, y: 2 }.x");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::lcurly,
+                       Token::Type::identifier,
+                       Token::Type::colon,
+                       Token::Type::number,
+                       Token::Type::comma,
+                       Token::Type::identifier,
+                       Token::Type::colon,
+                       Token::Type::number,
+                       Token::Type::rcurly,
+                       Token::Type::dot,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}
+
 TEST_CASE("test_lexer_recognizes_commas") {
   const auto types = lex_types("[1, 2, 3]");
 

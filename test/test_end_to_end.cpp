@@ -460,3 +460,23 @@ return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
   kai::bytecode::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 12345);
 }
+
+TEST_CASE("test_program_end_to_end_structs_minimal") {
+  kai::Parser parser(R"(
+let point = struct { x: 40, y: 2 };
+return point.x + point.y;
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 42);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
+}

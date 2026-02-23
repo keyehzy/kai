@@ -23,6 +23,8 @@ struct Token {
     lsquare = '[',
     rsquare = ']',
     comma = ',',
+    colon = ':',
+    dot = '.',
     semicolon = ';',
 
     equals = '=',
@@ -152,6 +154,8 @@ private:
     case '[':
     case ']':
     case ',':
+    case ':':
+    case '.':
     case ';':
     case '-':
     case '*':

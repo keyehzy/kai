@@ -3,6 +3,7 @@
 #include <cassert>
 #include <charconv>
 #include <system_error>
+#include <utility>
 
 namespace kai {
 
@@ -285,6 +286,15 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
       continue;
     }
 
+    if (lexer_.peek().type == Token::Type::dot) {
+      lexer_.skip();
+      assert(lexer_.peek().type == Token::Type::identifier);
+      const std::string field_name(lexer_.peek().sv());
+      lexer_.skip();
+      expr = std::make_unique<ast::Ast::FieldAccess>(std::move(expr), field_name);
+      continue;
+    }
+
     if (lexer_.peek().type == Token::Type::plus_plus) {
       assert(expr->type == ast::Ast::Type::Variable);
       const std::string name = ast::ast_cast<const ast::Ast::Variable &>(*expr).name;
@@ -321,6 +331,33 @@ std::unique_ptr<ast::Ast> Parser::parse_array_literal() {
   return std::make_unique<ast::Ast::ArrayLiteral>(std::move(elements));
 }
 
+std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
+  assert(token_is_identifier(lexer_.peek(), "struct"));
+  lexer_.skip();
+  assert(lexer_.peek().type == Token::Type::lcurly);
+  lexer_.skip();
+
+  std::vector<std::pair<std::string, std::unique_ptr<ast::Ast>>> fields;
+  if (lexer_.peek().type != Token::Type::rcurly) {
+    while (true) {
+      assert(lexer_.peek().type == Token::Type::identifier);
+      std::string field_name(lexer_.peek().sv());
+      lexer_.skip();
+      assert(lexer_.peek().type == Token::Type::colon);
+      lexer_.skip();
+      fields.emplace_back(std::move(field_name), parse_assignment());
+      if (lexer_.peek().type != Token::Type::comma) {
+        break;
+      }
+      lexer_.skip();
+    }
+  }
+
+  assert(lexer_.peek().type == Token::Type::rcurly);
+  lexer_.skip();
+  return std::make_unique<ast::Ast::StructLiteral>(std::move(fields));
+}
+
 std::unique_ptr<ast::Ast> Parser::parse_primary() {
   const Token &token = lexer_.peek();
   if (token.type == Token::Type::number) {
@@ -333,6 +370,9 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
     return std::make_unique<ast::Ast::Literal>(value);
   }
   if (token.type == Token::Type::identifier) {
+    if (token.sv() == "struct") {
+      return parse_struct_literal();
+    }
     const std::string name(token.sv());
     lexer_.skip();
     return std::make_unique<ast::Ast::Variable>(name);

@@ -48,6 +48,8 @@ struct Bytecode::Instruction {
     ArrayCreate,
     ArrayLoad,
     ArrayStore,
+    StructCreate,
+    StructLoad,
   };
 
   Type type_;
@@ -73,6 +75,8 @@ struct Bytecode::Instruction {
   struct ArrayCreate;
   struct ArrayLoad;
   struct ArrayStore;
+  struct StructCreate;
+  struct StructLoad;
 
   virtual ~Instruction() = default;
 
@@ -267,6 +271,23 @@ struct Bytecode::Instruction::ArrayStore final : Bytecode::Instruction {
   Register value;
 };
 
+struct Bytecode::Instruction::StructCreate final : Bytecode::Instruction {
+  StructCreate(Register dst, std::vector<std::pair<std::string, Register>> fields);
+  void dump() const override;
+
+  Register dst;
+  std::vector<std::pair<std::string, Register>> fields;
+};
+
+struct Bytecode::Instruction::StructLoad final : Bytecode::Instruction {
+  StructLoad(Register dst, Register object, std::string field);
+  void dump() const override;
+
+  Register dst;
+  Register object;
+  std::string field;
+};
+
 struct Bytecode::BasicBlock {
   std::vector<std::unique_ptr<Instruction>> instructions;
 
@@ -323,6 +344,8 @@ class BytecodeGenerator {
   void visit_array_literal(const ast::Ast::ArrayLiteral &array_literal);
   void visit_index(const ast::Ast::Index &index);
   void visit_index_assignment(const ast::Ast::IndexAssignment &index_assignment);
+  void visit_struct_literal(const ast::Ast::StructLiteral &struct_literal);
+  void visit_field_access(const ast::Ast::FieldAccess &field_access);
   void visit_assignment(const ast::Ast::Assignment &assignment);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
@@ -361,6 +384,8 @@ class BytecodeInterpreter {
   void interpret_array_create(const Bytecode::Instruction::ArrayCreate &array_create);
   void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
   void interpret_array_store(const Bytecode::Instruction::ArrayStore &array_store);
+  void interpret_struct_create(const Bytecode::Instruction::StructCreate &struct_create);
+  void interpret_struct_load(const Bytecode::Instruction::StructLoad &struct_load);
 
   u64 block_index = 0;
   size_t instr_index_ = 0;
@@ -373,7 +398,9 @@ class BytecodeInterpreter {
   std::vector<CallFrame> call_stack_;
   std::unordered_map<Bytecode::Register, Bytecode::Value> registers_;
   std::unordered_map<Bytecode::Value, std::vector<Bytecode::Value>> arrays_;
-  Bytecode::Value next_array_id_ = 1;
+  std::unordered_map<Bytecode::Value, std::unordered_map<std::string, Bytecode::Value>>
+      structs_;
+  Bytecode::Value next_heap_id_ = 1;
 };
 
 }  // namespace bytecode
