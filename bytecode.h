@@ -41,6 +41,7 @@ struct Bytecode::Instruction {
     Divide,
     ArrayCreate,
     ArrayLoad,
+    ArrayStore,
   };
 
   Type type_;
@@ -59,6 +60,7 @@ struct Bytecode::Instruction {
   struct Divide;
   struct ArrayCreate;
   struct ArrayLoad;
+  struct ArrayStore;
 
   virtual ~Instruction() = default;
 
@@ -187,6 +189,15 @@ struct Bytecode::Instruction::ArrayLoad final : Bytecode::Instruction {
   Register index;
 };
 
+struct Bytecode::Instruction::ArrayStore final : Bytecode::Instruction {
+  ArrayStore(Register array, Register index, Register value);
+  void dump() const override;
+
+  Register array;
+  Register index;
+  Register value;
+};
+
 struct Bytecode::BasicBlock {
   std::vector<std::unique_ptr<Instruction>> instructions;
 
@@ -235,6 +246,7 @@ class BytecodeGenerator {
   void visit_divide(const ast::Ast::Divide &divide);
   void visit_array_literal(const ast::Ast::ArrayLiteral &array_literal);
   void visit_index(const ast::Ast::Index &index);
+  void visit_index_assignment(const ast::Ast::IndexAssignment &index_assignment);
   void visit_assignment(const ast::Ast::Assignment &assignment);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
@@ -261,6 +273,7 @@ class BytecodeInterpreter {
   void interpret_divide(const Bytecode::Instruction::Divide &divide);
   void interpret_array_create(const Bytecode::Instruction::ArrayCreate &array_create);
   void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
+  void interpret_array_store(const Bytecode::Instruction::ArrayStore &array_store);
 
   u64 block_index = 0;
   size_t instr_index_ = 0;

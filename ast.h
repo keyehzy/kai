@@ -30,6 +30,7 @@ struct Ast {
     Divide,
     ArrayLiteral,
     Index,
+    IndexAssignment,
   };
 
   struct FunctionDeclaration;
@@ -50,6 +51,7 @@ struct Ast {
   struct Divide;
   struct ArrayLiteral;
   struct Index;
+  struct IndexAssignment;
 
   Type type;
 
@@ -287,6 +289,22 @@ struct Ast::Index final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::IndexAssignment final : public Ast {
+  std::unique_ptr<Ast> array;
+  std::unique_ptr<Ast> index;
+  std::unique_ptr<Ast> value;
+
+  IndexAssignment(std::unique_ptr<Ast> array, std::unique_ptr<Ast> index,
+                  std::unique_ptr<Ast> value)
+      : Ast(Type::IndexAssignment),
+        array(std::move(array)),
+        index(std::move(index)),
+        value(std::move(value)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct AstInterpreter {
   AstInterpreter() {
     push_scope();
@@ -399,6 +417,17 @@ struct AstInterpreter {
     return it->second[idx];
   }
 
+  Value interpret_index_assignment(const Ast::IndexAssignment &index_assignment) {
+    const auto handle = interpret(*index_assignment.array);
+    const auto idx = interpret(*index_assignment.index);
+    const auto value = interpret(*index_assignment.value);
+    const auto it = arrays.find(handle);
+    assert(it != arrays.end());
+    assert(idx < it->second.size());
+    it->second[idx] = value;
+    return value;
+  }
+
   Value interpret(const Ast &ast) {
     switch (ast.type) {
       case Ast::Type::Variable:
@@ -437,6 +466,8 @@ struct AstInterpreter {
         return interpret_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
       case Ast::Type::Index:
         return interpret_index(ast_cast<Ast::Index const &>(ast));
+      case Ast::Type::IndexAssignment:
+        return interpret_index_assignment(ast_cast<Ast::IndexAssignment const &>(ast));
     }
     assert(false);
   }

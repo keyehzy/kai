@@ -115,6 +115,16 @@ void Ast::Index::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::IndexAssignment::dump(std::ostream &os) const {
+  os << "IndexAssignment(";
+  array->dump(os);
+  os << ", ";
+  index->dump(os);
+  os << ", ";
+  value->dump(os);
+  os << ")";
+}
+
 std::string indent_str(int indent) {
   return std::string(2 * indent, ' ');
 }
@@ -224,6 +234,16 @@ void Ast::Index::to_string(std::ostream &os, int indent) const {
   os << "[";
   index->to_string(os, indent);
   os << "]";
+}
+
+void Ast::IndexAssignment::to_string(std::ostream &os, int indent) const {
+  os << indent_str(indent);
+  array->to_string(os, indent);
+  os << "[";
+  index->to_string(os, indent);
+  os << "] = ";
+  value->to_string(os, indent);
+  os << "\n";
 }
 } // namespace ast
 } // namespace kai

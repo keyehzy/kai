@@ -75,9 +75,24 @@ std::unique_ptr<Ast::Index> idx(std::unique_ptr<Ast> array_expr,
   return std::make_unique<Ast::Index>(std::move(array_expr), std::move(index_expr));
 }
 
+std::unique_ptr<Ast::IndexAssignment> idx_assign(std::unique_ptr<Ast> array_expr,
+                                                 std::unique_ptr<Ast> index_expr,
+                                                 std::unique_ptr<Ast> value_expr) {
+  return std::make_unique<Ast::IndexAssignment>(std::move(array_expr), std::move(index_expr),
+                                                std::move(value_expr));
+}
+
 Ast::Block array_indexing_minimal_example() {
   auto decl_body = std::make_unique<Ast::Block>();
   decl_body->append(decl("values", arr({11, 22, 33})));
+  decl_body->append(ret(idx(var("values"), lit(1))));
+  return std::move(*decl_body);
+}
+
+Ast::Block array_index_assignment_minimal_example() {
+  auto decl_body = std::make_unique<Ast::Block>();
+  decl_body->append(decl("values", arr({7, 8, 9})));
+  decl_body->append(idx_assign(var("values"), lit(1), lit(42)));
   decl_body->append(ret(idx(var("values"), lit(1))));
   return std::move(*decl_body);
 }
@@ -167,6 +182,73 @@ void test_quicksort() {
 
   kai::bytecode::BytecodeInterpreter interp;
   assert(interp.interpret(gen.blocks()) == 123);
+}
+
+void test_quicksort_complete() {
+  auto quicksort_five = [] {
+    auto decl_body = std::make_unique<Ast::Block>();
+    decl_body->append(decl("values", arr({4, 1, 5, 2, 3})));
+    decl_body->append(decl("pivot_idx", lit(4)));
+    decl_body->append(decl("pivot", idx(var("values"), var("pivot_idx"))));
+    decl_body->append(decl("i", lit(0)));
+    decl_body->append(decl("j", lit(0)));
+    decl_body->append(decl("tmp", lit(0)));
+
+    auto partition_body = std::make_unique<Ast::Block>();
+    auto move_left_body = std::make_unique<Ast::Block>();
+    move_left_body->append(assign("tmp", idx(var("values"), var("i"))));
+    move_left_body->append(idx_assign(var("values"), var("i"), idx(var("values"), var("j"))));
+    move_left_body->append(idx_assign(var("values"), var("j"), var("tmp")));
+    move_left_body->append(inc("i"));
+    partition_body->append(if_else(lt(idx(var("values"), var("j")), var("pivot")),
+                                   std::move(move_left_body), std::make_unique<Ast::Block>()));
+    partition_body->append(inc("j"));
+    decl_body->append(while_loop(lt(var("j"), var("pivot_idx")), std::move(partition_body)));
+
+    decl_body->append(assign("tmp", idx(var("values"), var("i"))));
+    decl_body->append(
+        idx_assign(var("values"), var("i"), idx(var("values"), var("pivot_idx"))));
+    decl_body->append(idx_assign(var("values"), var("pivot_idx"), var("tmp")));
+
+    auto left_swap_body = std::make_unique<Ast::Block>();
+    left_swap_body->append(assign("tmp", idx(var("values"), lit(0))));
+    left_swap_body->append(idx_assign(var("values"), lit(0), idx(var("values"), lit(1))));
+    left_swap_body->append(idx_assign(var("values"), lit(1), var("tmp")));
+    auto left_partition_body = std::make_unique<Ast::Block>();
+    left_partition_body->append(
+        if_else(lt(idx(var("values"), lit(1)), idx(var("values"), lit(0))),
+                std::move(left_swap_body), std::make_unique<Ast::Block>()));
+    decl_body->append(
+        if_else(lt(lit(1), var("i")), std::move(left_partition_body), std::make_unique<Ast::Block>()));
+
+    decl_body->append(decl("right_lo", add(var("i"), lit(1))));
+    auto right_swap_body = std::make_unique<Ast::Block>();
+    right_swap_body->append(assign("tmp", idx(var("values"), var("right_lo"))));
+    right_swap_body->append(
+        idx_assign(var("values"), var("right_lo"), idx(var("values"), lit(4))));
+    right_swap_body->append(idx_assign(var("values"), lit(4), var("tmp")));
+    auto right_partition_body = std::make_unique<Ast::Block>();
+    right_partition_body->append(
+        if_else(lt(idx(var("values"), lit(4)), idx(var("values"), var("right_lo"))),
+                std::move(right_swap_body), std::make_unique<Ast::Block>()));
+    decl_body->append(if_else(lt(var("right_lo"), lit(4)), std::move(right_partition_body),
+                              std::make_unique<Ast::Block>()));
+
+    decl_body->append(ret(add(add(add(add(mul(idx(var("values"), lit(0)), lit(10000)),
+                                         mul(idx(var("values"), lit(1)), lit(1000))),
+                                     mul(idx(var("values"), lit(2)), lit(100))),
+                                 mul(idx(var("values"), lit(3)), lit(10))),
+                             idx(var("values"), lit(4)))));
+    return std::move(*decl_body);
+  }();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(quicksort_five);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 12345);
 }
 
 void test_fibonacci() {
@@ -395,6 +477,18 @@ void test_array_indexing() {
   assert(interp.interpret(gen.blocks()) == 22);
 }
 
+void test_array_index_assignment_minimal_example() {
+  auto program = array_index_assignment_minimal_example();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(program);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 42);
+}
+
 void test_top_level_block_example() {
   Ast::Block program;
   program.append(ret(lit(42)));
@@ -468,6 +562,7 @@ void test_interpreter_reuse_across_programs() {
 int main() {
   test_quicksort_minimal_example();
   test_quicksort();
+  test_quicksort_complete();
   test_fibonacci();
   test_factorial();
   test_function_declaration();
@@ -479,6 +574,7 @@ int main() {
   test_subtract();
   test_divide();
   test_array_indexing();
+  test_array_index_assignment_minimal_example();
   test_top_level_block_example();
   test_nested_if_inside_while();
   test_interpreter_reuse_across_programs();

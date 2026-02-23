@@ -128,6 +128,16 @@ void Bytecode::Instruction::ArrayLoad::dump() const {
   std::printf("ArrayLoad r%zu, r%zu, r%zu", dst, array, index);
 }
 
+Bytecode::Instruction::ArrayStore::ArrayStore(Register array, Register index, Register value)
+    : Bytecode::Instruction(Type::ArrayStore),
+      array(array),
+      index(index),
+      value(value) {}
+
+void Bytecode::Instruction::ArrayStore::dump() const {
+  std::printf("ArrayStore r%zu, r%zu, r%zu", array, index, value);
+}
+
 void Bytecode::BasicBlock::dump() const {
   for (const auto &instr : instructions) {
     std::printf("  ");
@@ -194,6 +204,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Index:
       visit_index(ast_cast<Ast::Index const &>(ast));
+      break;
+    case Ast::Type::IndexAssignment:
+      visit_index_assignment(ast_cast<Ast::IndexAssignment const &>(ast));
       break;
     case Ast::Type::Assignment:
       visit_assignment(ast_cast<Ast::Assignment const &>(ast));
@@ -407,6 +420,17 @@ void BytecodeGenerator::visit_index(const Ast::Index &index) {
                                                            index_reg);
 }
 
+void BytecodeGenerator::visit_index_assignment(
+    const Ast::IndexAssignment &index_assignment) {
+  visit(*index_assignment.array);
+  const auto array_reg = reg_alloc_.current();
+  visit(*index_assignment.index);
+  const auto index_reg = reg_alloc_.current();
+  visit(*index_assignment.value);
+  const auto value_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::ArrayStore>(array_reg, index_reg, value_reg);
+}
+
 void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
   visit(*assignment.value);
   current_block().append<Bytecode::Instruction::Move>(vars_[assignment.name],
@@ -496,6 +520,11 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_array_load(ast::derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::ArrayStore:
+        interpret_array_store(
+            ast::derived_cast<Bytecode::Instruction::ArrayStore const &>(*instr));
+        ++instr_index_;
+        break;
       default:
         assert(false);
         break;
@@ -582,6 +611,17 @@ void BytecodeInterpreter::interpret_array_load(
   assert(it != arrays_.end());
   assert(index < it->second.size());
   registers_[array_load.dst] = it->second[index];
+}
+
+void BytecodeInterpreter::interpret_array_store(
+    const Bytecode::Instruction::ArrayStore &array_store) {
+  const auto array_id = registers_[array_store.array];
+  const auto index = registers_[array_store.index];
+  const auto value = registers_[array_store.value];
+  const auto it = arrays_.find(array_id);
+  assert(it != arrays_.end());
+  assert(index < it->second.size());
+  it->second[index] = value;
 }
 
 }  // namespace bytecode
