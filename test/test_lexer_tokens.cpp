@@ -71,3 +71,18 @@ TEST_CASE("test_lexer_recognizes_increment_operator") {
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_array_index_assignment_tokens") {
+  const auto types = lex_types("values[1] = 42;");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::lsquare,
+                       Token::Type::number,
+                       Token::Type::rsquare,
+                       Token::Type::equals,
+                       Token::Type::number,
+                       Token::Type::semicolon,
+                       Token::Type::end_of_file,
+                   });
+}

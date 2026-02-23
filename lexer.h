@@ -16,6 +16,8 @@ struct Token {
     rparen = ')',
     lcurly = '{',
     rcurly = '}',
+    lsquare = '[',
+    rsquare = ']',
     semicolon = ';',
 
     equals = '=',
@@ -137,6 +139,8 @@ private:
     case ')':
     case '{':
     case '}':
+    case '[':
+    case ']':
     case ';':
     case '=':
     case '<':
