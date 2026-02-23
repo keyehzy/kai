@@ -298,6 +298,30 @@ void test_bug_implicit_fallthrough() {
   assert(interp.interpret(gen.blocks()) == 0);
 }
 
+void test_bug_generator_scope_poisoning() {
+  // let val = 10;
+  // function shadow() { let val = 99; return val; }
+  // let dummy = shadow();
+  // return val;
+  auto program = std::make_unique<Ast::Block>();
+  program->append(decl("val", lit(10)));
+
+  auto shadow_body = std::make_unique<Ast::Block>();
+  shadow_body->append(decl("val", lit(99)));
+  shadow_body->append(ret(var("val")));
+  program->append(std::make_unique<Ast::FunctionDeclaration>("shadow", std::move(shadow_body)));
+
+  program->append(decl("dummy", call("shadow")));
+  program->append(ret(var("val")));
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(*program);
+  gen.finalize();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 10);
+}
+
 void test_if_else() {
   auto max = [] {
     auto decl_body = std::make_unique<Ast::Block>();
@@ -450,6 +474,7 @@ int main() {
   test_function_call_recursion();
   test_bug_missing_function_block();
   test_bug_implicit_fallthrough();
+  test_bug_generator_scope_poisoning();
   test_if_else();
   test_subtract();
   test_divide();

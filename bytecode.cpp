@@ -205,6 +205,7 @@ void BytecodeGenerator::visit(const Ast &ast) {
 
 void BytecodeGenerator::visit_function_declaration(
     const Ast::FunctionDeclaration &func_decl) {
+  auto outer_vars = vars_;
   auto &jump_to_after_decl = current_block().append<Bytecode::Instruction::Jump>(-1);
   auto function_label = static_cast<Bytecode::Label>(blocks_.size());
   functions_[func_decl.name] = function_label;
@@ -217,6 +218,7 @@ void BytecodeGenerator::visit_function_declaration(
   auto after_decl_label = static_cast<Bytecode::Label>(blocks_.size());
   blocks_.emplace_back();
   jump_to_after_decl.label = after_decl_label;
+  vars_ = std::move(outer_vars);
 }
 
 void BytecodeGenerator::visit_block(const Ast::Block &block) {
