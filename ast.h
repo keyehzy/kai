@@ -112,11 +112,20 @@ typedef uint64_t Value;
 
 struct Ast::FunctionDeclaration final : public Ast {
   std::string name;
+  std::vector<std::string> parameters;
   std::unique_ptr<Block> body;
 
   FunctionDeclaration(std::string name, std::unique_ptr<Block> body)
       : Ast(Type::FunctionDeclaration),
         name(name),
+        parameters(),
+        body(std::move(body)) {}
+
+  FunctionDeclaration(std::string name, std::vector<std::string> parameters,
+                      std::unique_ptr<Block> body)
+      : Ast(Type::FunctionDeclaration),
+        name(std::move(name)),
+        parameters(std::move(parameters)),
         body(std::move(body)) {}
 
   void dump(std::ostream &os) const override;
@@ -125,9 +134,13 @@ struct Ast::FunctionDeclaration final : public Ast {
 
 struct Ast::FunctionCall final : public Ast {
   std::string name;
+  std::vector<std::unique_ptr<Ast>> arguments;
 
   explicit FunctionCall(std::string name)
-      : Ast(Type::FunctionCall), name(std::move(name)) {}
+      : Ast(Type::FunctionCall), name(std::move(name)), arguments() {}
+
+  FunctionCall(std::string name, std::vector<std::unique_ptr<Ast>> arguments)
+      : Ast(Type::FunctionCall), name(std::move(name)), arguments(std::move(arguments)) {}
 
   void dump(std::ostream &os) const override;
   void to_string(std::ostream &os, int indent = 0) const override;
@@ -419,7 +432,23 @@ struct AstInterpreter {
   Value interpret_function_call(const Ast::FunctionCall &function_call) {
     const auto it = functions.find(function_call.name);
     assert(it != functions.end());
-    return interpret_block(*it->second->body);
+    const auto *function_declaration = it->second;
+    assert(function_call.arguments.size() == function_declaration->parameters.size());
+
+    std::vector<Value> argument_values;
+    argument_values.reserve(function_call.arguments.size());
+    for (const auto &argument : function_call.arguments) {
+      argument_values.push_back(interpret(*argument));
+    }
+
+    push_scope();
+    for (size_t i = 0; i < argument_values.size(); ++i) {
+      current_scope()[function_declaration->parameters[i]] = argument_values[i];
+    }
+
+    Value result = interpret_block(*function_declaration->body);
+    exit_scope();
+    return result;
   }
 
   Value interpret_assignment(const Ast::Assignment &assignment) {

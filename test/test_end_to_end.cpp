@@ -208,3 +208,25 @@ return i;
   kai::bytecode::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
+
+TEST_CASE("test_program_end_to_end_function_parameters") {
+  kai::Parser parser(R"(
+fn add(a, b) {
+  return a + b;
+}
+return add(40, 2);
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 42);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
+}

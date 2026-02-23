@@ -11,13 +11,27 @@ void Ast::Block::dump(std::ostream &os) const {
 }
 
 void Ast::FunctionDeclaration::dump(std::ostream &os) const {
-  os << "FunctionDeclaration(" << name << ", ";
+  os << "FunctionDeclaration(" << name << ", [";
+  for (size_t i = 0; i < parameters.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    os << parameters[i];
+  }
+  os << "], ";
   body->dump(os);
   os << ")";
 }
 
 void Ast::FunctionCall::dump(std::ostream &os) const {
-  os << "FunctionCall(" << name << ")";
+  os << "FunctionCall(" << name << ", [";
+  for (size_t i = 0; i < arguments.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    arguments[i]->dump(os);
+  }
+  os << "])";
 }
 
 void Ast::VariableDeclaration::dump(std::ostream &os) const {
@@ -170,12 +184,26 @@ void Ast::Block::to_string(std::ostream &os, int indent) const {
 }
 
 void Ast::FunctionDeclaration::to_string(std::ostream &os, int indent) const {
-  os << indent_str(indent) << "fn " << name << "()";
+  os << indent_str(indent) << "fn " << name << "(";
+  for (size_t i = 0; i < parameters.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    os << parameters[i];
+  }
+  os << ")";
   body->to_string(os, indent);
 }
 
 void Ast::FunctionCall::to_string(std::ostream &os, int) const {
-  os << name << "()";
+  os << name << "(";
+  for (size_t i = 0; i < arguments.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    arguments[i]->to_string(os, 0);
+  }
+  os << ")";
 }
 
 void Ast::VariableDeclaration::to_string(std::ostream &os, int indent) const {

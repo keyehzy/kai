@@ -69,10 +69,25 @@ void Bytecode::Instruction::JumpConditional::dump() const {
   std::printf("JumpConditional r%zu, @%zu, @%zu", cond, label1, label2);
 }
 
-Bytecode::Instruction::Call::Call(Register dst, Label label)
-    : Bytecode::Instruction(Type::Call), dst(dst), label(label) {}
+Bytecode::Instruction::Call::Call(Register dst, Label label,
+                                  std::vector<Register> arg_registers,
+                                  std::vector<Register> param_registers)
+    : Bytecode::Instruction(Type::Call),
+      dst(dst),
+      label(label),
+      arg_registers(std::move(arg_registers)),
+      param_registers(std::move(param_registers)) {}
 
-void Bytecode::Instruction::Call::dump() const { std::printf("Call r%zu, @%zu", dst, label); }
+void Bytecode::Instruction::Call::dump() const {
+  std::printf("Call r%zu, @%zu, [", dst, label);
+  for (size_t i = 0; i < arg_registers.size(); ++i) {
+    if (i != 0) {
+      std::printf(", ");
+    }
+    std::printf("r%zu", arg_registers[i]);
+  }
+  std::printf("]");
+}
 
 Bytecode::Instruction::Return::Return(Register reg)
     : Bytecode::Instruction(Type::Return), reg(reg) {}
@@ -263,13 +278,25 @@ void BytecodeGenerator::visit_function_declaration(
   auto &jump_to_after_decl = current_block().append<Bytecode::Instruction::Jump>(-1);
   auto function_label = static_cast<Bytecode::Label>(blocks_.size());
   functions_[func_decl.name] = function_label;
+  auto &parameter_registers = function_parameters_[func_decl.name];
+  parameter_registers.clear();
+  parameter_registers.reserve(func_decl.parameters.size());
+  for (const auto &parameter_name : func_decl.parameters) {
+    const auto parameter_register = reg_alloc_.allocate();
+    parameter_registers.push_back(parameter_register);
+    vars_[parameter_name] = parameter_register;
+  }
+
   if (const auto unresolved_it = unresolved_calls_.find(func_decl.name);
       unresolved_it != unresolved_calls_.end()) {
     for (auto *call : unresolved_it->second) {
       call->label = function_label;
+      assert(call->arg_registers.size() == parameter_registers.size());
+      call->param_registers = parameter_registers;
     }
     unresolved_calls_.erase(unresolved_it);
   }
+
   visit_block(*func_decl.body);
   if (!has_terminator(current_block())) {
     const auto reg = reg_alloc_.allocate();
@@ -412,9 +439,21 @@ void BytecodeGenerator::visit_while(const Ast::While &while_) {
 }
 
 void BytecodeGenerator::visit_function_call(const Ast::FunctionCall &function_call) {
-  auto &call = current_block().append<Bytecode::Instruction::Call>(reg_alloc_.allocate(), 0);
+  std::vector<Bytecode::Register> arg_registers;
+  arg_registers.reserve(function_call.arguments.size());
+  for (const auto &argument : function_call.arguments) {
+    visit(*argument);
+    arg_registers.push_back(reg_alloc_.current());
+  }
+
+  auto &call = current_block().append<Bytecode::Instruction::Call>(
+      reg_alloc_.allocate(), 0, std::move(arg_registers));
   if (const auto it = functions_.find(function_call.name); it != functions_.end()) {
     call.label = it->second;
+    const auto params_it = function_parameters_.find(function_call.name);
+    assert(params_it != function_parameters_.end());
+    assert(call.arg_registers.size() == params_it->second.size());
+    call.param_registers = params_it->second;
   } else {
     unresolved_calls_[function_call.name].push_back(&call);
   }
@@ -676,7 +715,18 @@ void BytecodeInterpreter::interpret_jump_conditional(
 
 void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call,
                                          size_t next_instr_index) {
+  assert(call.arg_registers.size() == call.param_registers.size());
+
+  std::vector<Bytecode::Value> argument_values;
+  argument_values.reserve(call.arg_registers.size());
+  for (const auto arg_register : call.arg_registers) {
+    argument_values.push_back(registers_[arg_register]);
+  }
+
   call_stack_.push_back({block_index, next_instr_index, call.dst, registers_});
+  for (size_t i = 0; i < call.param_registers.size(); ++i) {
+    registers_[call.param_registers[i]] = argument_values[i];
+  }
   block_index = call.label;
   instr_index_ = 0;
 }

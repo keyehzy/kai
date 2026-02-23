@@ -23,6 +23,26 @@ TEST_CASE("test_bytecode_function_declaration") {
     REQUIRE(interp.interpret(gen.blocks()) == 6);
 }
 
+TEST_CASE("test_bytecode_function_parameters") {
+    auto program = [] {
+      auto decl_body = std::make_unique<Ast::Block>();
+      auto sum_body = std::make_unique<Ast::Block>();
+      sum_body->append(ret(add(var("a"), var("b"))));
+      decl_body->append(std::make_unique<Ast::FunctionDeclaration>(
+          "sum", std::vector<std::string>{"a", "b"}, std::move(sum_body)));
+      decl_body->append(ret(call("sum", lit(4), lit(2))));
+      return std::move(*decl_body);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+    gen.dump();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 6);
+}
+
 TEST_CASE("test_bytecode_function_call_recursion") {
     auto program = [] {
       auto program = std::make_unique<Ast::Block>();
@@ -54,6 +74,34 @@ TEST_CASE("test_bytecode_function_call_recursion") {
     REQUIRE(interp.interpret(gen.blocks()) == 120);
 }
 
+TEST_CASE("test_bytecode_function_parameter_recursion") {
+    auto program = [] {
+      auto program = std::make_unique<Ast::Block>();
+
+      auto fact_body = std::make_unique<Ast::Block>();
+      auto base_case = std::make_unique<Ast::Block>();
+      base_case->append(ret(lit(1)));
+
+      auto recursive_case = std::make_unique<Ast::Block>();
+      recursive_case->append(ret(mul(var("n"), call("fact", sub(var("n"), lit(1))))));
+
+      fact_body->append(if_else(lt(var("n"), lit(2)), std::move(base_case),
+                                std::move(recursive_case)));
+      program->append(std::make_unique<Ast::FunctionDeclaration>(
+          "fact", std::vector<std::string>{"n"}, std::move(fact_body)));
+      program->append(ret(call("fact", lit(5))));
+      return std::move(*program);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+    gen.dump();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 120);
+}
+
 TEST_CASE("test_bytecode_function_forward_call") {
     auto program = [] {
       auto program = std::make_unique<Ast::Block>();
@@ -63,6 +111,28 @@ TEST_CASE("test_bytecode_function_forward_call") {
       later_body->append(ret(lit(42)));
       program->append(
           std::make_unique<Ast::FunctionDeclaration>("later", std::move(later_body)));
+
+      return std::move(*program);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+    gen.dump();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 42);
+}
+
+TEST_CASE("test_bytecode_function_forward_call_with_parameters") {
+    auto program = [] {
+      auto program = std::make_unique<Ast::Block>();
+      program->append(ret(call("later", lit(40), lit(2))));
+
+      auto later_body = std::make_unique<Ast::Block>();
+      later_body->append(ret(add(var("x"), var("y"))));
+      program->append(std::make_unique<Ast::FunctionDeclaration>(
+          "later", std::vector<std::string>{"x", "y"}, std::move(later_body)));
 
       return std::move(*program);
     }();

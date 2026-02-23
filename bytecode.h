@@ -130,11 +130,14 @@ struct Bytecode::Instruction::JumpConditional final : Bytecode::Instruction {
 };
 
 struct Bytecode::Instruction::Call final : Bytecode::Instruction {
-  Call(Register dst, Label label);
+  Call(Register dst, Label label, std::vector<Register> arg_registers = {},
+       std::vector<Register> param_registers = {});
   void dump() const override;
 
   Register dst;
   Label label;
+  std::vector<Register> arg_registers;
+  std::vector<Register> param_registers;
 };
 
 struct Bytecode::Instruction::Return final : Bytecode::Instruction {
@@ -299,6 +302,7 @@ class BytecodeGenerator {
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
   std::unordered_map<std::string, Bytecode::Label> functions_;
+  std::unordered_map<std::string, std::vector<Bytecode::Register>> function_parameters_;
   std::unordered_map<std::string, std::vector<Bytecode::Instruction::Call *>>
       unresolved_calls_;
   std::vector<Bytecode::BasicBlock> blocks_;

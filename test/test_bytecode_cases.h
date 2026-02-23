@@ -70,8 +70,12 @@ inline std::unique_ptr<Ast::Return> ret(std::unique_ptr<Ast> value) {
   return std::make_unique<Ast::Return>(std::move(value));
 }
 
-inline std::unique_ptr<Ast::FunctionCall> call(const char *name) {
-  return std::make_unique<Ast::FunctionCall>(name);
+template <typename... Args>
+inline std::unique_ptr<Ast::FunctionCall> call(const char *name, Args... args) {
+  std::vector<std::unique_ptr<Ast>> arguments;
+  arguments.reserve(sizeof...(args));
+  (arguments.emplace_back(std::move(args)), ...);
+  return std::make_unique<Ast::FunctionCall>(name, std::move(arguments));
 }
 
 inline std::unique_ptr<Ast::While> while_loop(

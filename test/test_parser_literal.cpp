@@ -173,3 +173,43 @@ return i;
   REQUIRE(while_loop.condition != nullptr);
   REQUIRE(while_loop.condition->type == Ast::Type::GreaterThan);
 }
+
+TEST_CASE("test_parser_parses_function_call_with_arguments") {
+  kai::Parser parser("sum(1, 2 + 3)");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::FunctionCall);
+
+  const auto &function_call = ast_cast<const Ast::FunctionCall &>(*parsed);
+  REQUIRE(function_call.name == "sum");
+  REQUIRE(function_call.arguments.size() == 2);
+  REQUIRE(function_call.arguments[0]->type == Ast::Type::Literal);
+  REQUIRE(function_call.arguments[1]->type == Ast::Type::Add);
+}
+
+TEST_CASE("test_parser_parses_function_declaration_with_parameters") {
+  kai::Parser parser(R"(
+fn add(a, b) {
+  return a + b;
+}
+return add(1, 2);
+)");
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 2);
+  REQUIRE(program->children[0]->type == Ast::Type::FunctionDeclaration);
+  REQUIRE(program->children[1]->type == Ast::Type::Return);
+
+  const auto &function_declaration =
+      ast_cast<const Ast::FunctionDeclaration &>(*program->children[0]);
+  REQUIRE(function_declaration.name == "add");
+  REQUIRE(function_declaration.parameters == std::vector<std::string>{"a", "b"});
+
+  const auto &return_statement = ast_cast<const Ast::Return &>(*program->children[1]);
+  REQUIRE(return_statement.value->type == Ast::Type::FunctionCall);
+  const auto &function_call = ast_cast<const Ast::FunctionCall &>(*return_statement.value);
+  REQUIRE(function_call.name == "add");
+  REQUIRE(function_call.arguments.size() == 2);
+}

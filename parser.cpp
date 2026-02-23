@@ -63,6 +63,34 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     return std::make_unique<ast::Ast::Return>(std::move(value));
   }
 
+  if (token_is_identifier(token, "fn")) {
+    lexer_.skip();
+    assert(lexer_.peek().type == Token::Type::identifier);
+    const std::string name(lexer_.peek().sv());
+    lexer_.skip();
+
+    assert(lexer_.peek().type == Token::Type::lparen);
+    lexer_.skip();
+    std::vector<std::string> parameters;
+    if (lexer_.peek().type != Token::Type::rparen) {
+      while (true) {
+        assert(lexer_.peek().type == Token::Type::identifier);
+        parameters.emplace_back(lexer_.peek().sv());
+        lexer_.skip();
+        if (lexer_.peek().type != Token::Type::comma) {
+          break;
+        }
+        lexer_.skip();
+      }
+    }
+    assert(lexer_.peek().type == Token::Type::rparen);
+    lexer_.skip();
+
+    std::unique_ptr<ast::Ast::Block> body = parse_block();
+    return std::make_unique<ast::Ast::FunctionDeclaration>(name, std::move(parameters),
+                                                           std::move(body));
+  }
+
   if (token.type == Token::Type::lcurly) {
     return parse_block();
   }
@@ -197,6 +225,28 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
   std::unique_ptr<ast::Ast> expr = parse_primary();
 
   while (true) {
+    if (lexer_.peek().type == Token::Type::lparen) {
+      assert(expr->type == ast::Ast::Type::Variable);
+      const std::string callee_name =
+          ast::ast_cast<const ast::Ast::Variable &>(*expr).name;
+
+      lexer_.skip();
+      std::vector<std::unique_ptr<ast::Ast>> arguments;
+      if (lexer_.peek().type != Token::Type::rparen) {
+        while (true) {
+          arguments.emplace_back(parse_assignment());
+          if (lexer_.peek().type != Token::Type::comma) {
+            break;
+          }
+          lexer_.skip();
+        }
+      }
+      assert(lexer_.peek().type == Token::Type::rparen);
+      lexer_.skip();
+      expr = std::make_unique<ast::Ast::FunctionCall>(callee_name, std::move(arguments));
+      continue;
+    }
+
     if (lexer_.peek().type == Token::Type::lsquare) {
       lexer_.skip();
       std::unique_ptr<ast::Ast> index = parse_assignment();
