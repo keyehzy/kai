@@ -52,11 +52,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
     std::unique_ptr<ast::Ast::Block> body = parse_block();
-    assert(condition->type == ast::Ast::Type::LessThan);
-    auto *condition_ptr = dynamic_cast<ast::Ast::LessThan *>(condition.release());
-    assert(condition_ptr != nullptr);
-    return std::make_unique<ast::Ast::While>(
-        std::unique_ptr<ast::Ast::LessThan>(condition_ptr), std::move(body));
+    return std::make_unique<ast::Ast::While>(std::move(condition), std::move(body));
   }
 
   if (token_is_identifier(token, "return")) {

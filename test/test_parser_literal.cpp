@@ -154,3 +154,22 @@ TEST_CASE("test_parser_parses_greater_than_expression") {
   REQUIRE(ast_cast<const Ast::Literal &>(*add.right).value == 3);
   REQUIRE(ast_cast<const Ast::Literal &>(*greater_than.right).value == 3);
 }
+
+TEST_CASE("test_parser_parses_while_with_greater_than_condition") {
+  kai::Parser parser(R"(
+let i = 10;
+while (i > 1) {
+  i = i - 1;
+}
+return i;
+)");
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 3);
+  REQUIRE(program->children[1]->type == Ast::Type::While);
+
+  const auto &while_loop = ast_cast<const Ast::While &>(*program->children[1]);
+  REQUIRE(while_loop.condition != nullptr);
+  REQUIRE(while_loop.condition->type == Ast::Type::GreaterThan);
+}

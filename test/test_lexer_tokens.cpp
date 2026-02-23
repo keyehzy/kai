@@ -73,6 +73,28 @@ TEST_CASE("test_lexer_recognizes_greater_than") {
                    });
 }
 
+TEST_CASE("test_lexer_recognizes_countdown_while_loop_tokens") {
+  const auto types = lex_types("while (i > 1) { i = i - 1; }");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::lparen,
+                       Token::Type::identifier,
+                       Token::Type::greater_than,
+                       Token::Type::number,
+                       Token::Type::rparen,
+                       Token::Type::lcurly,
+                       Token::Type::identifier,
+                       Token::Type::equals,
+                       Token::Type::identifier,
+                       Token::Type::minus,
+                       Token::Type::number,
+                       Token::Type::semicolon,
+                       Token::Type::rcurly,
+                       Token::Type::end_of_file,
+                   });
+}
+
 TEST_CASE("test_lexer_recognizes_increment_operator") {
   const auto types = lex_types("i++");
 

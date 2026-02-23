@@ -120,3 +120,24 @@ TEST_CASE("test_bytecode_count_to_ten_using_while_loop") {
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 10);
 }
+
+TEST_CASE("test_bytecode_count_down_from_ten_to_one_using_while_loop") {
+    auto program = [] {
+      auto body = std::make_unique<Ast::Block>();
+      body->append(decl("i", lit(10)));
+
+      auto while_body = std::make_unique<Ast::Block>();
+      while_body->append(assign("i", sub(var("i"), lit(1))));
+
+      body->append(while_loop(gt(var("i"), lit(1)), std::move(while_body)));
+      body->append(ret(var("i")));
+      return std::move(*body);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 1);
+}

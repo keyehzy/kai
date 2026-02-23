@@ -185,3 +185,26 @@ return i;
   kai::bytecode::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 10);
 }
+
+TEST_CASE("test_program_end_to_end_count_down_from_ten_to_one_while_loop") {
+  kai::Parser parser(R"(
+let i = 10;
+while (i > 1) {
+  i = i - 1;
+}
+return i;
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 1);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+}

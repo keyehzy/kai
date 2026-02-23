@@ -75,7 +75,7 @@ inline std::unique_ptr<Ast::FunctionCall> call(const char *name) {
 }
 
 inline std::unique_ptr<Ast::While> while_loop(
-    std::unique_ptr<Ast::LessThan> condition, std::unique_ptr<Ast::Block> body) {
+    std::unique_ptr<Ast> condition, std::unique_ptr<Ast::Block> body) {
   return std::make_unique<Ast::While>(std::move(condition), std::move(body));
 }
 

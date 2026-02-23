@@ -197,10 +197,10 @@ struct Ast::Increment final : public Ast {
 };
 
 struct Ast::While final : public Ast {
-  std::unique_ptr<LessThan> condition;
+  std::unique_ptr<Ast> condition;
   std::unique_ptr<Block> body;
 
-  While(std::unique_ptr<LessThan> condition, std::unique_ptr<Block> body)
+  While(std::unique_ptr<Ast> condition, std::unique_ptr<Block> body)
       : Ast(Type::While), condition(std::move(condition)), body(std::move(body)) {}
 
   void dump(std::ostream &os) const override;
