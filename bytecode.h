@@ -32,6 +32,7 @@ struct Bytecode::Instruction {
     LessThan,
     Jump,
     JumpConditional,
+    Call,
     Return,
     Add,
     Subtract,
@@ -49,6 +50,7 @@ struct Bytecode::Instruction {
   struct LessThan;
   struct Jump;
   struct JumpConditional;
+  struct Call;
   struct Return;
   struct Add;
   struct Subtract;
@@ -106,6 +108,14 @@ struct Bytecode::Instruction::JumpConditional final : Bytecode::Instruction {
   Register cond;
   Label label1;
   Label label2;
+};
+
+struct Bytecode::Instruction::Call final : Bytecode::Instruction {
+  Call(Register dst, Label label);
+  void dump() const override;
+
+  Register dst;
+  Label label;
 };
 
 struct Bytecode::Instruction::Return final : Bytecode::Instruction {
@@ -217,6 +227,7 @@ class BytecodeGenerator {
   void visit_increment(const ast::Ast::Increment &increment);
   void visit_if_else(const ast::Ast::IfElse &ifelse);
   void visit_while(const ast::Ast::While &while_);
+  void visit_function_call(const ast::Ast::FunctionCall &function_call);
   void visit_return(const ast::Ast::Return &return_);
   void visit_add(const ast::Ast::Add &add);
   void visit_subtract(const ast::Ast::Subtract &subtract);
@@ -227,6 +238,7 @@ class BytecodeGenerator {
   void visit_assignment(const ast::Ast::Assignment &assignment);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
+  std::unordered_map<std::string, Bytecode::Label> functions_;
   std::vector<Bytecode::BasicBlock> blocks_;
   Bytecode::RegisterAllocator reg_alloc_;
 };
@@ -241,6 +253,7 @@ class BytecodeInterpreter {
   void interpret_less_than(const Bytecode::Instruction::LessThan &less_than);
   void interpret_jump(const Bytecode::Instruction::Jump &jump);
   void interpret_jump_conditional(const Bytecode::Instruction::JumpConditional &jump_cond);
+  void interpret_call(const Bytecode::Instruction::Call &call, size_t next_instr_index);
   void interpret_add(const Bytecode::Instruction::Add &add);
   void interpret_subtract(const Bytecode::Instruction::Subtract &subtract);
   void interpret_add_immediate(const Bytecode::Instruction::AddImmediate &add_imm);
@@ -250,6 +263,14 @@ class BytecodeInterpreter {
   void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
 
   u64 block_index = 0;
+  size_t instr_index_ = 0;
+  struct CallFrame {
+    u64 return_block_index;
+    size_t return_instr_index;
+    Bytecode::Register dst_register;
+    std::unordered_map<Bytecode::Register, Bytecode::Value> registers;
+  };
+  std::vector<CallFrame> call_stack_;
   std::unordered_map<Bytecode::Register, Bytecode::Value> registers_;
   std::unordered_map<Bytecode::Value, std::vector<Bytecode::Value>> arrays_;
   Bytecode::Value next_array_id_ = 1;

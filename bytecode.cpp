@@ -49,6 +49,11 @@ void Bytecode::Instruction::JumpConditional::dump() const {
   std::printf("JumpConditional r%zu, @%zu, @%zu", cond, label1, label2);
 }
 
+Bytecode::Instruction::Call::Call(Register dst, Label label)
+    : Bytecode::Instruction(Type::Call), dst(dst), label(label) {}
+
+void Bytecode::Instruction::Call::dump() const { std::printf("Call r%zu, @%zu", dst, label); }
+
 Bytecode::Instruction::Return::Return(Register reg)
     : Bytecode::Instruction(Type::Return), reg(reg) {}
 
@@ -154,6 +159,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
     case Ast::Type::While:
       visit_while(ast_cast<Ast::While const &>(ast));
       break;
+    case Ast::Type::FunctionCall:
+      visit_function_call(ast_cast<Ast::FunctionCall const &>(ast));
+      break;
     case Ast::Type::Return:
       visit_return(ast_cast<Ast::Return const &>(ast));
       break;
@@ -185,7 +193,13 @@ void BytecodeGenerator::visit(const Ast &ast) {
 
 void BytecodeGenerator::visit_function_declaration(
     const Ast::FunctionDeclaration &func_decl) {
+  auto &jump_to_after_decl = current_block().append<Bytecode::Instruction::Jump>(-1);
+  auto function_label = static_cast<Bytecode::Label>(blocks_.size());
+  functions_[func_decl.name] = function_label;
   visit_block(*func_decl.body);
+  auto after_decl_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  jump_to_after_decl.label = after_decl_label;
 }
 
 void BytecodeGenerator::visit_block(const Ast::Block &block) {
@@ -208,6 +222,10 @@ void BytecodeGenerator::finalize() {
 
     if (!has_terminator && i + 1 < blocks_.size()) {
       block.append<Bytecode::Instruction::Jump>(i + 1);
+    } else if (!has_terminator) {
+      auto reg = reg_alloc_.allocate();
+      block.append<Bytecode::Instruction::Load>(reg, 0);
+      block.append<Bytecode::Instruction::Return>(reg);
     }
   }
 }
@@ -309,6 +327,12 @@ void BytecodeGenerator::visit_while(const Ast::While &while_) {
   jump_conditional.label2 = end_label;
 }
 
+void BytecodeGenerator::visit_function_call(const Ast::FunctionCall &function_call) {
+  const auto it = functions_.find(function_call.name);
+  assert(it != functions_.end());
+  current_block().append<Bytecode::Instruction::Call>(reg_alloc_.allocate(), it->second);
+}
+
 void BytecodeGenerator::visit_return(const Ast::Return &return_) {
   visit(*return_.value);
   current_block().append<Bytecode::Instruction::Return>(reg_alloc_.current());
@@ -380,6 +404,8 @@ Bytecode::Value BytecodeInterpreter::interpret(
     const std::vector<Bytecode::BasicBlock> &blocks) {
   assert(!blocks.empty());
   block_index = 0;
+  instr_index_ = 0;
+  call_stack_.clear();
   registers_.clear();
   arrays_.clear();
   next_array_id_ = 1;
@@ -387,58 +413,79 @@ Bytecode::Value BytecodeInterpreter::interpret(
   for (;;) {
     assert(block_index < blocks.size());
     const auto &block = blocks[block_index];
-    for (const auto &instr : block.instructions) {
-      switch (instr->type()) {
-        case Bytecode::Instruction::Type::Move:
-          interpret_move(ast::derived_cast<Bytecode::Instruction::Move const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::Load:
-          interpret_load(ast::derived_cast<Bytecode::Instruction::Load const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::LessThan:
-          interpret_less_than(
-              ast::derived_cast<Bytecode::Instruction::LessThan const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::Jump:
-          interpret_jump(ast::derived_cast<Bytecode::Instruction::Jump const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::JumpConditional:
-          interpret_jump_conditional(
-              ast::derived_cast<Bytecode::Instruction::JumpConditional const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::Return:
-          return registers_[ast::derived_cast<Bytecode::Instruction::Return const &>(*instr)
-                                .reg];
-        case Bytecode::Instruction::Type::Add:
-          interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::Subtract:
-          interpret_subtract(
-              ast::derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::AddImmediate:
-          interpret_add_immediate(
-              ast::derived_cast<Bytecode::Instruction::AddImmediate const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::Multiply:
-          interpret_multiply(
-              ast::derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::Divide:
-          interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::ArrayCreate:
-          interpret_array_create(
-              ast::derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
-          break;
-        case Bytecode::Instruction::Type::ArrayLoad:
-          interpret_array_load(
-              ast::derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
-          break;
-        default:
-          assert(false);
-          break;
+    assert(instr_index_ < block.instructions.size());
+    const auto &instr = block.instructions[instr_index_];
+    switch (instr->type()) {
+      case Bytecode::Instruction::Type::Move:
+        interpret_move(ast::derived_cast<Bytecode::Instruction::Move const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::Load:
+        interpret_load(ast::derived_cast<Bytecode::Instruction::Load const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::LessThan:
+        interpret_less_than(ast::derived_cast<Bytecode::Instruction::LessThan const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::Jump:
+        interpret_jump(ast::derived_cast<Bytecode::Instruction::Jump const &>(*instr));
+        break;
+      case Bytecode::Instruction::Type::JumpConditional:
+        interpret_jump_conditional(
+            ast::derived_cast<Bytecode::Instruction::JumpConditional const &>(*instr));
+        break;
+      case Bytecode::Instruction::Type::Call:
+        interpret_call(ast::derived_cast<Bytecode::Instruction::Call const &>(*instr),
+                       instr_index_ + 1);
+        break;
+      case Bytecode::Instruction::Type::Return: {
+        const auto reg = ast::derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
+        const auto value = registers_[reg];
+        if (call_stack_.empty()) {
+          return value;
+        }
+        auto frame = std::move(call_stack_.back());
+        call_stack_.pop_back();
+        registers_ = std::move(frame.registers);
+        registers_[frame.dst_register] = value;
+        block_index = frame.return_block_index;
+        instr_index_ = frame.return_instr_index;
+        break;
       }
+      case Bytecode::Instruction::Type::Add:
+        interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::Subtract:
+        interpret_subtract(ast::derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::AddImmediate:
+        interpret_add_immediate(
+            ast::derived_cast<Bytecode::Instruction::AddImmediate const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::Multiply:
+        interpret_multiply(ast::derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::Divide:
+        interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::ArrayCreate:
+        interpret_array_create(
+            ast::derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::ArrayLoad:
+        interpret_array_load(ast::derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
+        ++instr_index_;
+        break;
+      default:
+        assert(false);
+        break;
     }
   }
   assert(false);
@@ -460,6 +507,7 @@ void BytecodeInterpreter::interpret_less_than(
 
 void BytecodeInterpreter::interpret_jump(const Bytecode::Instruction::Jump &jump) {
   block_index = jump.label;
+  instr_index_ = 0;
 }
 
 void BytecodeInterpreter::interpret_jump_conditional(
@@ -469,6 +517,14 @@ void BytecodeInterpreter::interpret_jump_conditional(
   } else {
     block_index = jump_cond.label2;
   }
+  instr_index_ = 0;
+}
+
+void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call,
+                                         size_t next_instr_index) {
+  call_stack_.push_back({block_index, next_instr_index, call.dst, registers_});
+  block_index = call.label;
+  instr_index_ = 0;
 }
 
 void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {

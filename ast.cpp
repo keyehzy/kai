@@ -16,6 +16,10 @@ void Ast::FunctionDeclaration::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::FunctionCall::dump(std::ostream &os) const {
+  os << "FunctionCall(" << name << ")";
+}
+
 void Ast::VariableDeclaration::dump(std::ostream &os) const {
   os << "VariableDeclaration(" << name << ", ";
   initializer->dump(os);
@@ -126,6 +130,10 @@ void Ast::Block::to_string(std::ostream &os, int indent) const {
 void Ast::FunctionDeclaration::to_string(std::ostream &os, int indent) const {
   os << indent_str(indent) << "fn " << name << "()";
   body->to_string(os, indent);
+}
+
+void Ast::FunctionCall::to_string(std::ostream &os, int) const {
+  os << name << "()";
 }
 
 void Ast::VariableDeclaration::to_string(std::ostream &os, int indent) const {

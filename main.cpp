@@ -45,6 +45,10 @@ std::unique_ptr<Ast::Return> ret(std::unique_ptr<Ast> value) {
   return std::make_unique<Ast::Return>(std::move(value));
 }
 
+std::unique_ptr<Ast::FunctionCall> call(const char *name) {
+  return std::make_unique<Ast::FunctionCall>(name);
+}
+
 std::unique_ptr<Ast::While> while_loop(std::unique_ptr<Ast::LessThan> condition,
                                        std::unique_ptr<Ast::Block> body) {
   return std::make_unique<Ast::While>(std::move(condition), std::move(body));
@@ -76,6 +80,26 @@ Ast::Block array_indexing_minimal_example() {
   decl_body->append(decl("values", arr({11, 22, 33})));
   decl_body->append(ret(idx(var("values"), lit(1))));
   return std::move(*decl_body);
+}
+
+Ast::Block recursion_function_calls_minimal_example() {
+  auto program = std::make_unique<Ast::Block>();
+  program->append(decl("n", lit(5)));
+
+  auto fact_body = std::make_unique<Ast::Block>();
+  auto base_case = std::make_unique<Ast::Block>();
+  base_case->append(ret(lit(1)));
+
+  auto recursive_case = std::make_unique<Ast::Block>();
+  recursive_case->append(decl("saved_n", var("n")));
+  recursive_case->append(assign("n", sub(var("n"), lit(1))));
+  recursive_case->append(ret(mul(var("saved_n"), call("fact"))));
+
+  fact_body->append(if_else(lt(var("n"), lit(2)), std::move(base_case),
+                            std::move(recursive_case)));
+  program->append(std::make_unique<Ast::FunctionDeclaration>("fact", std::move(fact_body)));
+  program->append(ret(call("fact")));
+  return std::move(*program);
 }
 
 void test_quicksort_minimal_example() {
@@ -198,20 +222,35 @@ void test_factorial() {
 }
 
 void test_function_declaration() {
-  auto factorial = [] {
+  auto program = [] {
     auto decl_body = std::make_unique<Ast::Block>();
-    decl_body->append(decl("a", lit(4)));
-    decl_body->append(decl("b", lit(2)));
-    decl_body->append(ret(add(var("a"), var("b"))));
-    return std::make_unique<Ast::FunctionDeclaration>("sum", std::move(decl_body));
+    auto sum_body = std::make_unique<Ast::Block>();
+    sum_body->append(decl("a", lit(4)));
+    sum_body->append(decl("b", lit(2)));
+    sum_body->append(ret(add(var("a"), var("b"))));
+    decl_body->append(std::make_unique<Ast::FunctionDeclaration>("sum", std::move(sum_body)));
+    decl_body->append(ret(call("sum")));
+    return std::move(*decl_body);
   }();
   kai::bytecode::BytecodeGenerator gen;
-  gen.visit(*factorial);
+  gen.visit_block(program);
   gen.finalize();
   gen.dump();
 
   kai::bytecode::BytecodeInterpreter interp;
   assert(interp.interpret(gen.blocks()) == 6);
+}
+
+void test_function_call_recursion() {
+  auto program = recursion_function_calls_minimal_example();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(program);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 120);
 }
 
 void test_if_else() {
@@ -363,6 +402,7 @@ int main() {
   test_fibonacci();
   test_factorial();
   test_function_declaration();
+  test_function_call_recursion();
   test_if_else();
   test_subtract();
   test_divide();

@@ -13,6 +13,7 @@ namespace ast {
 struct Ast {
   enum class Type {
     FunctionDeclaration,
+    FunctionCall,
     Block,
     While,
     VariableDeclaration,
@@ -32,6 +33,7 @@ struct Ast {
   };
 
   struct FunctionDeclaration;
+  struct FunctionCall;
   struct Block;
   struct While;
   struct VariableDeclaration;
@@ -106,6 +108,16 @@ struct Ast::FunctionDeclaration final : public Ast {
       : Ast(Type::FunctionDeclaration),
         name(name),
         body(std::move(body)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::FunctionCall final : public Ast {
+  std::string name;
+
+  explicit FunctionCall(std::string name)
+      : Ast(Type::FunctionCall), name(std::move(name)) {}
 
   void dump(std::ostream &os) const override;
   void to_string(std::ostream &os, int indent = 0) const override;
@@ -326,7 +338,14 @@ struct AstInterpreter {
   }
 
   Value interpret_function_declaration(const Ast::FunctionDeclaration &function_declaration) {
-    return interpret_block(*function_declaration.body);
+    functions[function_declaration.name] = &function_declaration;
+    return 0;
+  }
+
+  Value interpret_function_call(const Ast::FunctionCall &function_call) {
+    const auto it = functions.find(function_call.name);
+    assert(it != functions.end());
+    return interpret_block(*it->second->body);
   }
 
   Value interpret_assignment(const Ast::Assignment &assignment) {
@@ -398,6 +417,8 @@ struct AstInterpreter {
         return interpret_block(ast_cast<Ast::Block const &>(ast));
       case Ast::Type::FunctionDeclaration:
         return interpret_function_declaration(ast_cast<Ast::FunctionDeclaration const &>(ast));
+      case Ast::Type::FunctionCall:
+        return interpret_function_call(ast_cast<Ast::FunctionCall const &>(ast));
       case Ast::Type::Assignment:
         return interpret_assignment(ast_cast<Ast::Assignment const &>(ast));
       case Ast::Type::Return:
@@ -443,6 +464,7 @@ struct AstInterpreter {
   }
 
   std::vector<std::unordered_map<std::string, Value>> scopes;
+  std::unordered_map<std::string, const Ast::FunctionDeclaration *> functions;
   std::unordered_map<Value, std::vector<Value>> arrays;
   Value next_array_handle = 1;
 };
