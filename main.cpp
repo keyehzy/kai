@@ -187,13 +187,30 @@ void test_quicksort() {
 void test_quicksort_complete() {
   auto quicksort_five = [] {
     auto decl_body = std::make_unique<Ast::Block>();
+
+    // int values[5] = {4, 1, 5, 2, 3};
     decl_body->append(decl("values", arr({4, 1, 5, 2, 3})));
+
+    // int pivot_idx = 4;
+    // int pivot = values[pivot_idx];
+    // int i = 0;
+    // int j = 0;
+    // int tmp = 0;
     decl_body->append(decl("pivot_idx", lit(4)));
     decl_body->append(decl("pivot", idx(var("values"), var("pivot_idx"))));
     decl_body->append(decl("i", lit(0)));
     decl_body->append(decl("j", lit(0)));
     decl_body->append(decl("tmp", lit(0)));
 
+    // while (j < pivot_idx) {
+    //   if (values[j] < pivot) {
+    //     tmp = values[i];
+    //     values[i] = values[j];
+    //     values[j] = tmp;
+    //     i++;
+    //   }
+    //   j++;
+    // }
     auto partition_body = std::make_unique<Ast::Block>();
     auto move_left_body = std::make_unique<Ast::Block>();
     move_left_body->append(assign("tmp", idx(var("values"), var("i"))));
@@ -205,11 +222,23 @@ void test_quicksort_complete() {
     partition_body->append(inc("j"));
     decl_body->append(while_loop(lt(var("j"), var("pivot_idx")), std::move(partition_body)));
 
+    // tmp = values[i];
+    // values[i] = values[pivot_idx];
+    // values[pivot_idx] = tmp;
+    // // Pivot is now at its final sorted position.
     decl_body->append(assign("tmp", idx(var("values"), var("i"))));
     decl_body->append(
         idx_assign(var("values"), var("i"), idx(var("values"), var("pivot_idx"))));
     decl_body->append(idx_assign(var("values"), var("pivot_idx"), var("tmp")));
 
+    // if (1 < i) {
+    //   // left partition here has exactly two elements: indices [0, 1]
+    //   if (values[1] < values[0]) {
+    //     tmp = values[0];
+    //     values[0] = values[1];
+    //     values[1] = tmp;
+    //   }
+    // }
     auto left_swap_body = std::make_unique<Ast::Block>();
     left_swap_body->append(assign("tmp", idx(var("values"), lit(0))));
     left_swap_body->append(idx_assign(var("values"), lit(0), idx(var("values"), lit(1))));
@@ -221,6 +250,15 @@ void test_quicksort_complete() {
     decl_body->append(
         if_else(lt(lit(1), var("i")), std::move(left_partition_body), std::make_unique<Ast::Block>()));
 
+    // int right_lo = i + 1;
+    // if (right_lo < 4) {
+    //   // right partition here has exactly two elements: indices [right_lo, 4]
+    //   if (values[4] < values[right_lo]) {
+    //     tmp = values[right_lo];
+    //     values[right_lo] = values[4];
+    //     values[4] = tmp;
+    //   }
+    // }
     decl_body->append(decl("right_lo", add(var("i"), lit(1))));
     auto right_swap_body = std::make_unique<Ast::Block>();
     right_swap_body->append(assign("tmp", idx(var("values"), var("right_lo"))));
@@ -234,6 +272,9 @@ void test_quicksort_complete() {
     decl_body->append(if_else(lt(var("right_lo"), lit(4)), std::move(right_partition_body),
                               std::make_unique<Ast::Block>()));
 
+    // // Encode array to a scalar for assertion:
+    // // encoded = values[0]*10000 + values[1]*1000 + values[2]*100 + values[3]*10 + values[4];
+    // // Expect encoded == 12345.
     decl_body->append(ret(add(add(add(add(mul(idx(var("values"), lit(0)), lit(10000)),
                                          mul(idx(var("values"), lit(1)), lit(1000))),
                                      mul(idx(var("values"), lit(2)), lit(100))),
