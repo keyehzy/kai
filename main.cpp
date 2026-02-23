@@ -117,6 +117,17 @@ Ast::Block recursion_function_calls_minimal_example() {
   return std::move(*program);
 }
 
+Ast::Block function_forward_call_minimal_example() {
+  auto program = std::make_unique<Ast::Block>();
+  program->append(ret(call("later")));
+
+  auto later_body = std::make_unique<Ast::Block>();
+  later_body->append(ret(lit(42)));
+  program->append(std::make_unique<Ast::FunctionDeclaration>("later", std::move(later_body)));
+
+  return std::move(*program);
+}
+
 void test_quicksort_minimal_example() {
   auto quicksort_two = [] {
     auto decl_body = std::make_unique<Ast::Block>();
@@ -376,6 +387,18 @@ void test_function_call_recursion() {
   assert(interp.interpret(gen.blocks()) == 120);
 }
 
+void test_function_forward_call() {
+  auto program = function_forward_call_minimal_example();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(program);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 42);
+}
+
 void test_bug_missing_function_block() {
   // let dummy = 0;
   // function f() { return 42; }
@@ -608,6 +631,7 @@ int main() {
   test_factorial();
   test_function_declaration();
   test_function_call_recursion();
+  test_function_forward_call();
   test_bug_missing_function_block();
   test_bug_implicit_fallthrough();
   test_bug_generator_scope_poisoning();

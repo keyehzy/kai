@@ -251,6 +251,8 @@ class BytecodeGenerator {
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
   std::unordered_map<std::string, Bytecode::Label> functions_;
+  std::unordered_map<std::string, std::vector<Bytecode::Instruction::Call *>>
+      unresolved_calls_;
   std::vector<Bytecode::BasicBlock> blocks_;
   Bytecode::RegisterAllocator reg_alloc_;
 };

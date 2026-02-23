@@ -222,6 +222,13 @@ void BytecodeGenerator::visit_function_declaration(
   auto &jump_to_after_decl = current_block().append<Bytecode::Instruction::Jump>(-1);
   auto function_label = static_cast<Bytecode::Label>(blocks_.size());
   functions_[func_decl.name] = function_label;
+  if (const auto unresolved_it = unresolved_calls_.find(func_decl.name);
+      unresolved_it != unresolved_calls_.end()) {
+    for (auto *call : unresolved_it->second) {
+      call->label = function_label;
+    }
+    unresolved_calls_.erase(unresolved_it);
+  }
   visit_block(*func_decl.body);
   if (!has_terminator(current_block())) {
     const auto reg = reg_alloc_.allocate();
@@ -242,6 +249,7 @@ void BytecodeGenerator::visit_block(const Ast::Block &block) {
 }
 
 void BytecodeGenerator::finalize() {
+  assert(unresolved_calls_.empty());
   for (size_t i = 0; i < blocks_.size(); ++i) {
     auto &block = blocks_[i];
     const bool block_has_terminator = has_terminator(block);
@@ -354,9 +362,12 @@ void BytecodeGenerator::visit_while(const Ast::While &while_) {
 }
 
 void BytecodeGenerator::visit_function_call(const Ast::FunctionCall &function_call) {
-  const auto it = functions_.find(function_call.name);
-  assert(it != functions_.end());
-  current_block().append<Bytecode::Instruction::Call>(reg_alloc_.allocate(), it->second);
+  auto &call = current_block().append<Bytecode::Instruction::Call>(reg_alloc_.allocate(), 0);
+  if (const auto it = functions_.find(function_call.name); it != functions_.end()) {
+    call.label = it->second;
+  } else {
+    unresolved_calls_[function_call.name].push_back(&call);
+  }
 }
 
 void BytecodeGenerator::visit_return(const Ast::Return &return_) {
