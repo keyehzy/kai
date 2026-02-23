@@ -62,6 +62,17 @@ TEST_CASE("test_lexer_recognizes_less_than") {
                    });
 }
 
+TEST_CASE("test_lexer_recognizes_greater_than") {
+  const auto types = lex_types("n > i");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::greater_than,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}
+
 TEST_CASE("test_lexer_recognizes_increment_operator") {
   const auto types = lex_types("i++");
 

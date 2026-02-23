@@ -18,6 +18,7 @@ struct Ast {
     While,
     VariableDeclaration,
     LessThan,
+    GreaterThan,
     Increment,
     Literal,
     Variable,
@@ -41,6 +42,7 @@ struct Ast {
   struct While;
   struct VariableDeclaration;
   struct LessThan;
+  struct GreaterThan;
   struct Increment;
   struct Literal;
   struct Variable;
@@ -148,6 +150,17 @@ struct Ast::LessThan final : public Ast {
 
   LessThan(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
       : Ast(Type::LessThan), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::GreaterThan final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  GreaterThan(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::GreaterThan), left(std::move(left)), right(std::move(right)) {}
 
   void dump(std::ostream &os) const override;
   void to_string(std::ostream &os, int indent = 0) const override;
@@ -352,6 +365,10 @@ struct AstInterpreter {
     return interpret(*less_than.left) < interpret(*less_than.right);
   }
 
+  Value interpret_greater_than(const Ast::GreaterThan &greater_than) {
+    return interpret(*greater_than.left) > interpret(*greater_than.right);
+  }
+
   Value interpret_variable_declaration(const Ast::VariableDeclaration &variable_declaration) {
     assert(find_variable_scope(variable_declaration.name) == scopes.rend());
     return current_scope()[variable_declaration.name] = interpret(*variable_declaration.initializer);
@@ -470,6 +487,8 @@ struct AstInterpreter {
         return interpret_literal(ast_cast<Ast::Literal const &>(ast));
       case Ast::Type::LessThan:
         return interpret_less_than(ast_cast<Ast::LessThan const &>(ast));
+      case Ast::Type::GreaterThan:
+        return interpret_greater_than(ast_cast<Ast::GreaterThan const &>(ast));
       case Ast::Type::VariableDeclaration:
         return interpret_variable_declaration(ast_cast<Ast::VariableDeclaration const &>(ast));
       case Ast::Type::Increment:

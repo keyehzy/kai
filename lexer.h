@@ -29,6 +29,7 @@ struct Token {
     slash = '/',
     percent = '%',
     less_than = '<',
+    greater_than = '>',
   };
 
   Type type;
@@ -154,6 +155,7 @@ private:
     case '/':
     case '%':
     case '<':
+    case '>':
       last_token_.type = static_cast<Token::Type>(input_[0]);
       last_token_.begin = input_;
       last_token_.end = input_ + 1;

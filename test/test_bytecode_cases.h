@@ -47,6 +47,11 @@ inline std::unique_ptr<Ast::LessThan> lt(std::unique_ptr<Ast> left,
   return std::make_unique<Ast::LessThan>(std::move(left), std::move(right));
 }
 
+inline std::unique_ptr<Ast::GreaterThan> gt(std::unique_ptr<Ast> left,
+                                            std::unique_ptr<Ast> right) {
+  return std::make_unique<Ast::GreaterThan>(std::move(left), std::move(right));
+}
+
 inline std::unique_ptr<Ast::VariableDeclaration> decl(
     const char *name, std::unique_ptr<Ast> initializer) {
   return std::make_unique<Ast::VariableDeclaration>(name, std::move(initializer));

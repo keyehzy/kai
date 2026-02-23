@@ -34,6 +34,14 @@ void Ast::LessThan::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::GreaterThan::dump(std::ostream &os) const {
+  os << "GreaterThan(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::While::dump(std::ostream &os) const {
   os << "While(";
   condition->dump(os);
@@ -171,6 +179,12 @@ void Ast::VariableDeclaration::to_string(std::ostream &os, int indent) const {
 void Ast::LessThan::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " < ";
+  right->to_string(os, indent);
+}
+
+void Ast::GreaterThan::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " > ";
   right->to_string(os, indent);
 }
 

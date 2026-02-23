@@ -54,13 +54,20 @@ std::unique_ptr<ast::Ast> Parser::parse_equality() {
 std::unique_ptr<ast::Ast> Parser::parse_comparison() {
   std::unique_ptr<ast::Ast> left = parse_additive();
 
-  while (lexer_.peek().type == Token::Type::less_than) {
+  while (true) {
+    const Token::Type op = lexer_.peek().type;
+    if (op != Token::Type::less_than && op != Token::Type::greater_than) {
+      return left;
+    }
+
     lexer_.skip();
     std::unique_ptr<ast::Ast> right = parse_additive();
-    left = std::make_unique<ast::Ast::LessThan>(std::move(left), std::move(right));
+    if (op == Token::Type::less_than) {
+      left = std::make_unique<ast::Ast::LessThan>(std::move(left), std::move(right));
+    } else {
+      left = std::make_unique<ast::Ast::GreaterThan>(std::move(left), std::move(right));
+    }
   }
-
-  return left;
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_additive() {

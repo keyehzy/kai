@@ -30,6 +30,7 @@ struct Bytecode::Instruction {
     Move,
     Load,
     LessThan,
+    GreaterThan,
     Jump,
     JumpConditional,
     Call,
@@ -51,6 +52,7 @@ struct Bytecode::Instruction {
   struct Move;
   struct Load;
   struct LessThan;
+  struct GreaterThan;
   struct Jump;
   struct JumpConditional;
   struct Call;
@@ -93,6 +95,15 @@ struct Bytecode::Instruction::Load final : Bytecode::Instruction {
 
 struct Bytecode::Instruction::LessThan final : Bytecode::Instruction {
   LessThan(Register dst, Register lhs, Register rhs);
+  void dump() const override;
+
+  Register dst;
+  Register lhs;
+  Register rhs;
+};
+
+struct Bytecode::Instruction::GreaterThan final : Bytecode::Instruction {
+  GreaterThan(Register dst, Register lhs, Register rhs);
   void dump() const override;
 
   Register dst;
@@ -257,6 +268,7 @@ class BytecodeGenerator {
   void visit_function_declaration(const ast::Ast::FunctionDeclaration &func_decl);
   void visit_variable_declaration(const ast::Ast::VariableDeclaration &var_decl);
   void visit_less_than(const ast::Ast::LessThan &less_than);
+  void visit_greater_than(const ast::Ast::GreaterThan &greater_than);
   void visit_increment(const ast::Ast::Increment &increment);
   void visit_if_else(const ast::Ast::IfElse &ifelse);
   void visit_while(const ast::Ast::While &while_);
@@ -289,6 +301,7 @@ class BytecodeInterpreter {
   void interpret_move(const Bytecode::Instruction::Move &move);
   void interpret_load(const Bytecode::Instruction::Load &load);
   void interpret_less_than(const Bytecode::Instruction::LessThan &less_than);
+  void interpret_greater_than(const Bytecode::Instruction::GreaterThan &greater_than);
   void interpret_jump(const Bytecode::Instruction::Jump &jump);
   void interpret_jump_conditional(const Bytecode::Instruction::JumpConditional &jump_cond);
   void interpret_call(const Bytecode::Instruction::Call &call, size_t next_instr_index);

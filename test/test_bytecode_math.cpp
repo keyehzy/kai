@@ -109,3 +109,21 @@ TEST_CASE("test_bytecode_modulo") {
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 2);
 }
+
+TEST_CASE("test_bytecode_greater_than") {
+    auto comparison = [] {
+      auto decl_body = std::make_unique<Ast::Block>();
+      decl_body->append(decl("a", lit(3)));
+      decl_body->append(decl("b", lit(2)));
+      decl_body->append(ret(gt(var("a"), var("b"))));
+      return std::move(*decl_body);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(comparison);
+    gen.finalize();
+    gen.dump();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 1);
+}

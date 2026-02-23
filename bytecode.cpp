@@ -45,6 +45,14 @@ void Bytecode::Instruction::LessThan::dump() const {
   std::printf("LessThan r%zu, r%zu, r%zu", dst, lhs, rhs);
 }
 
+Bytecode::Instruction::GreaterThan::GreaterThan(Register dst, Register lhs,
+                                                Register rhs)
+    : Bytecode::Instruction(Type::GreaterThan), dst(dst), lhs(lhs), rhs(rhs) {}
+
+void Bytecode::Instruction::GreaterThan::dump() const {
+  std::printf("GreaterThan r%zu, r%zu, r%zu", dst, lhs, rhs);
+}
+
 Bytecode::Instruction::Jump::Jump(Label label)
     : Bytecode::Instruction(Type::Jump), label(label) {}
 
@@ -182,6 +190,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::LessThan:
       visit_less_than(ast_cast<Ast::LessThan const &>(ast));
+      break;
+    case Ast::Type::GreaterThan:
+      visit_greater_than(ast_cast<Ast::GreaterThan const &>(ast));
       break;
     case Ast::Type::Increment:
       visit_increment(ast_cast<Ast::Increment const &>(ast));
@@ -331,6 +342,15 @@ void BytecodeGenerator::visit_less_than(const Ast::LessThan &less_than) {
   auto right_reg = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::LessThan>(reg_alloc_.allocate(), left_reg,
                                                           right_reg);
+}
+
+void BytecodeGenerator::visit_greater_than(const Ast::GreaterThan &greater_than) {
+  visit(*greater_than.left);
+  auto left_reg = reg_alloc_.current();
+  visit(*greater_than.right);
+  auto right_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::GreaterThan>(reg_alloc_.allocate(),
+                                                             left_reg, right_reg);
 }
 
 void BytecodeGenerator::visit_increment(const Ast::Increment &increment) {
@@ -514,6 +534,11 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_less_than(ast::derived_cast<Bytecode::Instruction::LessThan const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::GreaterThan:
+        interpret_greater_than(
+            ast::derived_cast<Bytecode::Instruction::GreaterThan const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::Jump:
         interpret_jump(ast::derived_cast<Bytecode::Instruction::Jump const &>(*instr));
         break;
@@ -602,6 +627,12 @@ void BytecodeInterpreter::interpret_load(const Bytecode::Instruction::Load &load
 void BytecodeInterpreter::interpret_less_than(
     const Bytecode::Instruction::LessThan &less_than) {
   registers_[less_than.dst] = registers_[less_than.lhs] < registers_[less_than.rhs];
+}
+
+void BytecodeInterpreter::interpret_greater_than(
+    const Bytecode::Instruction::GreaterThan &greater_than) {
+  registers_[greater_than.dst] =
+      registers_[greater_than.lhs] > registers_[greater_than.rhs];
 }
 
 void BytecodeInterpreter::interpret_jump(const Bytecode::Instruction::Jump &jump) {
