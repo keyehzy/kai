@@ -330,7 +330,12 @@ void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
 
 Bytecode::Value BytecodeInterpreter::interpret(
     const std::vector<Bytecode::BasicBlock> &blocks) {
+  assert(!blocks.empty());
+  block_index = 0;
+  registers_.clear();
+
   for (;;) {
+    assert(block_index < blocks.size());
     const auto &block = blocks[block_index];
     for (const auto &instr : block.instructions) {
       switch (instr->type()) {
