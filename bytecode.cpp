@@ -53,6 +53,23 @@ void Bytecode::Instruction::GreaterThan::dump() const {
   std::printf("GreaterThan r%zu, r%zu, r%zu", dst, lhs, rhs);
 }
 
+Bytecode::Instruction::LessThanOrEqual::LessThanOrEqual(Register dst, Register lhs,
+                                                        Register rhs)
+    : Bytecode::Instruction(Type::LessThanOrEqual), dst(dst), lhs(lhs), rhs(rhs) {}
+
+void Bytecode::Instruction::LessThanOrEqual::dump() const {
+  std::printf("LessThanOrEqual r%zu, r%zu, r%zu", dst, lhs, rhs);
+}
+
+Bytecode::Instruction::GreaterThanOrEqual::GreaterThanOrEqual(Register dst,
+                                                              Register lhs,
+                                                              Register rhs)
+    : Bytecode::Instruction(Type::GreaterThanOrEqual), dst(dst), lhs(lhs), rhs(rhs) {}
+
+void Bytecode::Instruction::GreaterThanOrEqual::dump() const {
+  std::printf("GreaterThanOrEqual r%zu, r%zu, r%zu", dst, lhs, rhs);
+}
+
 Bytecode::Instruction::Jump::Jump(Label label)
     : Bytecode::Instruction(Type::Jump), label(label) {}
 
@@ -215,6 +232,12 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::GreaterThan:
       visit_greater_than(ast_cast<Ast::GreaterThan const &>(ast));
+      break;
+    case Ast::Type::LessThanOrEqual:
+      visit_less_than_or_equal(ast_cast<Ast::LessThanOrEqual const &>(ast));
+      break;
+    case Ast::Type::GreaterThanOrEqual:
+      visit_greater_than_or_equal(ast_cast<Ast::GreaterThanOrEqual const &>(ast));
       break;
     case Ast::Type::Increment:
       visit_increment(ast_cast<Ast::Increment const &>(ast));
@@ -388,6 +411,26 @@ void BytecodeGenerator::visit_greater_than(const Ast::GreaterThan &greater_than)
   auto right_reg = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::GreaterThan>(reg_alloc_.allocate(),
                                                              left_reg, right_reg);
+}
+
+void BytecodeGenerator::visit_less_than_or_equal(
+    const Ast::LessThanOrEqual &less_than_or_equal) {
+  visit(*less_than_or_equal.left);
+  const auto left_reg = reg_alloc_.current();
+  visit(*less_than_or_equal.right);
+  const auto right_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::LessThanOrEqual>(reg_alloc_.allocate(),
+                                                                 left_reg, right_reg);
+}
+
+void BytecodeGenerator::visit_greater_than_or_equal(
+    const Ast::GreaterThanOrEqual &greater_than_or_equal) {
+  visit(*greater_than_or_equal.left);
+  const auto left_reg = reg_alloc_.current();
+  visit(*greater_than_or_equal.right);
+  const auto right_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::GreaterThanOrEqual>(
+      reg_alloc_.allocate(), left_reg, right_reg);
 }
 
 void BytecodeGenerator::visit_increment(const Ast::Increment &increment) {
@@ -597,6 +640,16 @@ Bytecode::Value BytecodeInterpreter::interpret(
             ast::derived_cast<Bytecode::Instruction::GreaterThan const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::LessThanOrEqual:
+        interpret_less_than_or_equal(
+            ast::derived_cast<Bytecode::Instruction::LessThanOrEqual const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::GreaterThanOrEqual:
+        interpret_greater_than_or_equal(
+            ast::derived_cast<Bytecode::Instruction::GreaterThanOrEqual const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::Jump:
         interpret_jump(ast::derived_cast<Bytecode::Instruction::Jump const &>(*instr));
         break;
@@ -696,6 +749,18 @@ void BytecodeInterpreter::interpret_greater_than(
     const Bytecode::Instruction::GreaterThan &greater_than) {
   registers_[greater_than.dst] =
       registers_[greater_than.lhs] > registers_[greater_than.rhs];
+}
+
+void BytecodeInterpreter::interpret_less_than_or_equal(
+    const Bytecode::Instruction::LessThanOrEqual &less_than_or_equal) {
+  registers_[less_than_or_equal.dst] =
+      registers_[less_than_or_equal.lhs] <= registers_[less_than_or_equal.rhs];
+}
+
+void BytecodeInterpreter::interpret_greater_than_or_equal(
+    const Bytecode::Instruction::GreaterThanOrEqual &greater_than_or_equal) {
+  registers_[greater_than_or_equal.dst] =
+      registers_[greater_than_or_equal.lhs] >= registers_[greater_than_or_equal.rhs];
 }
 
 void BytecodeInterpreter::interpret_jump(const Bytecode::Instruction::Jump &jump) {

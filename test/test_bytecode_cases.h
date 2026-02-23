@@ -84,7 +84,7 @@ inline std::unique_ptr<Ast::While> while_loop(
 }
 
 inline std::unique_ptr<Ast::IfElse> if_else(
-    std::unique_ptr<Ast::LessThan> condition, std::unique_ptr<Ast::Block> body,
+    std::unique_ptr<Ast> condition, std::unique_ptr<Ast::Block> body,
     std::unique_ptr<Ast::Block> else_body) {
   return std::make_unique<Ast::IfElse>(std::move(condition), std::move(body),
                                        std::move(else_body));

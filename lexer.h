@@ -13,6 +13,8 @@ struct Token {
     plus_plus,
     equals_equals,
     bang_equals,
+    less_than_equals,
+    greater_than_equals,
 
     lparen = '(',
     rparen = ')',
@@ -155,12 +157,32 @@ private:
     case '*':
     case '/':
     case '%':
-    case '<':
-    case '>':
       last_token_.type = static_cast<Token::Type>(input_[0]);
       last_token_.begin = input_;
       last_token_.end = input_ + 1;
       ++input_;
+      break;
+    case '<':
+      last_token_.begin = input_;
+      if (next_char() == '=') {
+        last_token_.type = Token::Type::less_than_equals;
+        input_ += 2;
+      } else {
+        last_token_.type = Token::Type::less_than;
+        ++input_;
+      }
+      last_token_.end = input_;
+      break;
+    case '>':
+      last_token_.begin = input_;
+      if (next_char() == '=') {
+        last_token_.type = Token::Type::greater_than_equals;
+        input_ += 2;
+      } else {
+        last_token_.type = Token::Type::greater_than;
+        ++input_;
+      }
+      last_token_.end = input_;
       break;
     case '=':
       last_token_.begin = input_;

@@ -56,6 +56,22 @@ void Ast::GreaterThan::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::LessThanOrEqual::dump(std::ostream &os) const {
+  os << "LessThanOrEqual(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
+void Ast::GreaterThanOrEqual::dump(std::ostream &os) const {
+  os << "GreaterThanOrEqual(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::While::dump(std::ostream &os) const {
   os << "While(";
   condition->dump(os);
@@ -221,6 +237,18 @@ void Ast::LessThan::to_string(std::ostream &os, int indent) const {
 void Ast::GreaterThan::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " > ";
+  right->to_string(os, indent);
+}
+
+void Ast::LessThanOrEqual::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " <= ";
+  right->to_string(os, indent);
+}
+
+void Ast::GreaterThanOrEqual::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " >= ";
   right->to_string(os, indent);
 }
 

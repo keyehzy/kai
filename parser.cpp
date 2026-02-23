@@ -59,10 +59,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::lparen);
     lexer_.skip();
-    std::unique_ptr<ast::Ast> condition_expr = parse_assignment();
-    assert(condition_expr->type == ast::Ast::Type::LessThan);
-    auto condition = std::unique_ptr<ast::Ast::LessThan>(
-        static_cast<ast::Ast::LessThan *>(condition_expr.release()));
+    std::unique_ptr<ast::Ast> condition = parse_assignment();
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
 
@@ -186,7 +183,9 @@ std::unique_ptr<ast::Ast> Parser::parse_comparison() {
 
   while (true) {
     const Token::Type op = lexer_.peek().type;
-    if (op != Token::Type::less_than && op != Token::Type::greater_than) {
+    if (op != Token::Type::less_than && op != Token::Type::greater_than &&
+        op != Token::Type::less_than_equals &&
+        op != Token::Type::greater_than_equals) {
       return left;
     }
 
@@ -194,8 +193,14 @@ std::unique_ptr<ast::Ast> Parser::parse_comparison() {
     std::unique_ptr<ast::Ast> right = parse_additive();
     if (op == Token::Type::less_than) {
       left = std::make_unique<ast::Ast::LessThan>(std::move(left), std::move(right));
-    } else {
+    } else if (op == Token::Type::greater_than) {
       left = std::make_unique<ast::Ast::GreaterThan>(std::move(left), std::move(right));
+    } else if (op == Token::Type::less_than_equals) {
+      left =
+          std::make_unique<ast::Ast::LessThanOrEqual>(std::move(left), std::move(right));
+    } else {
+      left = std::make_unique<ast::Ast::GreaterThanOrEqual>(std::move(left),
+                                                            std::move(right));
     }
   }
 }

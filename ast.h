@@ -19,6 +19,8 @@ struct Ast {
     VariableDeclaration,
     LessThan,
     GreaterThan,
+    LessThanOrEqual,
+    GreaterThanOrEqual,
     Increment,
     Literal,
     Variable,
@@ -44,6 +46,8 @@ struct Ast {
   struct VariableDeclaration;
   struct LessThan;
   struct GreaterThan;
+  struct LessThanOrEqual;
+  struct GreaterThanOrEqual;
   struct Increment;
   struct Literal;
   struct Variable;
@@ -181,6 +185,28 @@ struct Ast::GreaterThan final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::LessThanOrEqual final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  LessThanOrEqual(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::LessThanOrEqual), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::GreaterThanOrEqual final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  GreaterThanOrEqual(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::GreaterThanOrEqual), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct Ast::Literal final : public Ast {
   Value value;
 
@@ -241,11 +267,11 @@ struct Ast::Return final : public Ast {
 };
 
 struct Ast::IfElse final : public Ast {
-  std::unique_ptr<LessThan> condition;
+  std::unique_ptr<Ast> condition;
   std::unique_ptr<Block> body;
   std::unique_ptr<Block> else_body;
 
-  IfElse(std::unique_ptr<LessThan> condition, std::unique_ptr<Block> body,
+  IfElse(std::unique_ptr<Ast> condition, std::unique_ptr<Block> body,
          std::unique_ptr<Block> else_body)
       : Ast(Type::IfElse),
         condition(std::move(condition)),
@@ -395,9 +421,22 @@ struct AstInterpreter {
     return interpret(*greater_than.left) > interpret(*greater_than.right);
   }
 
+  Value interpret_less_than_or_equal(const Ast::LessThanOrEqual &less_than_or_equal) {
+    return interpret(*less_than_or_equal.left) <= interpret(*less_than_or_equal.right);
+  }
+
+  Value interpret_greater_than_or_equal(
+      const Ast::GreaterThanOrEqual &greater_than_or_equal) {
+    return interpret(*greater_than_or_equal.left) >=
+           interpret(*greater_than_or_equal.right);
+  }
+
   Value interpret_variable_declaration(const Ast::VariableDeclaration &variable_declaration) {
-    assert(find_variable_scope(variable_declaration.name) == scopes.rend());
-    return current_scope()[variable_declaration.name] = interpret(*variable_declaration.initializer);
+    const Value init_value = interpret(*variable_declaration.initializer);
+    auto &scope = current_scope();
+    assert(scope.find(variable_declaration.name) == scope.end());
+    scope[variable_declaration.name] = init_value;
+    return init_value;
   }
 
   Value interpret_increment(const Ast::Increment &increment) {
@@ -452,9 +491,11 @@ struct AstInterpreter {
   }
 
   Value interpret_assignment(const Ast::Assignment &assignment) {
+    const Value assigned_value = interpret(*assignment.value);
     auto it = find_variable_scope(assignment.name);
     assert(it != scopes.rend());
-    return it->at(assignment.name) = interpret(*assignment.value);
+    it->at(assignment.name) = assigned_value;
+    return assigned_value;
   }
 
   Value interpret_return(const Ast::Return &return_statement) {
@@ -535,6 +576,11 @@ struct AstInterpreter {
         return interpret_less_than(ast_cast<Ast::LessThan const &>(ast));
       case Ast::Type::GreaterThan:
         return interpret_greater_than(ast_cast<Ast::GreaterThan const &>(ast));
+      case Ast::Type::LessThanOrEqual:
+        return interpret_less_than_or_equal(ast_cast<Ast::LessThanOrEqual const &>(ast));
+      case Ast::Type::GreaterThanOrEqual:
+        return interpret_greater_than_or_equal(
+            ast_cast<Ast::GreaterThanOrEqual const &>(ast));
       case Ast::Type::VariableDeclaration:
         return interpret_variable_declaration(ast_cast<Ast::VariableDeclaration const &>(ast));
       case Ast::Type::Increment:

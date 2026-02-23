@@ -155,6 +155,30 @@ TEST_CASE("test_parser_parses_greater_than_expression") {
   REQUIRE(ast_cast<const Ast::Literal &>(*greater_than.right).value == 3);
 }
 
+TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
+  kai::Parser parser("1 + 3 <= 4");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::LessThanOrEqual);
+
+  const auto &less_than_or_equal = ast_cast<const Ast::LessThanOrEqual &>(*parsed);
+  REQUIRE(less_than_or_equal.left->type == Ast::Type::Add);
+  REQUIRE(less_than_or_equal.right->type == Ast::Type::Literal);
+}
+
+TEST_CASE("test_parser_parses_greater_than_or_equal_expression") {
+  kai::Parser parser("5 >= 3 + 2");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::GreaterThanOrEqual);
+
+  const auto &greater_than_or_equal = ast_cast<const Ast::GreaterThanOrEqual &>(*parsed);
+  REQUIRE(greater_than_or_equal.left->type == Ast::Type::Literal);
+  REQUIRE(greater_than_or_equal.right->type == Ast::Type::Add);
+}
+
 TEST_CASE("test_parser_parses_while_with_greater_than_condition") {
   kai::Parser parser(R"(
 let i = 10;
