@@ -138,3 +138,27 @@ TEST_CASE("test_lexer_recognizes_equality_operator") {
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_array_index_assignment_comparison_expression") {
+  const auto types = lex_types("([7, 8, 9][1] = 42) < 50");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::lparen,
+                       Token::Type::lsquare,
+                       Token::Type::number,
+                       Token::Type::comma,
+                       Token::Type::number,
+                       Token::Type::comma,
+                       Token::Type::number,
+                       Token::Type::rsquare,
+                       Token::Type::lsquare,
+                       Token::Type::number,
+                       Token::Type::rsquare,
+                       Token::Type::equals,
+                       Token::Type::number,
+                       Token::Type::rparen,
+                       Token::Type::less_than,
+                       Token::Type::number,
+                       Token::Type::end_of_file,
+                   });
+}
