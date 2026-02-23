@@ -38,6 +38,8 @@ struct Bytecode::Instruction {
     AddImmediate,
     Multiply,
     Divide,
+    ArrayCreate,
+    ArrayLoad,
   };
 
   Type type_;
@@ -53,6 +55,8 @@ struct Bytecode::Instruction {
   struct AddImmediate;
   struct Multiply;
   struct Divide;
+  struct ArrayCreate;
+  struct ArrayLoad;
 
   virtual ~Instruction() = default;
 
@@ -156,6 +160,23 @@ struct Bytecode::Instruction::Divide final : Bytecode::Instruction {
   Register src2;
 };
 
+struct Bytecode::Instruction::ArrayCreate final : Bytecode::Instruction {
+  ArrayCreate(Register dst, std::vector<Register> elements);
+  void dump() const override;
+
+  Register dst;
+  std::vector<Register> elements;
+};
+
+struct Bytecode::Instruction::ArrayLoad final : Bytecode::Instruction {
+  ArrayLoad(Register dst, Register array, Register index);
+  void dump() const override;
+
+  Register dst;
+  Register array;
+  Register index;
+};
+
 struct Bytecode::BasicBlock {
   std::vector<std::unique_ptr<Instruction>> instructions;
 
@@ -201,6 +222,8 @@ class BytecodeGenerator {
   void visit_subtract(const ast::Ast::Subtract &subtract);
   void visit_multiply(const ast::Ast::Multiply &multiply);
   void visit_divide(const ast::Ast::Divide &divide);
+  void visit_array_literal(const ast::Ast::ArrayLiteral &array_literal);
+  void visit_index(const ast::Ast::Index &index);
   void visit_assignment(const ast::Ast::Assignment &assignment);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
@@ -223,9 +246,13 @@ class BytecodeInterpreter {
   void interpret_add_immediate(const Bytecode::Instruction::AddImmediate &add_imm);
   void interpret_multiply(const Bytecode::Instruction::Multiply &multiply);
   void interpret_divide(const Bytecode::Instruction::Divide &divide);
+  void interpret_array_create(const Bytecode::Instruction::ArrayCreate &array_create);
+  void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
 
   u64 block_index = 0;
   std::unordered_map<Bytecode::Register, Bytecode::Value> registers_;
+  std::unordered_map<Bytecode::Value, std::vector<Bytecode::Value>> arrays_;
+  Bytecode::Value next_array_id_ = 1;
 };
 
 }  // namespace bytecode

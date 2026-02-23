@@ -27,6 +27,8 @@ struct Ast {
     Subtract,
     Multiply,
     Divide,
+    ArrayLiteral,
+    Index,
   };
 
   struct FunctionDeclaration;
@@ -44,6 +46,8 @@ struct Ast {
   struct Subtract;
   struct Multiply;
   struct Divide;
+  struct ArrayLiteral;
+  struct Index;
 
   Type type;
 
@@ -250,6 +254,27 @@ struct Ast::Divide final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::ArrayLiteral final : public Ast {
+  std::vector<std::unique_ptr<Ast>> elements;
+
+  explicit ArrayLiteral(std::vector<std::unique_ptr<Ast>> elements)
+      : Ast(Type::ArrayLiteral), elements(std::move(elements)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::Index final : public Ast {
+  std::unique_ptr<Ast> array;
+  std::unique_ptr<Ast> index;
+
+  Index(std::unique_ptr<Ast> array, std::unique_ptr<Ast> index)
+      : Ast(Type::Index), array(std::move(array)), index(std::move(index)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct AstInterpreter {
   AstInterpreter() {
     push_scope();
@@ -336,6 +361,25 @@ struct AstInterpreter {
     return interpret(*divide.left) / interpret(*divide.right);
   }
 
+  Value interpret_array_literal(const Ast::ArrayLiteral &array_literal) {
+    const auto handle = next_array_handle++;
+    auto &array = arrays[handle];
+    array.reserve(array_literal.elements.size());
+    for (const auto &element : array_literal.elements) {
+      array.push_back(interpret(*element));
+    }
+    return handle;
+  }
+
+  Value interpret_index(const Ast::Index &index) {
+    const auto handle = interpret(*index.array);
+    const auto idx = interpret(*index.index);
+    const auto it = arrays.find(handle);
+    assert(it != arrays.end());
+    assert(idx < it->second.size());
+    return it->second[idx];
+  }
+
   Value interpret(const Ast &ast) {
     switch (ast.type) {
       case Ast::Type::Variable:
@@ -368,6 +412,10 @@ struct AstInterpreter {
         return interpret_multiply(ast_cast<Ast::Multiply const &>(ast));
       case Ast::Type::Divide:
         return interpret_divide(ast_cast<Ast::Divide const &>(ast));
+      case Ast::Type::ArrayLiteral:
+        return interpret_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
+      case Ast::Type::Index:
+        return interpret_index(ast_cast<Ast::Index const &>(ast));
     }
     assert(false);
   }
@@ -395,6 +443,8 @@ struct AstInterpreter {
   }
 
   std::vector<std::unordered_map<std::string, Value>> scopes;
+  std::unordered_map<Value, std::vector<Value>> arrays;
+  Value next_array_handle = 1;
 };
 } // namespace ast
 } // namespace kai

@@ -92,6 +92,25 @@ void Ast::Divide::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::ArrayLiteral::dump(std::ostream &os) const {
+  os << "ArrayLiteral(";
+  for (size_t i = 0; i < elements.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    elements[i]->dump(os);
+  }
+  os << ")";
+}
+
+void Ast::Index::dump(std::ostream &os) const {
+  os << "Index(";
+  array->dump(os);
+  os << ", ";
+  index->dump(os);
+  os << ")";
+}
+
 std::string indent_str(int indent) {
   return std::string(2 * indent, ' ');
 }
@@ -178,6 +197,25 @@ void Ast::Divide::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " / ";
   right->to_string(os, indent);
+}
+
+void Ast::ArrayLiteral::to_string(std::ostream &os, int indent) const {
+  (void)indent;
+  os << "[";
+  for (size_t i = 0; i < elements.size(); ++i) {
+    if (i != 0) {
+      os << ", ";
+    }
+    elements[i]->to_string(os, indent);
+  }
+  os << "]";
+}
+
+void Ast::Index::to_string(std::ostream &os, int indent) const {
+  array->to_string(os, indent);
+  os << "[";
+  index->to_string(os, indent);
+  os << "]";
 }
 } // namespace ast
 } // namespace kai

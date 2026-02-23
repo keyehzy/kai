@@ -1,6 +1,8 @@
 #include "ast.h"
 #include "bytecode.h"
 
+#include <initializer_list>
+
 using namespace kai::ast;
 
 std::unique_ptr<Ast> lit(int v) { return std::make_unique<Ast::Literal>(v); }
@@ -53,6 +55,27 @@ std::unique_ptr<Ast::IfElse> if_else(std::unique_ptr<Ast::LessThan> condition,
                                      std::unique_ptr<Ast::Block> else_body) {
   return std::make_unique<Ast::IfElse>(std::move(condition), std::move(body),
                                        std::move(else_body));
+}
+
+std::unique_ptr<Ast::ArrayLiteral> arr(std::initializer_list<int> values) {
+  std::vector<std::unique_ptr<Ast>> elements;
+  elements.reserve(values.size());
+  for (int value : values) {
+    elements.emplace_back(lit(value));
+  }
+  return std::make_unique<Ast::ArrayLiteral>(std::move(elements));
+}
+
+std::unique_ptr<Ast::Index> idx(std::unique_ptr<Ast> array_expr,
+                                std::unique_ptr<Ast> index_expr) {
+  return std::make_unique<Ast::Index>(std::move(array_expr), std::move(index_expr));
+}
+
+Ast::Block array_indexing_minimal_example() {
+  auto decl_body = std::make_unique<Ast::Block>();
+  decl_body->append(decl("values", arr({11, 22, 33})));
+  decl_body->append(ret(idx(var("values"), lit(1))));
+  return std::move(*decl_body);
 }
 
 void test_quicksort_minimal_example() {
@@ -252,6 +275,18 @@ void test_divide() {
   assert(interp.interpret(gen.blocks()) == 4);
 }
 
+void test_array_indexing() {
+  auto program = array_indexing_minimal_example();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(program);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 22);
+}
+
 void test_top_level_block_example() {
   Ast::Block program;
   program.append(ret(lit(42)));
@@ -331,6 +366,7 @@ int main() {
   test_if_else();
   test_subtract();
   test_divide();
+  test_array_indexing();
   test_top_level_block_example();
   test_nested_if_inside_while();
   test_interpreter_reuse_across_programs();

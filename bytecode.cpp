@@ -89,6 +89,28 @@ void Bytecode::Instruction::Divide::dump() const {
   std::printf("Divide r%zu, r%zu, r%zu", dst, src1, src2);
 }
 
+Bytecode::Instruction::ArrayCreate::ArrayCreate(Register dst,
+                                                std::vector<Register> elements)
+    : Bytecode::Instruction(Type::ArrayCreate), dst(dst), elements(std::move(elements)) {}
+
+void Bytecode::Instruction::ArrayCreate::dump() const {
+  std::printf("ArrayCreate r%zu, [", dst);
+  for (size_t i = 0; i < elements.size(); ++i) {
+    if (i != 0) {
+      std::printf(", ");
+    }
+    std::printf("r%zu", elements[i]);
+  }
+  std::printf("]");
+}
+
+Bytecode::Instruction::ArrayLoad::ArrayLoad(Register dst, Register array, Register index)
+    : Bytecode::Instruction(Type::ArrayLoad), dst(dst), array(array), index(index) {}
+
+void Bytecode::Instruction::ArrayLoad::dump() const {
+  std::printf("ArrayLoad r%zu, r%zu, r%zu", dst, array, index);
+}
+
 void Bytecode::BasicBlock::dump() const {
   for (const auto &instr : instructions) {
     std::printf("  ");
@@ -146,6 +168,12 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Divide:
       visit_divide(ast_cast<Ast::Divide const &>(ast));
+      break;
+    case Ast::Type::ArrayLiteral:
+      visit_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
+      break;
+    case Ast::Type::Index:
+      visit_index(ast_cast<Ast::Index const &>(ast));
       break;
     case Ast::Type::Assignment:
       visit_assignment(ast_cast<Ast::Assignment const &>(ast));
@@ -322,6 +350,26 @@ void BytecodeGenerator::visit_divide(const Ast::Divide &divide) {
                                                         reg_right);
 }
 
+void BytecodeGenerator::visit_array_literal(const Ast::ArrayLiteral &array_literal) {
+  std::vector<Bytecode::Register> element_regs;
+  element_regs.reserve(array_literal.elements.size());
+  for (const auto &element : array_literal.elements) {
+    visit(*element);
+    element_regs.push_back(reg_alloc_.current());
+  }
+  current_block().append<Bytecode::Instruction::ArrayCreate>(reg_alloc_.allocate(),
+                                                             std::move(element_regs));
+}
+
+void BytecodeGenerator::visit_index(const Ast::Index &index) {
+  visit(*index.array);
+  auto array_reg = reg_alloc_.current();
+  visit(*index.index);
+  auto index_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::ArrayLoad>(reg_alloc_.allocate(), array_reg,
+                                                           index_reg);
+}
+
 void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
   visit(*assignment.value);
   current_block().append<Bytecode::Instruction::Move>(vars_[assignment.name],
@@ -333,6 +381,8 @@ Bytecode::Value BytecodeInterpreter::interpret(
   assert(!blocks.empty());
   block_index = 0;
   registers_.clear();
+  arrays_.clear();
+  next_array_id_ = 1;
 
   for (;;) {
     assert(block_index < blocks.size());
@@ -376,6 +426,14 @@ Bytecode::Value BytecodeInterpreter::interpret(
           break;
         case Bytecode::Instruction::Type::Divide:
           interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
+          break;
+        case Bytecode::Instruction::Type::ArrayCreate:
+          interpret_array_create(
+              ast::derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
+          break;
+        case Bytecode::Instruction::Type::ArrayLoad:
+          interpret_array_load(
+              ast::derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
           break;
         default:
           assert(false);
@@ -434,6 +492,27 @@ void BytecodeInterpreter::interpret_multiply(
 
 void BytecodeInterpreter::interpret_divide(const Bytecode::Instruction::Divide &divide) {
   registers_[divide.dst] = registers_[divide.src1] / registers_[divide.src2];
+}
+
+void BytecodeInterpreter::interpret_array_create(
+    const Bytecode::Instruction::ArrayCreate &array_create) {
+  auto array_id = next_array_id_++;
+  auto &array = arrays_[array_id];
+  array.reserve(array_create.elements.size());
+  for (auto element_reg : array_create.elements) {
+    array.push_back(registers_[element_reg]);
+  }
+  registers_[array_create.dst] = array_id;
+}
+
+void BytecodeInterpreter::interpret_array_load(
+    const Bytecode::Instruction::ArrayLoad &array_load) {
+  auto array_id = registers_[array_load.array];
+  auto index = registers_[array_load.index];
+  const auto it = arrays_.find(array_id);
+  assert(it != arrays_.end());
+  assert(index < it->second.size());
+  registers_[array_load.dst] = it->second[index];
 }
 
 }  // namespace bytecode
