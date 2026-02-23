@@ -274,6 +274,30 @@ void test_bug_missing_function_block() {
   assert(interp.interpret(gen.blocks()) == 42);
 }
 
+void test_bug_implicit_fallthrough() {
+  // function f() { let a = 1; /* no return */ }
+  // function g() { return 50; }
+  // return f();
+  auto program = std::make_unique<Ast::Block>();
+
+  auto f_body = std::make_unique<Ast::Block>();
+  f_body->append(decl("a", lit(1)));
+  program->append(std::make_unique<Ast::FunctionDeclaration>("f", std::move(f_body)));
+
+  auto g_body = std::make_unique<Ast::Block>();
+  g_body->append(ret(lit(50)));
+  program->append(std::make_unique<Ast::FunctionDeclaration>("g", std::move(g_body)));
+
+  program->append(ret(call("f")));
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(*program);
+  gen.finalize();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 0);
+}
+
 void test_if_else() {
   auto max = [] {
     auto decl_body = std::make_unique<Ast::Block>();
@@ -425,6 +449,7 @@ int main() {
   test_function_declaration();
   test_function_call_recursion();
   test_bug_missing_function_block();
+  test_bug_implicit_fallthrough();
   test_if_else();
   test_subtract();
   test_divide();

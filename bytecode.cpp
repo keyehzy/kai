@@ -8,6 +8,18 @@ namespace bytecode {
 
 using namespace ast;
 
+namespace {
+bool has_terminator(const Bytecode::BasicBlock &block) {
+  if (block.instructions.empty()) {
+    return false;
+  }
+  const auto last_type = block.instructions.back()->type();
+  return last_type == Bytecode::Instruction::Type::Jump ||
+         last_type == Bytecode::Instruction::Type::JumpConditional ||
+         last_type == Bytecode::Instruction::Type::Return;
+}
+}  // namespace
+
 Bytecode::Instruction::Instruction(Type type) : type_(type) {}
 
 Bytecode::Instruction::Type Bytecode::Instruction::type() const { return type_; }
@@ -197,6 +209,11 @@ void BytecodeGenerator::visit_function_declaration(
   auto function_label = static_cast<Bytecode::Label>(blocks_.size());
   functions_[func_decl.name] = function_label;
   visit_block(*func_decl.body);
+  if (!has_terminator(current_block())) {
+    const auto reg = reg_alloc_.allocate();
+    current_block().append<Bytecode::Instruction::Load>(reg, 0);
+    current_block().append<Bytecode::Instruction::Return>(reg);
+  }
   auto after_decl_label = static_cast<Bytecode::Label>(blocks_.size());
   blocks_.emplace_back();
   jump_to_after_decl.label = after_decl_label;
@@ -212,17 +229,11 @@ void BytecodeGenerator::visit_block(const Ast::Block &block) {
 void BytecodeGenerator::finalize() {
   for (size_t i = 0; i < blocks_.size(); ++i) {
     auto &block = blocks_[i];
-    bool has_terminator = false;
-    if (!block.instructions.empty()) {
-      auto last_type = block.instructions.back()->type();
-      has_terminator = last_type == Bytecode::Instruction::Type::Jump ||
-                       last_type == Bytecode::Instruction::Type::JumpConditional ||
-                       last_type == Bytecode::Instruction::Type::Return;
-    }
+    const bool block_has_terminator = has_terminator(block);
 
-    if (!has_terminator && i + 1 < blocks_.size()) {
+    if (!block_has_terminator && i + 1 < blocks_.size()) {
       block.append<Bytecode::Instruction::Jump>(i + 1);
-    } else if (!has_terminator) {
+    } else if (!block_has_terminator) {
       auto reg = reg_alloc_.allocate();
       block.append<Bytecode::Instruction::Load>(reg, 0);
       block.append<Bytecode::Instruction::Return>(reg);
