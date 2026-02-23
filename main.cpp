@@ -253,6 +253,27 @@ void test_function_call_recursion() {
   assert(interp.interpret(gen.blocks()) == 120);
 }
 
+void test_bug_missing_function_block() {
+  // let dummy = 0;
+  // function f() { return 42; }
+  // return f();
+  auto program = std::make_unique<Ast::Block>();
+  program->append(decl("dummy", lit(0)));
+
+  auto f_body = std::make_unique<Ast::Block>();
+  f_body->append(ret(lit(42)));
+  program->append(std::make_unique<Ast::FunctionDeclaration>("f", std::move(f_body)));
+
+  program->append(ret(call("f")));
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(*program);
+  gen.finalize();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 42);
+}
+
 void test_if_else() {
   auto max = [] {
     auto decl_body = std::make_unique<Ast::Block>();
@@ -403,6 +424,7 @@ int main() {
   test_factorial();
   test_function_declaration();
   test_function_call_recursion();
+  test_bug_missing_function_block();
   test_if_else();
   test_subtract();
   test_divide();
