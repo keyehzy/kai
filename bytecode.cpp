@@ -71,6 +71,13 @@ Bytecode::Instruction::Return::Return(Register reg)
 
 void Bytecode::Instruction::Return::dump() const { std::printf("Return r%zu", reg); }
 
+Bytecode::Instruction::Equal::Equal(Register dst, Register src1, Register src2)
+    : Bytecode::Instruction(Type::Equal), dst(dst), src1(src1), src2(src2) {}
+
+void Bytecode::Instruction::Equal::dump() const {
+  std::printf("Equal r%zu, r%zu, r%zu", dst, src1, src2);
+}
+
 Bytecode::Instruction::Add::Add(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Add), dst(dst), src1(src1), src2(src2) {}
 
@@ -193,6 +200,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Return:
       visit_return(ast_cast<Ast::Return const &>(ast));
+      break;
+    case Ast::Type::Equal:
+      visit_equal(ast_cast<Ast::Equal const &>(ast));
       break;
     case Ast::Type::Add:
       visit_add(ast_cast<Ast::Add const &>(ast));
@@ -385,6 +395,15 @@ void BytecodeGenerator::visit_return(const Ast::Return &return_) {
   current_block().append<Bytecode::Instruction::Return>(reg_alloc_.current());
 }
 
+void BytecodeGenerator::visit_equal(const Ast::Equal &equal) {
+  visit(*equal.left);
+  auto reg_left = reg_alloc_.current();
+  visit(*equal.right);
+  auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Equal>(reg_alloc_.allocate(), reg_left,
+                                                       reg_right);
+}
+
 void BytecodeGenerator::visit_add(const Ast::Add &add) {
   visit(*add.left);
   auto reg_left = reg_alloc_.current();
@@ -520,6 +539,10 @@ Bytecode::Value BytecodeInterpreter::interpret(
         instr_index_ = frame.return_instr_index;
         break;
       }
+      case Bytecode::Instruction::Type::Equal:
+        interpret_equal(ast::derived_cast<Bytecode::Instruction::Equal const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::Add:
         interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
         ++instr_index_;
@@ -601,6 +624,10 @@ void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call
   call_stack_.push_back({block_index, next_instr_index, call.dst, registers_});
   block_index = call.label;
   instr_index_ = 0;
+}
+
+void BytecodeInterpreter::interpret_equal(const Bytecode::Instruction::Equal &equal) {
+  registers_[equal.dst] = registers_[equal.src1] == registers_[equal.src2];
 }
 
 void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {

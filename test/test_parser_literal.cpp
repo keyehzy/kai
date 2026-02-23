@@ -103,3 +103,20 @@ TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
   REQUIRE(ast_cast<const Ast::Literal &>(*modulo.left).value == 9);
   REQUIRE(ast_cast<const Ast::Literal &>(*modulo.right).value == 5);
 }
+
+TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
+  kai::Parser parser("1 + 2 == 3");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Equal);
+
+  const auto &equal = ast_cast<const Ast::Equal &>(*parsed);
+  REQUIRE(equal.left->type == Ast::Type::Add);
+  REQUIRE(equal.right->type == Ast::Type::Literal);
+
+  const auto &add = ast_cast<const Ast::Add &>(*equal.left);
+  REQUIRE(ast_cast<const Ast::Literal &>(*add.left).value == 1);
+  REQUIRE(ast_cast<const Ast::Literal &>(*add.right).value == 2);
+  REQUIRE(ast_cast<const Ast::Literal &>(*equal.right).value == 3);
+}

@@ -64,6 +64,14 @@ void Ast::IfElse::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::Equal::dump(std::ostream &os) const {
+  os << "Equal(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::Add::dump(std::ostream &os) const {
   os << "Add(";
   left->dump(os);
@@ -199,6 +207,12 @@ void Ast::IfElse::to_string(std::ostream &os, int indent) const {
   body->to_string(os, indent);
   os << " else ";
   else_body->to_string(os, indent);
+}
+
+void Ast::Equal::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " == ";
+  right->to_string(os, indent);
 }
 
 void Ast::Add::to_string(std::ostream &os, int indent) const {

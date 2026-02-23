@@ -9,9 +9,21 @@ namespace kai {
 Parser::Parser(std::string_view input) : lexer_(input) {}
 
 std::unique_ptr<ast::Ast> Parser::parse_expression() {
-  std::unique_ptr<ast::Ast> result = parse_additive();
+  std::unique_ptr<ast::Ast> result = parse_equality();
   assert(lexer_.peek().type == Token::Type::end_of_file);
   return result;
+}
+
+std::unique_ptr<ast::Ast> Parser::parse_equality() {
+  std::unique_ptr<ast::Ast> left = parse_additive();
+
+  while (lexer_.peek().type == Token::Type::equals_equals) {
+    lexer_.skip();
+    std::unique_ptr<ast::Ast> right = parse_additive();
+    left = std::make_unique<ast::Ast::Equal>(std::move(left), std::move(right));
+  }
+
+  return left;
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_additive() {
@@ -73,7 +85,7 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
   }
   if (token.type == Token::Type::lparen) {
     lexer_.skip();
-    std::unique_ptr<ast::Ast> expr = parse_additive();
+    std::unique_ptr<ast::Ast> expr = parse_equality();
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
     return expr;

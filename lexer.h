@@ -11,6 +11,7 @@ struct Token {
     string,
     unknown,
     plus_plus,
+    equals_equals,
 
     lparen = '(',
     rparen = ')',
@@ -148,7 +149,6 @@ private:
     case ']':
     case ',':
     case ';':
-    case '=':
     case '-':
     case '*':
     case '/':
@@ -158,6 +158,17 @@ private:
       last_token_.begin = input_;
       last_token_.end = input_ + 1;
       ++input_;
+      break;
+    case '=':
+      last_token_.begin = input_;
+      if (next_char() == '=') {
+        last_token_.type = Token::Type::equals_equals;
+        input_ += 2;
+      } else {
+        last_token_.type = Token::Type::equals;
+        ++input_;
+      }
+      last_token_.end = input_;
       break;
     case '+':
       last_token_.begin = input_;

@@ -127,3 +127,14 @@ TEST_CASE("test_lexer_recognizes_modulo_operator") {
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_equality_operator") {
+  const auto types = lex_types("a == b");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::equals_equals,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}
