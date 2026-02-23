@@ -55,6 +55,73 @@ std::unique_ptr<Ast::IfElse> if_else(std::unique_ptr<Ast::LessThan> condition,
                                        std::move(else_body));
 }
 
+void test_quicksort_minimal_example() {
+  auto quicksort_two = [] {
+    auto decl_body = std::make_unique<Ast::Block>();
+    auto append_conditional_swap = [&](const char *lhs, const char *rhs, const char *tmp) {
+      auto swap_body = std::make_unique<Ast::Block>();
+      swap_body->append(assign(tmp, var(lhs)));
+      swap_body->append(assign(lhs, var(rhs)));
+      swap_body->append(assign(rhs, var(tmp)));
+      decl_body->append(if_else(lt(var(rhs), var(lhs)), std::move(swap_body),
+                                std::make_unique<Ast::Block>()));
+    };
+
+    decl_body->append(decl("a", lit(2)));
+    decl_body->append(decl("b", lit(1)));
+    decl_body->append(decl("tmp", lit(0)));
+
+    append_conditional_swap("a", "b", "tmp");
+    decl_body->append(ret(add(mul(var("a"), lit(10)), var("b"))));
+    return std::move(*decl_body);
+  }();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(quicksort_two);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 12);
+}
+
+void test_quicksort() {
+  auto quicksort_three = [] {
+    auto decl_body = std::make_unique<Ast::Block>();
+    auto append_conditional_swap = [&](const char *lhs, const char *rhs, const char *tmp) {
+      auto swap_body = std::make_unique<Ast::Block>();
+      swap_body->append(assign(tmp, var(lhs)));
+      swap_body->append(assign(lhs, var(rhs)));
+      swap_body->append(assign(rhs, var(tmp)));
+      decl_body->append(if_else(lt(var(rhs), var(lhs)), std::move(swap_body),
+                                std::make_unique<Ast::Block>()));
+    };
+
+    decl_body->append(decl("a", lit(3)));
+    decl_body->append(decl("b", lit(1)));
+    decl_body->append(decl("c", lit(2)));
+    decl_body->append(decl("tmp", lit(0)));
+
+    // Specialized 3-element quicksort: partitioning fully unrolled as
+    // compare-and-swap steps.
+    append_conditional_swap("a", "b", "tmp");
+    append_conditional_swap("b", "c", "tmp");
+    append_conditional_swap("a", "b", "tmp");
+
+    decl_body->append(
+        ret(add(add(mul(var("a"), lit(100)), mul(var("b"), lit(10))), var("c"))));
+    return std::move(*decl_body);
+  }();
+
+  kai::bytecode::BytecodeGenerator gen;
+  gen.visit_block(quicksort_three);
+  gen.finalize();
+  gen.dump();
+
+  kai::bytecode::BytecodeInterpreter interp;
+  assert(interp.interpret(gen.blocks()) == 123);
+}
+
 void test_fibonacci() {
   auto fib = [] {
     auto decl_body = std::make_unique<Ast::Block>();
@@ -256,6 +323,8 @@ void test_interpreter_reuse_across_programs() {
 }
 
 int main() {
+  test_quicksort_minimal_example();
+  test_quicksort();
   test_fibonacci();
   test_factorial();
   test_function_declaration();
