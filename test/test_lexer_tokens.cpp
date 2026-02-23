@@ -86,3 +86,18 @@ TEST_CASE("test_lexer_recognizes_array_index_assignment_tokens") {
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_commas") {
+  const auto types = lex_types("[1, 2, 3]");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::lsquare,
+                       Token::Type::number,
+                       Token::Type::comma,
+                       Token::Type::number,
+                       Token::Type::comma,
+                       Token::Type::number,
+                       Token::Type::rsquare,
+                       Token::Type::end_of_file,
+                   });
+}
