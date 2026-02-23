@@ -56,16 +56,16 @@ public:
   void skip() { parse_current_token(); }
 
 private:
-  static bool is_alpha(char ch) {
-    return std::isalpha(static_cast<unsigned char>(ch)) != 0;
+  static bool is_identifier_start(char ch) {
+    return ch == '_' || std::isalpha(static_cast<unsigned char>(ch)) != 0;
   }
 
   static bool is_digit(char ch) {
     return std::isdigit(static_cast<unsigned char>(ch)) != 0;
   }
 
-  static bool is_alnum(char ch) {
-    return std::isalnum(static_cast<unsigned char>(ch)) != 0;
+  static bool is_identifier_continue(char ch) {
+    return ch == '_' || std::isalnum(static_cast<unsigned char>(ch)) != 0;
   }
 
   static bool is_space(char ch) {
@@ -93,7 +93,7 @@ private:
     last_token_.type = Token::Type::identifier;
     last_token_.begin = input_;
     ++input_;
-    while(!is_eof() && is_alnum(input_[0])) {
+    while(!is_eof() && is_identifier_continue(input_[0])) {
       ++input_;
     }
     last_token_.end = input_;
@@ -132,7 +132,7 @@ private:
       return;
     }
 
-    if (is_alpha(input_[0])) {
+    if (is_identifier_start(input_[0])) {
       parse_identifier();
       return;
     }

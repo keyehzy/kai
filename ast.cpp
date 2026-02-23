@@ -283,8 +283,10 @@ void Ast::IfElse::to_string(std::ostream &os, int indent) const {
   condition->to_string(os, indent);
   os << ")";
   body->to_string(os, indent);
-  os << " else ";
-  else_body->to_string(os, indent);
+  if (!else_body->children.empty()) {
+    os << " else ";
+    else_body->to_string(os, indent);
+  }
 }
 
 void Ast::Equal::to_string(std::ostream &os, int indent) const {

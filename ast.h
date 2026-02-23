@@ -450,15 +450,24 @@ struct AstInterpreter {
     Value result = 0;
     for (const auto &child : block.children) {
       result = interpret(*child);
+      if (return_active_) {
+        break;
+      }
     }
     exit_scope();
+    if (return_active_) {
+      return return_value_;
+    }
     return result;
   }
 
   Value interpret_while(const Ast::While &while_loop) {
     Value result = 0;
-    while (interpret(*while_loop.condition)) {
+    while (!return_active_ && interpret(*while_loop.condition)) {
       result = interpret_block(*while_loop.body);
+    }
+    if (return_active_) {
+      return return_value_;
     }
     return result;
   }
@@ -480,14 +489,23 @@ struct AstInterpreter {
       argument_values.push_back(interpret(*argument));
     }
 
+    const bool caller_return_active = return_active_;
+    const Value caller_return_value = return_value_;
+
     push_scope();
     for (size_t i = 0; i < argument_values.size(); ++i) {
       current_scope()[function_declaration->parameters[i]] = argument_values[i];
     }
 
+    return_active_ = false;
+    return_value_ = 0;
     Value result = interpret_block(*function_declaration->body);
+    const Value function_result = return_active_ ? return_value_ : result;
     exit_scope();
-    return result;
+
+    return_active_ = caller_return_active;
+    return_value_ = caller_return_value;
+    return function_result;
   }
 
   Value interpret_assignment(const Ast::Assignment &assignment) {
@@ -499,7 +517,9 @@ struct AstInterpreter {
   }
 
   Value interpret_return(const Ast::Return &return_statement) {
-    return interpret(*return_statement.value);
+    return_value_ = interpret(*return_statement.value);
+    return_active_ = true;
+    return return_value_;
   }
 
   Value interpret_if_else(const Ast::IfElse &if_else) {
@@ -649,6 +669,8 @@ struct AstInterpreter {
   std::unordered_map<std::string, const Ast::FunctionDeclaration *> functions;
   std::unordered_map<Value, std::vector<Value>> arrays;
   Value next_array_handle = 1;
+  bool return_active_ = false;
+  Value return_value_ = 0;
 };
 } // namespace ast
 } // namespace kai

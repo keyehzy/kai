@@ -26,6 +26,17 @@ TEST_CASE("test_parser_parses_identifier_variable") {
   REQUIRE(variable.name == "value");
 }
 
+TEST_CASE("test_parser_parses_identifier_variable_with_underscore") {
+  kai::Parser parser("_value_2");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Variable);
+
+  const auto &variable = ast_cast<const Ast::Variable &>(*parsed);
+  REQUIRE(variable.name == "_value_2");
+}
+
 TEST_CASE("test_parser_precedence_multiply_before_add") {
   kai::Parser parser("1 + 2 * 3");
   std::unique_ptr<Ast> parsed = parser.parse_expression();
@@ -265,4 +276,52 @@ return fib(5);
   REQUIRE(if_else.condition->type == Ast::Type::LessThan);
   REQUIRE(if_else.body->children.size() == 1);
   REQUIRE(if_else.else_body->children.size() == 1);
+}
+
+TEST_CASE("test_parser_parses_if_without_else") {
+  kai::Parser parser(R"(
+let x = 0;
+if (1 < 2) {
+  x = 7;
+}
+return x;
+)");
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 3);
+  REQUIRE(program->children[1]->type == Ast::Type::IfElse);
+
+  const auto &if_else = ast_cast<const Ast::IfElse &>(*program->children[1]);
+  REQUIRE(if_else.condition->type == Ast::Type::LessThan);
+  REQUIRE(if_else.body->children.size() == 1);
+  REQUIRE(if_else.else_body->children.empty());
+}
+
+TEST_CASE("test_parser_parses_if_without_else_before_if_else") {
+  kai::Parser parser(R"(
+let x = 0;
+if (1 < 2) {
+  x = 1;
+}
+if (2 < 1) {
+  x = 2;
+} else {
+  x = 3;
+}
+return x;
+)");
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 4);
+  REQUIRE(program->children[1]->type == Ast::Type::IfElse);
+  REQUIRE(program->children[2]->type == Ast::Type::IfElse);
+
+  const auto &if_without_else = ast_cast<const Ast::IfElse &>(*program->children[1]);
+  REQUIRE(if_without_else.else_body->children.empty());
+
+  const auto &if_with_else = ast_cast<const Ast::IfElse &>(*program->children[2]);
+  REQUIRE(if_with_else.body->children.size() == 1);
+  REQUIRE(if_with_else.else_body->children.size() == 1);
 }

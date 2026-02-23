@@ -231,6 +231,106 @@ return i;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
+TEST_CASE("test_program_end_to_end_if_without_else") {
+  kai::Parser parser(R"(
+let x = 0;
+if (2 < 1) {
+  x = 99;
+}
+if (1 < 2) {
+  x = 42;
+}
+return x;
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 42);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
+}
+
+TEST_CASE("test_program_end_to_end_return_exits_program_early") {
+  kai::Parser parser(R"(
+let x = 7;
+return x;
+x = 99;
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 7);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 7);
+}
+
+TEST_CASE("test_program_end_to_end_return_exits_function_early") {
+  kai::Parser parser(R"(
+fn early() {
+  let x = 1;
+  return x;
+  x = 2;
+}
+return early();
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 1);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+}
+
+TEST_CASE("test_program_end_to_end_return_exits_loop_and_function_early") {
+  kai::Parser parser(R"(
+fn find_three() {
+  let i_val = 0;
+  while (i_val < 10) {
+    if (i_val == 3) {
+      return i_val;
+    }
+    i_val++;
+  }
+  return 99;
+}
+return find_three();
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 3);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 3);
+}
+
 TEST_CASE("test_program_end_to_end_function_parameters") {
   kai::Parser parser(R"(
 fn add(a, b) {
@@ -319,7 +419,6 @@ fn partition(values, low, high) {
       values[i] = values[j];
       values[j] = tmp;
       i++;
-    } else {
     }
     j++;
   }
@@ -330,20 +429,16 @@ fn partition(values, low, high) {
 }
 
 fn quicksort(values, low, high) {
-  if (low >= high) {
-    return 0;
-  } else {
+  if (low < high) {
     let p = partition(values, low, high);
     if (low < p) {
       quicksort(values, low, p - 1);
-    } else {
     }
     if (p < high) {
       quicksort(values, p + 1, high);
-    } else {
     }
-    return 0;
   }
+  return 0;
 }
 
 let values = [4, 1, 5, 2, 3];

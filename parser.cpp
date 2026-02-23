@@ -64,9 +64,13 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     lexer_.skip();
 
     std::unique_ptr<ast::Ast::Block> body = parse_block();
-    assert(token_is_identifier(lexer_.peek(), "else"));
-    lexer_.skip();
-    std::unique_ptr<ast::Ast::Block> else_body = parse_block();
+    std::unique_ptr<ast::Ast::Block> else_body;
+    if (token_is_identifier(lexer_.peek(), "else")) {
+      lexer_.skip();
+      else_body = parse_block();
+    } else {
+      else_body = std::make_unique<ast::Ast::Block>();
+    }
 
     return std::make_unique<ast::Ast::IfElse>(std::move(condition), std::move(body),
                                                std::move(else_body));

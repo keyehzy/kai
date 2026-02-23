@@ -240,3 +240,17 @@ TEST_CASE("test_lexer_recognizes_if_else_recursive_fibonacci_tokens") {
     REQUIRE(token.first != Token::Type::unknown);
   }
 }
+
+TEST_CASE("test_lexer_recognizes_identifiers_with_underscores") {
+  const auto tokens = lex_all("_tmp1 = foo_bar + baz_2;");
+
+  REQUIRE(tokens == std::vector<LexedToken>{
+                       {Token::Type::identifier, "_tmp1"},
+                       {Token::Type::equals, "="},
+                       {Token::Type::identifier, "foo_bar"},
+                       {Token::Type::plus, "+"},
+                       {Token::Type::identifier, "baz_2"},
+                       {Token::Type::semicolon, ";"},
+                       {Token::Type::end_of_file, ""},
+                   });
+}
