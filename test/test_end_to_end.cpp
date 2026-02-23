@@ -162,3 +162,26 @@ TEST_CASE("test_parser_expression_end_to_end_array_index_assignment") {
   kai::bytecode::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 8);
 }
+
+TEST_CASE("test_program_end_to_end_count_to_ten_while_loop") {
+  kai::Parser parser(R"(
+let i = 0;
+while (i < 10) {
+  i++;
+}
+return i;
+)");
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 10);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 10);
+}

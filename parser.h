@@ -12,9 +12,12 @@ class Parser {
  public:
   explicit Parser(std::string_view input);
 
+  std::unique_ptr<ast::Ast::Block> parse_program();
   std::unique_ptr<ast::Ast> parse_expression();
 
  private:
+  std::unique_ptr<ast::Ast> parse_statement();
+  std::unique_ptr<ast::Ast::Block> parse_block();
   std::unique_ptr<ast::Ast> parse_assignment();
   std::unique_ptr<ast::Ast> parse_equality();
   std::unique_ptr<ast::Ast> parse_comparison();

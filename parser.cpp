@@ -6,12 +6,89 @@
 
 namespace kai {
 
+namespace {
+bool token_is_identifier(const Token &token, std::string_view text) {
+  return token.type == Token::Type::identifier && token.sv() == text;
+}
+}  // namespace
+
 Parser::Parser(std::string_view input) : lexer_(input) {}
+
+std::unique_ptr<ast::Ast::Block> Parser::parse_program() {
+  auto program = std::make_unique<ast::Ast::Block>();
+  while (lexer_.peek().type != Token::Type::end_of_file) {
+    program->append(parse_statement());
+  }
+  return program;
+}
 
 std::unique_ptr<ast::Ast> Parser::parse_expression() {
   std::unique_ptr<ast::Ast> result = parse_assignment();
   assert(lexer_.peek().type == Token::Type::end_of_file);
   return result;
+}
+
+std::unique_ptr<ast::Ast> Parser::parse_statement() {
+  const Token &token = lexer_.peek();
+
+  if (token_is_identifier(token, "let")) {
+    lexer_.skip();
+    assert(lexer_.peek().type == Token::Type::identifier);
+    const std::string name(lexer_.peek().sv());
+    lexer_.skip();
+    assert(lexer_.peek().type == Token::Type::equals);
+    lexer_.skip();
+    std::unique_ptr<ast::Ast> initializer = parse_assignment();
+    assert(lexer_.peek().type == Token::Type::semicolon);
+    lexer_.skip();
+    return std::make_unique<ast::Ast::VariableDeclaration>(name, std::move(initializer));
+  }
+
+  if (token_is_identifier(token, "while")) {
+    lexer_.skip();
+    assert(lexer_.peek().type == Token::Type::lparen);
+    lexer_.skip();
+    std::unique_ptr<ast::Ast> condition = parse_assignment();
+    assert(lexer_.peek().type == Token::Type::rparen);
+    lexer_.skip();
+    std::unique_ptr<ast::Ast::Block> body = parse_block();
+    assert(condition->type == ast::Ast::Type::LessThan);
+    auto *condition_ptr = dynamic_cast<ast::Ast::LessThan *>(condition.release());
+    assert(condition_ptr != nullptr);
+    return std::make_unique<ast::Ast::While>(
+        std::unique_ptr<ast::Ast::LessThan>(condition_ptr), std::move(body));
+  }
+
+  if (token_is_identifier(token, "return")) {
+    lexer_.skip();
+    std::unique_ptr<ast::Ast> value = parse_assignment();
+    assert(lexer_.peek().type == Token::Type::semicolon);
+    lexer_.skip();
+    return std::make_unique<ast::Ast::Return>(std::move(value));
+  }
+
+  if (token.type == Token::Type::lcurly) {
+    return parse_block();
+  }
+
+  std::unique_ptr<ast::Ast> expr = parse_assignment();
+  assert(lexer_.peek().type == Token::Type::semicolon);
+  lexer_.skip();
+  return expr;
+}
+
+std::unique_ptr<ast::Ast::Block> Parser::parse_block() {
+  assert(lexer_.peek().type == Token::Type::lcurly);
+  lexer_.skip();
+
+  auto block = std::make_unique<ast::Ast::Block>();
+  while (lexer_.peek().type != Token::Type::rcurly) {
+    block->append(parse_statement());
+  }
+
+  assert(lexer_.peek().type == Token::Type::rcurly);
+  lexer_.skip();
+  return block;
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_assignment() {
@@ -123,12 +200,26 @@ std::unique_ptr<ast::Ast> Parser::parse_multiplicative() {
 std::unique_ptr<ast::Ast> Parser::parse_postfix() {
   std::unique_ptr<ast::Ast> expr = parse_primary();
 
-  while (lexer_.peek().type == Token::Type::lsquare) {
-    lexer_.skip();
-    std::unique_ptr<ast::Ast> index = parse_assignment();
-    assert(lexer_.peek().type == Token::Type::rsquare);
-    lexer_.skip();
-    expr = std::make_unique<ast::Ast::Index>(std::move(expr), std::move(index));
+  while (true) {
+    if (lexer_.peek().type == Token::Type::lsquare) {
+      lexer_.skip();
+      std::unique_ptr<ast::Ast> index = parse_assignment();
+      assert(lexer_.peek().type == Token::Type::rsquare);
+      lexer_.skip();
+      expr = std::make_unique<ast::Ast::Index>(std::move(expr), std::move(index));
+      continue;
+    }
+
+    if (lexer_.peek().type == Token::Type::plus_plus) {
+      assert(expr->type == ast::Ast::Type::Variable);
+      const std::string name = ast::ast_cast<const ast::Ast::Variable &>(*expr).name;
+      lexer_.skip();
+      expr = std::make_unique<ast::Ast::Increment>(
+          std::make_unique<ast::Ast::Variable>(name));
+      continue;
+    }
+
+    break;
   }
 
   return expr;

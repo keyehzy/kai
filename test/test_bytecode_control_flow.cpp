@@ -99,3 +99,24 @@ TEST_CASE("test_bytecode_interpreter_reuse_across_programs") {
     REQUIRE(interp.interpret(gen_with_loop.blocks()) == 1);
     REQUIRE(interp.interpret(gen_simple.blocks()) == 7);
 }
+
+TEST_CASE("test_bytecode_count_to_ten_using_while_loop") {
+    auto program = [] {
+      auto body = std::make_unique<Ast::Block>();
+      body->append(decl("i", lit(0)));
+
+      auto while_body = std::make_unique<Ast::Block>();
+      while_body->append(inc("i"));
+
+      body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
+      body->append(ret(var("i")));
+      return std::move(*body);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 10);
+}
