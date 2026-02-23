@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cassert>
+#include <cctype>
 #include <string_view>
 
 struct Token {
@@ -9,6 +9,8 @@ struct Token {
     identifier,
     number,
     string,
+    unknown,
+    plus_plus,
 
     lparen = '(',
     rparen = ')',
@@ -18,13 +20,14 @@ struct Token {
 
     equals = '=',
     plus = '+',
+    less_than = '<',
   };
 
   Type type;
   const char* begin;
   const char* end;
 
-  std::string_view sv() const { return std::string_view(begin, end); }
+  std::string_view sv() const { return std::string_view(begin, end - begin); }
 
   Token() = default;
 };
@@ -41,30 +44,68 @@ public:
   void skip() { parse_current_token(); }
 
 private:
+  static bool is_alpha(char ch) {
+    return std::isalpha(static_cast<unsigned char>(ch)) != 0;
+  }
+
+  static bool is_digit(char ch) {
+    return std::isdigit(static_cast<unsigned char>(ch)) != 0;
+  }
+
+  static bool is_alnum(char ch) {
+    return std::isalnum(static_cast<unsigned char>(ch)) != 0;
+  }
+
+  static bool is_space(char ch) {
+    return std::isspace(static_cast<unsigned char>(ch)) != 0;
+  }
+
+  bool is_eof() const {
+    return input_ == original_input_.end();
+  }
+
+  char next_char() const {
+    if (is_eof() || input_ + 1 == original_input_.end()) {
+      return '\0';
+    }
+    return input_[1];
+  }
+
   void skip_whitespaces() {
-    while(isspace(*input_++)) { }
+    while(!is_eof() && is_space(input_[0])) {
+      ++input_;
+    }
   }
 
   void parse_identifier() {
+    last_token_.type = Token::Type::identifier;
     last_token_.begin = input_;
     ++input_;
-    while(isalnum(*input_++)) { }
+    while(!is_eof() && is_alnum(input_[0])) {
+      ++input_;
+    }
     last_token_.end = input_;
   }
 
   void parse_number() {
+    last_token_.type = Token::Type::number;
     last_token_.begin = input_;
     ++input_;
-    while(isdigit(*input_++)) { }
+    while(!is_eof() && is_digit(input_[0])) {
+      ++input_;
+    }
     last_token_.end = input_;
   }
 
   void parse_string() {
+    last_token_.type = Token::Type::string;
     last_token_.begin = input_;
     ++input_;
-    while(*input_++ != '"' && input_ != original_input_.end()) { }
-    if (input_ == original_input_.end()) {
-      // fixme: handle error
+    while(!is_eof() && input_[0] != '"') {
+      ++input_;
+    }
+    if (!is_eof()) {
+      ++input_;
     }
     last_token_.end = input_;
   }
@@ -72,11 +113,18 @@ private:
   void parse_current_token() {
     skip_whitespaces();
 
-    if (isalpha(input_[0])) {
+    if (is_eof()) {
+      last_token_.type = Token::Type::end_of_file;
+      last_token_.begin = input_;
+      last_token_.end = input_;
+      return;
+    }
+
+    if (is_alpha(input_[0])) {
       parse_identifier();
       return;
     }
-    if (isdigit(input_[0])) {
+    if (is_digit(input_[0])) {
       parse_number();
       return;
     }
@@ -91,22 +139,29 @@ private:
     case '}':
     case ';':
     case '=':
-    case '+':
+    case '<':
       last_token_.type = static_cast<Token::Type>(input_[0]);
       last_token_.begin = input_;
       last_token_.end = input_ + 1;
       ++input_;
       break;
-    case '\0':
-      if (input_ == original_input_.end()) {
-        last_token_.type = Token::Type::end_of_file;
+    case '+':
+      last_token_.begin = input_;
+      if (next_char() == '+') {
+        last_token_.type = Token::Type::plus_plus;
+        input_ += 2;
         last_token_.end = input_;
-        break;
       } else {
-        [[fallthrough]];
+        last_token_.type = Token::Type::plus;
+        ++input_;
+        last_token_.end = input_;
       }
+      break;
     default:
-      assert(0);
+      last_token_.type = Token::Type::unknown;
+      last_token_.begin = input_;
+      ++input_;
+      last_token_.end = input_;
       break;
     }
   }
