@@ -15,6 +15,8 @@ class Parser {
   std::unique_ptr<ast::Ast> parse_expression();
 
  private:
+  std::unique_ptr<ast::Ast> parse_additive();
+  std::unique_ptr<ast::Ast> parse_multiplicative();
   std::unique_ptr<ast::Ast> parse_primary();
 
   Lexer lexer_;
