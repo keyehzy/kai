@@ -36,6 +36,7 @@ struct Bytecode::Instruction {
     Call,
     Return,
     Equal,
+    NotEqual,
     Add,
     Subtract,
     AddImmediate,
@@ -58,6 +59,7 @@ struct Bytecode::Instruction {
   struct Call;
   struct Return;
   struct Equal;
+  struct NotEqual;
   struct Add;
   struct Subtract;
   struct AddImmediate;
@@ -144,6 +146,15 @@ struct Bytecode::Instruction::Return final : Bytecode::Instruction {
 
 struct Bytecode::Instruction::Equal final : Bytecode::Instruction {
   Equal(Register dst, Register src1, Register src2);
+  void dump() const override;
+
+  Register dst;
+  Register src1;
+  Register src2;
+};
+
+struct Bytecode::Instruction::NotEqual final : Bytecode::Instruction {
+  NotEqual(Register dst, Register src1, Register src2);
   void dump() const override;
 
   Register dst;
@@ -275,6 +286,7 @@ class BytecodeGenerator {
   void visit_function_call(const ast::Ast::FunctionCall &function_call);
   void visit_return(const ast::Ast::Return &return_);
   void visit_equal(const ast::Ast::Equal &equal);
+  void visit_not_equal(const ast::Ast::NotEqual &not_equal);
   void visit_add(const ast::Ast::Add &add);
   void visit_subtract(const ast::Ast::Subtract &subtract);
   void visit_multiply(const ast::Ast::Multiply &multiply);
@@ -306,6 +318,7 @@ class BytecodeInterpreter {
   void interpret_jump_conditional(const Bytecode::Instruction::JumpConditional &jump_cond);
   void interpret_call(const Bytecode::Instruction::Call &call, size_t next_instr_index);
   void interpret_equal(const Bytecode::Instruction::Equal &equal);
+  void interpret_not_equal(const Bytecode::Instruction::NotEqual &not_equal);
   void interpret_add(const Bytecode::Instruction::Add &add);
   void interpret_subtract(const Bytecode::Instruction::Subtract &subtract);
   void interpret_add_immediate(const Bytecode::Instruction::AddImmediate &add_imm);

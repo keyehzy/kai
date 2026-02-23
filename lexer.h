@@ -12,6 +12,7 @@ struct Token {
     unknown,
     plus_plus,
     equals_equals,
+    bang_equals,
 
     lparen = '(',
     rparen = ')',
@@ -168,6 +169,17 @@ private:
         input_ += 2;
       } else {
         last_token_.type = Token::Type::equals;
+        ++input_;
+      }
+      last_token_.end = input_;
+      break;
+    case '!':
+      last_token_.begin = input_;
+      if (next_char() == '=') {
+        last_token_.type = Token::Type::bang_equals;
+        input_ += 2;
+      } else {
+        last_token_.type = Token::Type::unknown;
         ++input_;
       }
       last_token_.end = input_;

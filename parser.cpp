@@ -42,10 +42,19 @@ std::unique_ptr<ast::Ast> Parser::parse_assignment() {
 std::unique_ptr<ast::Ast> Parser::parse_equality() {
   std::unique_ptr<ast::Ast> left = parse_comparison();
 
-  while (lexer_.peek().type == Token::Type::equals_equals) {
+  while (true) {
+    const Token::Type op = lexer_.peek().type;
+    if (op != Token::Type::equals_equals && op != Token::Type::bang_equals) {
+      break;
+    }
+
     lexer_.skip();
     std::unique_ptr<ast::Ast> right = parse_comparison();
-    left = std::make_unique<ast::Ast::Equal>(std::move(left), std::move(right));
+    if (op == Token::Type::equals_equals) {
+      left = std::make_unique<ast::Ast::Equal>(std::move(left), std::move(right));
+    } else {
+      left = std::make_unique<ast::Ast::NotEqual>(std::move(left), std::move(right));
+    }
   }
 
   return left;

@@ -121,6 +121,23 @@ TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
   REQUIRE(ast_cast<const Ast::Literal &>(*equal.right).value == 3);
 }
 
+TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
+  kai::Parser parser("1 + 2 != 4");
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::NotEqual);
+
+  const auto &not_equal = ast_cast<const Ast::NotEqual &>(*parsed);
+  REQUIRE(not_equal.left->type == Ast::Type::Add);
+  REQUIRE(not_equal.right->type == Ast::Type::Literal);
+
+  const auto &add = ast_cast<const Ast::Add &>(*not_equal.left);
+  REQUIRE(ast_cast<const Ast::Literal &>(*add.left).value == 1);
+  REQUIRE(ast_cast<const Ast::Literal &>(*add.right).value == 2);
+  REQUIRE(ast_cast<const Ast::Literal &>(*not_equal.right).value == 4);
+}
+
 TEST_CASE("test_parser_parses_greater_than_expression") {
   kai::Parser parser("1 + 3 > 3");
   std::unique_ptr<Ast> parsed = parser.parse_expression();

@@ -26,6 +26,7 @@ struct Ast {
     Return,
     IfElse,
     Equal,
+    NotEqual,
     Add,
     Subtract,
     Multiply,
@@ -50,6 +51,7 @@ struct Ast {
   struct Return;
   struct IfElse;
   struct Equal;
+  struct NotEqual;
   struct Add;
   struct Subtract;
   struct Multiply;
@@ -252,6 +254,17 @@ struct Ast::Equal final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::NotEqual final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  NotEqual(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::NotEqual), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct Ast::Add final : public Ast {
   std::unique_ptr<Ast> left;
   std::unique_ptr<Ast> right;
@@ -431,6 +444,10 @@ struct AstInterpreter {
     return interpret(*equal.left) == interpret(*equal.right);
   }
 
+  Value interpret_not_equal(const Ast::NotEqual &not_equal) {
+    return interpret(*not_equal.left) != interpret(*not_equal.right);
+  }
+
   Value interpret_add(const Ast::Add &add) { return interpret(*add.left) + interpret(*add.right); }
 
   Value interpret_subtract(const Ast::Subtract &subtract) {
@@ -509,6 +526,8 @@ struct AstInterpreter {
         return interpret_if_else(ast_cast<Ast::IfElse const &>(ast));
       case Ast::Type::Equal:
         return interpret_equal(ast_cast<Ast::Equal const &>(ast));
+      case Ast::Type::NotEqual:
+        return interpret_not_equal(ast_cast<Ast::NotEqual const &>(ast));
       case Ast::Type::Add:
         return interpret_add(ast_cast<Ast::Add const &>(ast));
       case Ast::Type::Subtract:

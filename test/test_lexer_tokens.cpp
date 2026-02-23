@@ -150,6 +150,17 @@ TEST_CASE("test_lexer_recognizes_equality_operator") {
                    });
 }
 
+TEST_CASE("test_lexer_recognizes_not_equal_operator") {
+  const auto types = lex_types("a != b");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::bang_equals,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}
+
 TEST_CASE("test_lexer_recognizes_array_index_assignment_comparison_expression") {
   const auto types = lex_types("([7, 8, 9][1] = 42) < 50");
 

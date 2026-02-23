@@ -80,6 +80,14 @@ void Ast::Equal::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::NotEqual::dump(std::ostream &os) const {
+  os << "NotEqual(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::Add::dump(std::ostream &os) const {
   os << "Add(";
   left->dump(os);
@@ -226,6 +234,12 @@ void Ast::IfElse::to_string(std::ostream &os, int indent) const {
 void Ast::Equal::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " == ";
+  right->to_string(os, indent);
+}
+
+void Ast::NotEqual::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " != ";
   right->to_string(os, indent);
 }
 

@@ -86,6 +86,13 @@ void Bytecode::Instruction::Equal::dump() const {
   std::printf("Equal r%zu, r%zu, r%zu", dst, src1, src2);
 }
 
+Bytecode::Instruction::NotEqual::NotEqual(Register dst, Register src1, Register src2)
+    : Bytecode::Instruction(Type::NotEqual), dst(dst), src1(src1), src2(src2) {}
+
+void Bytecode::Instruction::NotEqual::dump() const {
+  std::printf("NotEqual r%zu, r%zu, r%zu", dst, src1, src2);
+}
+
 Bytecode::Instruction::Add::Add(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Add), dst(dst), src1(src1), src2(src2) {}
 
@@ -214,6 +221,9 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Equal:
       visit_equal(ast_cast<Ast::Equal const &>(ast));
+      break;
+    case Ast::Type::NotEqual:
+      visit_not_equal(ast_cast<Ast::NotEqual const &>(ast));
       break;
     case Ast::Type::Add:
       visit_add(ast_cast<Ast::Add const &>(ast));
@@ -424,6 +434,15 @@ void BytecodeGenerator::visit_equal(const Ast::Equal &equal) {
                                                        reg_right);
 }
 
+void BytecodeGenerator::visit_not_equal(const Ast::NotEqual &not_equal) {
+  visit(*not_equal.left);
+  auto reg_left = reg_alloc_.current();
+  visit(*not_equal.right);
+  auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::NotEqual>(reg_alloc_.allocate(), reg_left,
+                                                          reg_right);
+}
+
 void BytecodeGenerator::visit_add(const Ast::Add &add) {
   visit(*add.left);
   auto reg_left = reg_alloc_.current();
@@ -568,6 +587,11 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_equal(ast::derived_cast<Bytecode::Instruction::Equal const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::NotEqual:
+        interpret_not_equal(
+            ast::derived_cast<Bytecode::Instruction::NotEqual const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::Add:
         interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
         ++instr_index_;
@@ -659,6 +683,11 @@ void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call
 
 void BytecodeInterpreter::interpret_equal(const Bytecode::Instruction::Equal &equal) {
   registers_[equal.dst] = registers_[equal.src1] == registers_[equal.src2];
+}
+
+void BytecodeInterpreter::interpret_not_equal(
+    const Bytecode::Instruction::NotEqual &not_equal) {
+  registers_[not_equal.dst] = registers_[not_equal.src1] != registers_[not_equal.src2];
 }
 
 void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {
