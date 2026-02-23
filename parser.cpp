@@ -55,6 +55,26 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     return std::make_unique<ast::Ast::While>(std::move(condition), std::move(body));
   }
 
+  if (token_is_identifier(token, "if")) {
+    lexer_.skip();
+    assert(lexer_.peek().type == Token::Type::lparen);
+    lexer_.skip();
+    std::unique_ptr<ast::Ast> condition_expr = parse_assignment();
+    assert(condition_expr->type == ast::Ast::Type::LessThan);
+    auto condition = std::unique_ptr<ast::Ast::LessThan>(
+        static_cast<ast::Ast::LessThan *>(condition_expr.release()));
+    assert(lexer_.peek().type == Token::Type::rparen);
+    lexer_.skip();
+
+    std::unique_ptr<ast::Ast::Block> body = parse_block();
+    assert(token_is_identifier(lexer_.peek(), "else"));
+    lexer_.skip();
+    std::unique_ptr<ast::Ast::Block> else_body = parse_block();
+
+    return std::make_unique<ast::Ast::IfElse>(std::move(condition), std::move(body),
+                                               std::move(else_body));
+  }
+
   if (token_is_identifier(token, "return")) {
     lexer_.skip();
     std::unique_ptr<ast::Ast> value = parse_assignment();

@@ -206,3 +206,15 @@ TEST_CASE("test_lexer_recognizes_array_index_assignment_comparison_expression") 
                        Token::Type::end_of_file,
                    });
 }
+
+TEST_CASE("test_lexer_recognizes_if_else_recursive_fibonacci_tokens") {
+  const auto tokens =
+      lex_all("if (n < 2) { return n; } else { return fib(n - 1) + fib(n - 2); }");
+
+  REQUIRE(!tokens.empty());
+  REQUIRE(tokens.back().first == Token::Type::end_of_file);
+
+  for (const auto &token : tokens) {
+    REQUIRE(token.first != Token::Type::unknown);
+  }
+}

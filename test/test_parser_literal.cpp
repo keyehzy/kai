@@ -213,3 +213,32 @@ return add(1, 2);
   REQUIRE(function_call.name == "add");
   REQUIRE(function_call.arguments.size() == 2);
 }
+
+TEST_CASE("test_parser_parses_recursive_fibonacci_if_else") {
+  kai::Parser parser(R"(
+fn fib(n) {
+  if (n < 2) {
+    return n;
+  } else {
+    return fib(n - 1) + fib(n - 2);
+  }
+}
+return fib(5);
+)");
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 2);
+  REQUIRE(program->children[0]->type == Ast::Type::FunctionDeclaration);
+
+  const auto &fib_decl = ast_cast<const Ast::FunctionDeclaration &>(*program->children[0]);
+  REQUIRE(fib_decl.name == "fib");
+  REQUIRE(fib_decl.parameters == std::vector<std::string>{"n"});
+  REQUIRE(fib_decl.body->children.size() == 1);
+  REQUIRE(fib_decl.body->children[0]->type == Ast::Type::IfElse);
+
+  const auto &if_else = ast_cast<const Ast::IfElse &>(*fib_decl.body->children[0]);
+  REQUIRE(if_else.condition->type == Ast::Type::LessThan);
+  REQUIRE(if_else.body->children.size() == 1);
+  REQUIRE(if_else.else_body->children.size() == 1);
+}
