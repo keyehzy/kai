@@ -59,8 +59,14 @@ void ensure_bytecode_program_returns_value(kai::ast::Ast::Block &program) {
 }
 
 std::unique_ptr<kai::ast::Ast::Block> parse_program(const std::string &source) {
-  kai::Parser parser(source);
-  return parser.parse_program();
+  kai::ErrorReporter reporter;
+  kai::Parser parser(source, reporter);
+  auto program = parser.parse_program();
+  for (const auto &error : reporter.errors()) {
+    const auto lc = kai::line_column(source, error.location.begin);
+    std::cerr << lc.line << ":" << lc.column << ": error: " << error.message << "\n";
+  }
+  return program;
 }
 
 kai::ast::Value run_source(const std::string &source, Backend backend) {

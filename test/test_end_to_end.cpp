@@ -4,7 +4,8 @@
 #include "../parser.h"
 
 TEST_CASE("test_parser_expression_end_to_end_literal_42") {
-  kai::Parser parser("42");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("42", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -24,7 +25,8 @@ TEST_CASE("test_parser_expression_end_to_end_literal_42") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_modulo_minimal") {
-  kai::Parser parser("20 % 6 + 1");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("20 % 6 + 1", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -44,7 +46,8 @@ TEST_CASE("test_parser_expression_end_to_end_modulo_minimal") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_equality_minimal") {
-  kai::Parser parser("20 % 6 == 2");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("20 % 6 == 2", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -64,7 +67,8 @@ TEST_CASE("test_parser_expression_end_to_end_equality_minimal") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_not_equal_minimal") {
-  kai::Parser parser("20 % 6 != 3");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("20 % 6 != 3", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -84,7 +88,8 @@ TEST_CASE("test_parser_expression_end_to_end_not_equal_minimal") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_less_than") {
-  kai::Parser parser("1 < 2");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 < 2", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -104,7 +109,8 @@ TEST_CASE("test_parser_expression_end_to_end_less_than") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_greater_than") {
-  kai::Parser parser("3 > 2");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("3 > 2", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -124,7 +130,8 @@ TEST_CASE("test_parser_expression_end_to_end_greater_than") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_equal") {
-  kai::Parser parser("17+3 == 20");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("17+3 == 20", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -144,7 +151,8 @@ TEST_CASE("test_parser_expression_end_to_end_equal") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_array_index_assignment") {
-  kai::Parser parser("[7, 8, 9][1]");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("[7, 8, 9][1]", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -164,7 +172,8 @@ TEST_CASE("test_parser_expression_end_to_end_array_index_assignment") {
 }
 
 TEST_CASE("test_parser_expression_end_to_end_less_than_or_equal_minimal") {
-  kai::Parser parser("2 <= 2");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("2 <= 2", reporter);
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
@@ -184,13 +193,14 @@ TEST_CASE("test_parser_expression_end_to_end_less_than_or_equal_minimal") {
 }
 
 TEST_CASE("test_program_end_to_end_count_to_ten_while_loop") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let i = 0;
 while (i < 10) {
   i++;
 }
 return i;
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -207,13 +217,14 @@ return i;
 }
 
 TEST_CASE("test_program_end_to_end_count_down_from_ten_to_one_while_loop") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let i = 10;
 while (i > 1) {
   i = i - 1;
 }
 return i;
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -230,6 +241,7 @@ return i;
 }
 
 TEST_CASE("test_program_end_to_end_if_without_else") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let x = 0;
 if (2 < 1) {
@@ -239,7 +251,7 @@ if (1 < 2) {
   x = 42;
 }
 return x;
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -256,11 +268,12 @@ return x;
 }
 
 TEST_CASE("test_program_end_to_end_return_exits_program_early") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let x = 7;
 return x;
 x = 99;
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -277,6 +290,7 @@ x = 99;
 }
 
 TEST_CASE("test_program_end_to_end_return_exits_function_early") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn early() {
   let x = 1;
@@ -284,7 +298,7 @@ fn early() {
   x = 2;
 }
 return early();
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -301,6 +315,7 @@ return early();
 }
 
 TEST_CASE("test_program_end_to_end_return_exits_loop_and_function_early") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn find_three() {
   let i_val = 0;
@@ -313,7 +328,7 @@ fn find_three() {
   return 99;
 }
 return find_three();
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -330,12 +345,13 @@ return find_three();
 }
 
 TEST_CASE("test_program_end_to_end_function_parameters") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn add(a, b) {
   return a + b;
 }
 return add(40, 2);
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -352,6 +368,7 @@ return add(40, 2);
 }
 
 TEST_CASE("test_program_end_to_end_function_recursion_fibonacci") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn fib(n) {
   if (n < 2) {
@@ -361,7 +378,7 @@ fn fib(n) {
   }
 }
 return fib(10);
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -378,6 +395,7 @@ return fib(10);
 }
 
 TEST_CASE("test_program_end_to_end_function_recursion_fibonacci_minimal") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn fib(n) {
   if (n < 2) {
@@ -387,7 +405,7 @@ fn fib(n) {
   }
 }
 return fib(2);
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
   REQUIRE(program != nullptr);
 
@@ -403,6 +421,7 @@ return fib(2);
 }
 
 TEST_CASE("test_program_end_to_end_quicksort") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn partition(values, low, high) {
   let pivot = values[high];
@@ -441,7 +460,7 @@ let values = [4, 1, 5, 2, 3];
 quicksort(values, 0, 4);
 return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
        values[4];
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -458,10 +477,11 @@ return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
 }
 
 TEST_CASE("test_program_end_to_end_structs_minimal") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let point = struct { x: 40, y: 2 };
 return point.x + point.y;
-)");
+)", reporter);
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);

@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cctype>
+#include <string>
 #include <string_view>
+
+#include "error_reporter.h"
 
 struct Token {
   enum class Type {
@@ -48,7 +51,10 @@ struct Token {
 
 class Lexer {
 public:
-  Lexer(std::string_view input) : input_(input.data()), original_input_(input) {
+  explicit Lexer(std::string_view input, kai::ErrorReporter& error_reporter)
+      : input_(input.data()),
+        original_input_(input),
+        error_reporter_(error_reporter) {
     last_token_.end = input_;
     parse_current_token();
   }
@@ -205,6 +211,7 @@ private:
         last_token_.type = Token::Type::bang_equals;
         input_ += 2;
       } else {
+        report_unexpected_char('!');
         last_token_.type = Token::Type::unknown;
         ++input_;
       }
@@ -223,6 +230,7 @@ private:
       }
       break;
     default:
+      report_unexpected_char(input_[0]);
       last_token_.type = Token::Type::unknown;
       last_token_.begin = input_;
       ++input_;
@@ -232,7 +240,16 @@ private:
   }
 
 
+  void report_unexpected_char(char ch) {
+    kai::SourceLocation loc{input_, input_ + 1};
+    std::string msg = "unexpected character '";
+    msg += ch;
+    msg += "'";
+    error_reporter_.report(loc, std::move(msg));
+  }
+
   Token last_token_;
   const char *input_;
   std::string_view original_input_;
+  kai::ErrorReporter& error_reporter_;
 };

@@ -11,7 +11,8 @@ using LexedToken = std::pair<Token::Type, std::string_view>;
 using TokenType = Token::Type;
 
 std::vector<LexedToken> lex_all(std::string_view source) {
-  Lexer lexer(source);
+  kai::ErrorReporter reporter;
+  Lexer lexer(source, reporter);
   std::vector<LexedToken> tokens;
 
   while (true) {

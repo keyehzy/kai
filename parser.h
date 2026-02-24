@@ -10,7 +10,7 @@ namespace kai {
 
 class Parser {
  public:
-  explicit Parser(std::string_view input);
+  explicit Parser(std::string_view input, kai::ErrorReporter& error_reporter);
 
   std::unique_ptr<ast::Ast::Block> parse_program();
   std::unique_ptr<ast::Ast> parse_expression();

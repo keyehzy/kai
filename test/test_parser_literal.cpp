@@ -5,7 +5,8 @@
 using namespace kai::ast;
 
 TEST_CASE("test_parser_parses_number_literal_42") {
-  kai::Parser parser("42");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("42", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -16,7 +17,8 @@ TEST_CASE("test_parser_parses_number_literal_42") {
 }
 
 TEST_CASE("test_parser_parses_identifier_variable") {
-  kai::Parser parser("value");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("value", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -27,7 +29,8 @@ TEST_CASE("test_parser_parses_identifier_variable") {
 }
 
 TEST_CASE("test_parser_parses_identifier_variable_with_underscore") {
-  kai::Parser parser("_value_2");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("_value_2", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -38,7 +41,8 @@ TEST_CASE("test_parser_parses_identifier_variable_with_underscore") {
 }
 
 TEST_CASE("test_parser_precedence_multiply_before_add") {
-  kai::Parser parser("1 + 2 * 3");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 + 2 * 3", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -59,7 +63,8 @@ TEST_CASE("test_parser_precedence_multiply_before_add") {
 }
 
 TEST_CASE("test_parser_subtract_is_left_associative") {
-  kai::Parser parser("8 - 3 - 1");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("8 - 3 - 1", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -78,7 +83,8 @@ TEST_CASE("test_parser_subtract_is_left_associative") {
 }
 
 TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
-  kai::Parser parser("a * b + c / d");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("a * b + c / d", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -98,7 +104,8 @@ TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
 }
 
 TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
-  kai::Parser parser("8 + 9 % 5");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("8 + 9 % 5", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -116,7 +123,8 @@ TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
 }
 
 TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
-  kai::Parser parser("1 + 2 == 3");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 + 2 == 3", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -133,7 +141,8 @@ TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
 }
 
 TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
-  kai::Parser parser("1 + 2 != 4");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 + 2 != 4", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -150,7 +159,8 @@ TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
 }
 
 TEST_CASE("test_parser_parses_greater_than_expression") {
-  kai::Parser parser("1 + 3 > 3");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 + 3 > 3", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -167,7 +177,8 @@ TEST_CASE("test_parser_parses_greater_than_expression") {
 }
 
 TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
-  kai::Parser parser("1 + 3 <= 4");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 + 3 <= 4", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -179,7 +190,8 @@ TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
 }
 
 TEST_CASE("test_parser_parses_greater_than_or_equal_expression") {
-  kai::Parser parser("5 >= 3 + 2");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("5 >= 3 + 2", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -191,13 +203,14 @@ TEST_CASE("test_parser_parses_greater_than_or_equal_expression") {
 }
 
 TEST_CASE("test_parser_parses_while_with_greater_than_condition") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let i = 10;
 while (i > 1) {
   i = i - 1;
 }
 return i;
-)");
+)", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -210,7 +223,8 @@ return i;
 }
 
 TEST_CASE("test_parser_parses_function_call_with_arguments") {
-  kai::Parser parser("sum(1, 2 + 3)");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("sum(1, 2 + 3)", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -224,12 +238,13 @@ TEST_CASE("test_parser_parses_function_call_with_arguments") {
 }
 
 TEST_CASE("test_parser_parses_function_declaration_with_parameters") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn add(a, b) {
   return a + b;
 }
 return add(1, 2);
-)");
+)", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -250,6 +265,7 @@ return add(1, 2);
 }
 
 TEST_CASE("test_parser_parses_recursive_fibonacci_if_else") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 fn fib(n) {
   if (n < 2) {
@@ -259,7 +275,7 @@ fn fib(n) {
   }
 }
 return fib(5);
-)");
+)", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -279,13 +295,14 @@ return fib(5);
 }
 
 TEST_CASE("test_parser_parses_if_without_else") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let x = 0;
 if (1 < 2) {
   x = 7;
 }
 return x;
-)");
+)", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -299,6 +316,7 @@ return x;
 }
 
 TEST_CASE("test_parser_parses_if_without_else_before_if_else") {
+  kai::ErrorReporter reporter;
   kai::Parser parser(R"(
 let x = 0;
 if (1 < 2) {
@@ -310,7 +328,7 @@ if (2 < 1) {
   x = 3;
 }
 return x;
-)");
+)", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -327,7 +345,8 @@ return x;
 }
 
 TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
-  kai::Parser parser("struct { x: 40, y: 2 }.x");
+  kai::ErrorReporter reporter;
+  kai::Parser parser("struct { x: 40, y: 2 }.x", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
