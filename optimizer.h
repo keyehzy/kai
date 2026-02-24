@@ -25,6 +25,13 @@ class BytecodeOptimizer {
   // whose operands are not modified anywhere in the loop to a pre-header
   // block that executes once.
   void loop_invariant_code_motion(std::vector<Bytecode::BasicBlock> &blocks);
+
+  // Pass 3: peephole optimization.
+  // Collapses two-instruction sequences where a pure producer writes to a
+  // temporary register that is used only by an immediately-following Move:
+  //   AddImmediate r_tmp, r_src, K  +  Move r_var, r_tmp  →  AddImmediate r_var, r_src, K
+  //   Load r_tmp, K                 +  Move r_var, r_tmp  →  Load r_var, K
+  void peephole(std::vector<Bytecode::BasicBlock> &blocks);
 };
 
 }  // namespace bytecode

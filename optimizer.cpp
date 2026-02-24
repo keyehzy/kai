@@ -157,12 +157,154 @@ static bool is_hoistable(const Bytecode::Instruction &instr,
   return true;
 }
 
+// Counts how many times each register appears as a source operand across all blocks.
+static std::unordered_map<Register, size_t> compute_use_count(
+    const std::vector<Bytecode::BasicBlock> &blocks) {
+  std::unordered_map<Register, size_t> use_count;
+  const auto use = [&](Register r) { ++use_count[r]; };
+
+  for (const auto &block : blocks) {
+    for (const auto &instr_ptr : block.instructions) {
+      const auto &instr = *instr_ptr;
+      switch (instr.type()) {
+        case Type::Move:
+          use(ast::derived_cast<const Bytecode::Instruction::Move &>(instr).src);
+          break;
+        case Type::Load:
+          break;
+        case Type::LessThan: {
+          const auto &lt = ast::derived_cast<const Bytecode::Instruction::LessThan &>(instr);
+          use(lt.lhs);
+          use(lt.rhs);
+          break;
+        }
+        case Type::GreaterThan: {
+          const auto &gt =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThan &>(instr);
+          use(gt.lhs);
+          use(gt.rhs);
+          break;
+        }
+        case Type::LessThanOrEqual: {
+          const auto &lte =
+              ast::derived_cast<const Bytecode::Instruction::LessThanOrEqual &>(instr);
+          use(lte.lhs);
+          use(lte.rhs);
+          break;
+        }
+        case Type::GreaterThanOrEqual: {
+          const auto &gte =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThanOrEqual &>(instr);
+          use(gte.lhs);
+          use(gte.rhs);
+          break;
+        }
+        case Type::Jump:
+          break;
+        case Type::JumpConditional:
+          use(ast::derived_cast<const Bytecode::Instruction::JumpConditional &>(instr).cond);
+          break;
+        case Type::Call: {
+          const auto &c = ast::derived_cast<const Bytecode::Instruction::Call &>(instr);
+          for (auto r : c.arg_registers) use(r);
+          break;
+        }
+        case Type::Return:
+          use(ast::derived_cast<const Bytecode::Instruction::Return &>(instr).reg);
+          break;
+        case Type::Equal: {
+          const auto &e = ast::derived_cast<const Bytecode::Instruction::Equal &>(instr);
+          use(e.src1);
+          use(e.src2);
+          break;
+        }
+        case Type::NotEqual: {
+          const auto &ne =
+              ast::derived_cast<const Bytecode::Instruction::NotEqual &>(instr);
+          use(ne.src1);
+          use(ne.src2);
+          break;
+        }
+        case Type::Add: {
+          const auto &a = ast::derived_cast<const Bytecode::Instruction::Add &>(instr);
+          use(a.src1);
+          use(a.src2);
+          break;
+        }
+        case Type::Subtract: {
+          const auto &s =
+              ast::derived_cast<const Bytecode::Instruction::Subtract &>(instr);
+          use(s.src1);
+          use(s.src2);
+          break;
+        }
+        case Type::AddImmediate:
+          use(ast::derived_cast<const Bytecode::Instruction::AddImmediate &>(instr).src);
+          break;
+        case Type::Multiply: {
+          const auto &m =
+              ast::derived_cast<const Bytecode::Instruction::Multiply &>(instr);
+          use(m.src1);
+          use(m.src2);
+          break;
+        }
+        case Type::Divide: {
+          const auto &d =
+              ast::derived_cast<const Bytecode::Instruction::Divide &>(instr);
+          use(d.src1);
+          use(d.src2);
+          break;
+        }
+        case Type::Modulo: {
+          const auto &mo =
+              ast::derived_cast<const Bytecode::Instruction::Modulo &>(instr);
+          use(mo.src1);
+          use(mo.src2);
+          break;
+        }
+        case Type::ArrayCreate: {
+          const auto &ac =
+              ast::derived_cast<const Bytecode::Instruction::ArrayCreate &>(instr);
+          for (auto r : ac.elements) use(r);
+          break;
+        }
+        case Type::ArrayLoad: {
+          const auto &al =
+              ast::derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
+          use(al.array);
+          use(al.index);
+          break;
+        }
+        case Type::ArrayStore: {
+          const auto &as_ =
+              ast::derived_cast<const Bytecode::Instruction::ArrayStore &>(instr);
+          use(as_.array);
+          use(as_.index);
+          use(as_.value);
+          break;
+        }
+        case Type::StructCreate: {
+          const auto &sc =
+              ast::derived_cast<const Bytecode::Instruction::StructCreate &>(instr);
+          for (const auto &[name, r] : sc.fields) use(r);
+          break;
+        }
+        case Type::StructLoad:
+          use(ast::derived_cast<const Bytecode::Instruction::StructLoad &>(instr).object);
+          break;
+      }
+    }
+  }
+  return use_count;
+}
+
 }  // namespace
 
 void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
   loop_invariant_code_motion(blocks);
   copy_propagation(blocks);
   dead_code_elimination(blocks);
+  peephole(blocks);
 }
 
 void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &blocks) {
@@ -708,6 +850,56 @@ void BytecodeOptimizer::loop_invariant_code_motion(
           changed = true;
         }
       }
+    }
+  }
+}
+
+void BytecodeOptimizer::peephole(std::vector<Bytecode::BasicBlock> &blocks) {
+  // Build a global count of how many times each register is read as a source
+  // operand.  This is used to prove that a temporary register is used only
+  // once (by the immediately-following Move) before we eliminate the Move.
+  const auto use_count = compute_use_count(blocks);
+
+  for (auto &block : blocks) {
+    auto &instrs = block.instructions;
+    size_t i = 0;
+    while (i + 1 < instrs.size()) {
+      const auto t = instrs[i]->type();
+      // Only fold patterns whose producing instruction is Load or AddImmediate.
+      if (t != Type::AddImmediate && t != Type::Load) {
+        ++i;
+        continue;
+      }
+      // The immediately-following instruction must be a Move.
+      if (instrs[i + 1]->type() != Type::Move) {
+        ++i;
+        continue;
+      }
+      const auto &mv =
+          ast::derived_cast<const Bytecode::Instruction::Move &>(*instrs[i + 1]);
+      // The Move must consume exactly the register produced by instrs[i].
+      const auto tmp_opt = get_dst_reg(*instrs[i]);
+      if (!tmp_opt || mv.src != *tmp_opt) {
+        ++i;
+        continue;
+      }
+      const Register r_tmp = *tmp_opt;
+      // Safety: r_tmp must be used exactly once (by this Move and nothing else).
+      const auto uc_it = use_count.find(r_tmp);
+      if (uc_it == use_count.end() || uc_it->second != 1) {
+        ++i;
+        continue;
+      }
+      // Redirect the producing instruction's destination to mv.dst and
+      // remove the now-redundant Move.
+      const Register r_var = mv.dst;
+      if (t == Type::AddImmediate) {
+        ast::derived_cast<Bytecode::Instruction::AddImmediate &>(*instrs[i]).dst = r_var;
+      } else {
+        ast::derived_cast<Bytecode::Instruction::Load &>(*instrs[i]).dst = r_var;
+      }
+      instrs.erase(instrs.begin() + static_cast<std::ptrdiff_t>(i + 1));
+      // Do not advance i: re-check this position for chained folding.
     }
   }
 }
