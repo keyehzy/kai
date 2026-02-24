@@ -1,6 +1,7 @@
 #include "ast.h"
 #include "bytecode.h"
 #include "cxxopts.hpp"
+#include "optimizer.h"
 #include "parser.h"
 
 #include <cctype>
@@ -75,6 +76,9 @@ kai::ast::Value run_source(const std::string &source, Backend backend) {
   generator.visit_block(*program);
   generator.finalize();
 
+  kai::bytecode::BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+
   kai::bytecode::BytecodeInterpreter interpreter;
   return interpreter.interpret(generator.blocks());
 }
@@ -90,6 +94,9 @@ void dump_source(const std::string &source, Backend backend) {
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
+
+  kai::bytecode::BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
   generator.dump();
 }
 

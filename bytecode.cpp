@@ -594,6 +594,10 @@ const std::vector<Bytecode::BasicBlock> &BytecodeGenerator::blocks() const {
   return blocks_;
 }
 
+std::vector<Bytecode::BasicBlock> &BytecodeGenerator::blocks() {
+  return blocks_;
+}
+
 Bytecode::BasicBlock &BytecodeGenerator::current_block() {
   if (blocks_.empty()) {
     blocks_.emplace_back();

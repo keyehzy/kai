@@ -2,7 +2,7 @@ CXX      ?= clang++
 CC       ?= clang
 CXXFLAGS ?= -O3 -DNDEBUG -g3 -Wall -Wextra -std=c++20
 
-COMMON_SRCS = ast.cpp bytecode.cpp parser.cpp
+COMMON_SRCS = ast.cpp bytecode.cpp optimizer.cpp parser.cpp
 
 CLI_SRCS  = cli.cpp $(COMMON_SRCS)
 CLI_BIN   = cli

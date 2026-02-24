@@ -315,6 +315,7 @@ class BytecodeGenerator {
   void finalize();
   void dump() const;
   const std::vector<Bytecode::BasicBlock> &blocks() const;
+  std::vector<Bytecode::BasicBlock> &blocks();
 
  private:
   Bytecode::BasicBlock &current_block();
