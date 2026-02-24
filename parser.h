@@ -23,6 +23,7 @@ class Parser {
   std::unique_ptr<ast::Ast> parse_comparison();
   std::unique_ptr<ast::Ast> parse_additive();
   std::unique_ptr<ast::Ast> parse_multiplicative();
+  std::unique_ptr<ast::Ast> parse_unary();
   std::unique_ptr<ast::Ast> parse_postfix();
   std::unique_ptr<ast::Ast> parse_array_literal();
   std::unique_ptr<ast::Ast> parse_struct_literal();

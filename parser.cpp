@@ -231,7 +231,7 @@ std::unique_ptr<ast::Ast> Parser::parse_additive() {
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_multiplicative() {
-  std::unique_ptr<ast::Ast> left = parse_postfix();
+  std::unique_ptr<ast::Ast> left = parse_unary();
 
   while (true) {
     const Token::Type op = lexer_.peek().type;
@@ -241,7 +241,7 @@ std::unique_ptr<ast::Ast> Parser::parse_multiplicative() {
     }
 
     lexer_.skip();
-    std::unique_ptr<ast::Ast> right = parse_postfix();
+    std::unique_ptr<ast::Ast> right = parse_unary();
     if (op == Token::Type::star) {
       left = std::make_unique<ast::Ast::Multiply>(std::move(left), std::move(right));
     } else if (op == Token::Type::slash) {
@@ -250,6 +250,22 @@ std::unique_ptr<ast::Ast> Parser::parse_multiplicative() {
       left = std::make_unique<ast::Ast::Modulo>(std::move(left), std::move(right));
     }
   }
+}
+
+std::unique_ptr<ast::Ast> Parser::parse_unary() {
+  if (lexer_.peek().type == Token::Type::minus) {
+    lexer_.skip();
+    return std::make_unique<ast::Ast::Negate>(parse_unary());
+  }
+  if (lexer_.peek().type == Token::Type::plus) {
+    lexer_.skip();
+    return std::make_unique<ast::Ast::UnaryPlus>(parse_unary());
+  }
+  if (lexer_.peek().type == Token::Type::bang) {
+    lexer_.skip();
+    return std::make_unique<ast::Ast::LogicalNot>(parse_unary());
+  }
+  return parse_postfix();
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_postfix() {

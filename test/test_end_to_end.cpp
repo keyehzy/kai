@@ -476,6 +476,90 @@ return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 12345);
 }
 
+TEST_CASE("test_parser_expression_end_to_end_logical_not_zero") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("!0", reporter);
+  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+
+  REQUIRE(parsed_expression != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
+
+  kai::ast::Ast::Block program;
+  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+}
+
+TEST_CASE("test_parser_expression_end_to_end_logical_not_nonzero") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("!1", reporter);
+  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+
+  REQUIRE(parsed_expression != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*parsed_expression) == 0);
+
+  kai::ast::Ast::Block program;
+  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 0);
+}
+
+TEST_CASE("test_parser_expression_end_to_end_negate_minimal") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("-5 + 10", reporter);
+  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+
+  REQUIRE(parsed_expression != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*parsed_expression) == 5);
+
+  kai::ast::Ast::Block program;
+  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 5);
+}
+
+TEST_CASE("test_parser_expression_end_to_end_unary_plus") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("+5", reporter);
+  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+
+  REQUIRE(parsed_expression != nullptr);
+
+  kai::ast::AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*parsed_expression) == 5);
+
+  kai::ast::Ast::Block program;
+  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 5);
+}
+
 TEST_CASE("test_program_end_to_end_structs_minimal") {
   kai::ErrorReporter reporter;
   kai::Parser parser(R"(

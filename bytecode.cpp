@@ -206,6 +206,20 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(struct_load.object);
           break;
         }
+        case Bytecode::Instruction::Type::Negate: {
+          const auto &negate =
+              ast::derived_cast<const Bytecode::Instruction::Negate &>(*instr);
+          track(negate.dst);
+          track(negate.src);
+          break;
+        }
+        case Bytecode::Instruction::Type::LogicalNot: {
+          const auto &logical_not =
+              ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(*instr);
+          track(logical_not.dst);
+          track(logical_not.src);
+          break;
+        }
         default:
           assert(false);
           break;
@@ -421,6 +435,20 @@ void Bytecode::Instruction::StructLoad::dump() const {
   std::printf("StructLoad r%llu, r%llu, %s", dst, object, field.c_str());
 }
 
+Bytecode::Instruction::Negate::Negate(Register dst, Register src)
+    : Bytecode::Instruction(Type::Negate), dst(dst), src(src) {}
+
+void Bytecode::Instruction::Negate::dump() const {
+  std::printf("Negate r%llu, r%llu", dst, src);
+}
+
+Bytecode::Instruction::LogicalNot::LogicalNot(Register dst, Register src)
+    : Bytecode::Instruction(Type::LogicalNot), dst(dst), src(src) {}
+
+void Bytecode::Instruction::LogicalNot::dump() const {
+  std::printf("LogicalNot r%llu, r%llu", dst, src);
+}
+
 void Bytecode::BasicBlock::dump() const {
   for (const auto &instr : instructions) {
     std::printf("  ");
@@ -517,6 +545,15 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Assignment:
       visit_assignment(ast_cast<Ast::Assignment const &>(ast));
+      break;
+    case Ast::Type::Negate:
+      visit_negate(ast_cast<Ast::Negate const &>(ast));
+      break;
+    case Ast::Type::UnaryPlus:
+      visit_unary_plus(ast_cast<Ast::UnaryPlus const &>(ast));
+      break;
+    case Ast::Type::LogicalNot:
+      visit_logical_not(ast_cast<Ast::LogicalNot const &>(ast));
       break;
     default:
       assert(false);
@@ -858,6 +895,22 @@ void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
                                                       reg_alloc_.current());
 }
 
+void BytecodeGenerator::visit_negate(const Ast::Negate &negate) {
+  visit(*negate.operand);
+  auto src_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Negate>(reg_alloc_.allocate(), src_reg);
+}
+
+void BytecodeGenerator::visit_unary_plus(const Ast::UnaryPlus &unary_plus) {
+  visit(*unary_plus.operand);
+}
+
+void BytecodeGenerator::visit_logical_not(const Ast::LogicalNot &logical_not) {
+  visit(*logical_not.operand);
+  auto src_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::LogicalNot>(reg_alloc_.allocate(), src_reg);
+}
+
 Bytecode::Value BytecodeInterpreter::interpret(
     const std::vector<Bytecode::BasicBlock> &blocks) {
   assert(!blocks.empty());
@@ -985,6 +1038,15 @@ Bytecode::Value BytecodeInterpreter::interpret(
       case Bytecode::Instruction::Type::StructLoad:
         interpret_struct_load(
             ast::derived_cast<Bytecode::Instruction::StructLoad const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::Negate:
+        interpret_negate(ast::derived_cast<Bytecode::Instruction::Negate const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::LogicalNot:
+        interpret_logical_not(
+            ast::derived_cast<Bytecode::Instruction::LogicalNot const &>(*instr));
         ++instr_index_;
         break;
       default:
@@ -1145,6 +1207,15 @@ void BytecodeInterpreter::interpret_struct_load(
   const auto field_it = struct_it->second.find(struct_load.field);
   assert(field_it != struct_it->second.end());
   reg(struct_load.dst) = field_it->second;
+}
+
+void BytecodeInterpreter::interpret_negate(const Bytecode::Instruction::Negate &negate) {
+  reg(negate.dst) = static_cast<Bytecode::Value>(-static_cast<int64_t>(reg(negate.src)));
+}
+
+void BytecodeInterpreter::interpret_logical_not(
+    const Bytecode::Instruction::LogicalNot &logical_not) {
+  reg(logical_not.dst) = reg(logical_not.src) == 0 ? 1 : 0;
 }
 
 }  // namespace bytecode

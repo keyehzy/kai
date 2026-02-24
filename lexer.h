@@ -18,6 +18,7 @@ struct Token {
     plus_plus,
     equals_equals,
     bang_equals,
+    bang,
     less_than_equals,
     greater_than_equals,
 
@@ -213,8 +214,7 @@ private:
         last_token_.type = Token::Type::bang_equals;
         input_ += 2;
       } else {
-        report_unexpected_char('!');
-        last_token_.type = Token::Type::unknown;
+        last_token_.type = Token::Type::bang;
         ++input_;
       }
       last_token_.end = input_;

@@ -152,14 +152,12 @@ TEST_CASE("test_lexer_reports_unknown_character_mid_source") {
   REQUIRE(lc.column == 5);
 }
 
-TEST_CASE("test_lexer_reports_standalone_bang") {
+TEST_CASE("test_lexer_recognizes_standalone_bang") {
   std::string src = "!";
   kai::ErrorReporter reporter;
   Lexer lexer(src, reporter);
-  REQUIRE(lexer.peek().type == Token::Type::unknown);
-  REQUIRE(reporter.has_errors());
-  REQUIRE(reporter.errors()[0].message == "unexpected character '!'");
-  REQUIRE(reporter.errors()[0].location.text() == "!");
+  REQUIRE(lexer.peek().type == Token::Type::bang);
+  REQUIRE(!reporter.has_errors());
 }
 
 TEST_CASE("test_lexer_bang_equals_is_not_an_error") {

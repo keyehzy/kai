@@ -40,6 +40,9 @@ struct Ast {
     IndexAssignment,
     StructLiteral,
     FieldAccess,
+    Negate,
+    UnaryPlus,
+    LogicalNot,
   };
 
   struct FunctionDeclaration;
@@ -69,6 +72,9 @@ struct Ast {
   struct IndexAssignment;
   struct StructLiteral;
   struct FieldAccess;
+  struct Negate;
+  struct UnaryPlus;
+  struct LogicalNot;
 
   Type type;
 
@@ -422,6 +428,36 @@ struct Ast::FieldAccess final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::Negate final : public Ast {
+  std::unique_ptr<Ast> operand;
+
+  explicit Negate(std::unique_ptr<Ast> operand)
+      : Ast(Type::Negate), operand(std::move(operand)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::UnaryPlus final : public Ast {
+  std::unique_ptr<Ast> operand;
+
+  explicit UnaryPlus(std::unique_ptr<Ast> operand)
+      : Ast(Type::UnaryPlus), operand(std::move(operand)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::LogicalNot final : public Ast {
+  std::unique_ptr<Ast> operand;
+
+  explicit LogicalNot(std::unique_ptr<Ast> operand)
+      : Ast(Type::LogicalNot), operand(std::move(operand)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct AstInterpreter {
   AstInterpreter() {
     push_scope();
@@ -621,6 +657,18 @@ struct AstInterpreter {
     return handle;
   }
 
+  Value interpret_negate(const Ast::Negate &negate) {
+    return static_cast<Value>(-static_cast<int64_t>(interpret(*negate.operand)));
+  }
+
+  Value interpret_unary_plus(const Ast::UnaryPlus &unary_plus) {
+    return interpret(*unary_plus.operand);
+  }
+
+  Value interpret_logical_not(const Ast::LogicalNot &logical_not) {
+    return interpret(*logical_not.operand) == 0 ? 1 : 0;
+  }
+
   Value interpret_field_access(const Ast::FieldAccess &field_access) {
     const auto handle = interpret(*field_access.object);
     const auto struct_it = structs.find(handle);
@@ -687,6 +735,12 @@ struct AstInterpreter {
         return interpret_struct_literal(ast_cast<Ast::StructLiteral const &>(ast));
       case Ast::Type::FieldAccess:
         return interpret_field_access(ast_cast<Ast::FieldAccess const &>(ast));
+      case Ast::Type::Negate:
+        return interpret_negate(ast_cast<Ast::Negate const &>(ast));
+      case Ast::Type::UnaryPlus:
+        return interpret_unary_plus(ast_cast<Ast::UnaryPlus const &>(ast));
+      case Ast::Type::LogicalNot:
+        return interpret_logical_not(ast_cast<Ast::LogicalNot const &>(ast));
     }
     assert(false);
   }

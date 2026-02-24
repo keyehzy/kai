@@ -50,6 +50,8 @@ struct Bytecode::Instruction {
     ArrayStore,
     StructCreate,
     StructLoad,
+    Negate,
+    LogicalNot,
   };
 
   Type type_;
@@ -77,6 +79,8 @@ struct Bytecode::Instruction {
   struct ArrayStore;
   struct StructCreate;
   struct StructLoad;
+  struct Negate;
+  struct LogicalNot;
 
   virtual ~Instruction() = default;
 
@@ -288,6 +292,22 @@ struct Bytecode::Instruction::StructLoad final : Bytecode::Instruction {
   std::string field;
 };
 
+struct Bytecode::Instruction::Negate final : Bytecode::Instruction {
+  Negate(Register dst, Register src);
+  void dump() const override;
+
+  Register dst;
+  Register src;
+};
+
+struct Bytecode::Instruction::LogicalNot final : Bytecode::Instruction {
+  LogicalNot(Register dst, Register src);
+  void dump() const override;
+
+  Register dst;
+  Register src;
+};
+
 struct Bytecode::BasicBlock {
   std::vector<std::unique_ptr<Instruction>> instructions;
 
@@ -348,6 +368,9 @@ class BytecodeGenerator {
   void visit_struct_literal(const ast::Ast::StructLiteral &struct_literal);
   void visit_field_access(const ast::Ast::FieldAccess &field_access);
   void visit_assignment(const ast::Ast::Assignment &assignment);
+  void visit_negate(const ast::Ast::Negate &negate);
+  void visit_unary_plus(const ast::Ast::UnaryPlus &unary_plus);
+  void visit_logical_not(const ast::Ast::LogicalNot &logical_not);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
   std::unordered_map<std::string, Bytecode::Label> functions_;
@@ -387,6 +410,8 @@ class BytecodeInterpreter {
   void interpret_array_store(const Bytecode::Instruction::ArrayStore &array_store);
   void interpret_struct_create(const Bytecode::Instruction::StructCreate &struct_create);
   void interpret_struct_load(const Bytecode::Instruction::StructLoad &struct_load);
+  void interpret_negate(const Bytecode::Instruction::Negate &negate);
+  void interpret_logical_not(const Bytecode::Instruction::LogicalNot &logical_not);
 
   Bytecode::Value& reg(Bytecode::Register r) { return register_stack_[frame_base_ + r]; }
 

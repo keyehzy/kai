@@ -52,6 +52,10 @@ static std::optional<Register> get_dst_reg(const Bytecode::Instruction &instr) {
       return ast::derived_cast<const Bytecode::Instruction::StructCreate &>(instr).dst;
     case Type::StructLoad:
       return ast::derived_cast<const Bytecode::Instruction::StructLoad &>(instr).dst;
+    case Type::Negate:
+      return ast::derived_cast<const Bytecode::Instruction::Negate &>(instr).dst;
+    case Type::LogicalNot:
+      return ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr).dst;
     case Type::Jump:
     case Type::JumpConditional:
     case Type::Return:
@@ -117,6 +121,10 @@ static std::vector<Register> get_src_regs(const Bytecode::Instruction &instr) {
       const auto &mo = ast::derived_cast<const Bytecode::Instruction::Modulo &>(instr);
       return {mo.src1, mo.src2};
     }
+    case Type::Negate:
+      return {ast::derived_cast<const Bytecode::Instruction::Negate &>(instr).src};
+    case Type::LogicalNot:
+      return {ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr).src};
     default:
       return {};
   }
@@ -139,6 +147,8 @@ static bool is_hoistable(const Bytecode::Instruction &instr,
     case Type::GreaterThanOrEqual:
     case Type::Equal:
     case Type::NotEqual:
+    case Type::Negate:
+    case Type::LogicalNot:
       break;
     default:
       return false;
@@ -291,6 +301,12 @@ static std::unordered_map<Register, size_t> compute_use_count(
         }
         case Type::StructLoad:
           use(ast::derived_cast<const Bytecode::Instruction::StructLoad &>(instr).object);
+          break;
+        case Type::Negate:
+          use(ast::derived_cast<const Bytecode::Instruction::Negate &>(instr).src);
+          break;
+        case Type::LogicalNot:
+          use(ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr).src);
           break;
       }
     }
@@ -478,6 +494,18 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
           invalidate(sl.dst);
           break;
         }
+        case Type::Negate: {
+          auto &neg = ast::derived_cast<Bytecode::Instruction::Negate &>(instr);
+          neg.src = resolve(neg.src);
+          invalidate(neg.dst);
+          break;
+        }
+        case Type::LogicalNot: {
+          auto &ln = ast::derived_cast<Bytecode::Instruction::LogicalNot &>(instr);
+          ln.src = resolve(ln.src);
+          invalidate(ln.dst);
+          break;
+        }
       }
     }
 
@@ -652,6 +680,18 @@ void BytecodeOptimizer::dead_code_elimination(
           live.insert(sl.object);
           break;
         }
+        case Type::Negate: {
+          const auto &neg =
+              ast::derived_cast<const Bytecode::Instruction::Negate &>(instr);
+          live.insert(neg.src);
+          break;
+        }
+        case Type::LogicalNot: {
+          const auto &ln =
+              ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr);
+          live.insert(ln.src);
+          break;
+        }
       }
     }
   }
@@ -762,6 +802,16 @@ void BytecodeOptimizer::dead_code_elimination(
           const auto &sl =
               ast::derived_cast<const Bytecode::Instruction::StructLoad &>(instr);
           return live.find(sl.dst) == live.end();
+        }
+        case Type::Negate: {
+          const auto &neg =
+              ast::derived_cast<const Bytecode::Instruction::Negate &>(instr);
+          return live.find(neg.dst) == live.end();
+        }
+        case Type::LogicalNot: {
+          const auto &ln =
+              ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr);
+          return live.find(ln.dst) == live.end();
         }
         default:
           return false;

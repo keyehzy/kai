@@ -205,6 +205,24 @@ void Ast::FieldAccess::dump(std::ostream &os) const {
   os << ", " << field << ")";
 }
 
+void Ast::Negate::dump(std::ostream &os) const {
+  os << "Negate(";
+  operand->dump(os);
+  os << ")";
+}
+
+void Ast::UnaryPlus::dump(std::ostream &os) const {
+  os << "UnaryPlus(";
+  operand->dump(os);
+  os << ")";
+}
+
+void Ast::LogicalNot::dump(std::ostream &os) const {
+  os << "LogicalNot(";
+  operand->dump(os);
+  os << ")";
+}
+
 std::string indent_str(int indent) {
   return std::string(2 * indent, ' ');
 }
@@ -394,6 +412,21 @@ void Ast::StructLiteral::to_string(std::ostream &os, int indent) const {
 void Ast::FieldAccess::to_string(std::ostream &os, int indent) const {
   object->to_string(os, indent);
   os << "." << field;
+}
+
+void Ast::Negate::to_string(std::ostream &os, int indent) const {
+  os << "-";
+  operand->to_string(os, indent);
+}
+
+void Ast::UnaryPlus::to_string(std::ostream &os, int indent) const {
+  os << "+";
+  operand->to_string(os, indent);
+}
+
+void Ast::LogicalNot::to_string(std::ostream &os, int indent) const {
+  os << "!";
+  operand->to_string(os, indent);
 }
 } // namespace ast
 } // namespace kai
