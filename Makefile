@@ -1,6 +1,6 @@
 CXX      ?= clang++
 CC       ?= clang
-CXXFLAGS ?= -O0 -g3 -Wall -Wextra -std=c++20
+CXXFLAGS ?= -O3 -DNDEBUG -g3 -Wall -Wextra -std=c++20
 
 COMMON_SRCS = ast.cpp bytecode.cpp parser.cpp
 

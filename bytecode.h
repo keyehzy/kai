@@ -393,10 +393,10 @@ class BytecodeInterpreter {
     u64 return_block_index;
     size_t return_instr_index;
     Bytecode::Register dst_register;
-    std::unordered_map<Bytecode::Register, Bytecode::Value> registers;
+    std::vector<Bytecode::Value> registers;
   };
   std::vector<CallFrame> call_stack_;
-  std::unordered_map<Bytecode::Register, Bytecode::Value> registers_;
+  std::vector<Bytecode::Value> registers_;
   std::unordered_map<Bytecode::Value, std::vector<Bytecode::Value>> arrays_;
   std::unordered_map<Bytecode::Value, std::unordered_map<std::string, Bytecode::Value>>
       structs_;

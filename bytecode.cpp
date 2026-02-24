@@ -18,6 +18,202 @@ bool has_terminator(const Bytecode::BasicBlock &block) {
          last_type == Bytecode::Instruction::Type::JumpConditional ||
          last_type == Bytecode::Instruction::Type::Return;
 }
+
+size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
+  size_t count = 0;
+  const auto track = [&count](Bytecode::Register reg) {
+    const size_t needed = static_cast<size_t>(reg) + 1;
+    if (needed > count) {
+      count = needed;
+    }
+  };
+
+  for (const auto &block : blocks) {
+    for (const auto &instr : block.instructions) {
+      switch (instr->type()) {
+        case Bytecode::Instruction::Type::Move: {
+          const auto &move =
+              ast::derived_cast<const Bytecode::Instruction::Move &>(*instr);
+          track(move.dst);
+          track(move.src);
+          break;
+        }
+        case Bytecode::Instruction::Type::Load: {
+          const auto &load =
+              ast::derived_cast<const Bytecode::Instruction::Load &>(*instr);
+          track(load.dst);
+          break;
+        }
+        case Bytecode::Instruction::Type::LessThan: {
+          const auto &less_than =
+              ast::derived_cast<const Bytecode::Instruction::LessThan &>(*instr);
+          track(less_than.dst);
+          track(less_than.lhs);
+          track(less_than.rhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::GreaterThan: {
+          const auto &greater_than =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThan &>(*instr);
+          track(greater_than.dst);
+          track(greater_than.lhs);
+          track(greater_than.rhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::LessThanOrEqual: {
+          const auto &less_than_or_equal =
+              ast::derived_cast<const Bytecode::Instruction::LessThanOrEqual &>(*instr);
+          track(less_than_or_equal.dst);
+          track(less_than_or_equal.lhs);
+          track(less_than_or_equal.rhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::GreaterThanOrEqual: {
+          const auto &greater_than_or_equal = ast::derived_cast<
+              const Bytecode::Instruction::GreaterThanOrEqual &>(*instr);
+          track(greater_than_or_equal.dst);
+          track(greater_than_or_equal.lhs);
+          track(greater_than_or_equal.rhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::Jump:
+          break;
+        case Bytecode::Instruction::Type::JumpConditional: {
+          const auto &jump_cond =
+              ast::derived_cast<const Bytecode::Instruction::JumpConditional &>(*instr);
+          track(jump_cond.cond);
+          break;
+        }
+        case Bytecode::Instruction::Type::Call: {
+          const auto &call =
+              ast::derived_cast<const Bytecode::Instruction::Call &>(*instr);
+          track(call.dst);
+          for (const auto reg : call.arg_registers) {
+            track(reg);
+          }
+          for (const auto reg : call.param_registers) {
+            track(reg);
+          }
+          break;
+        }
+        case Bytecode::Instruction::Type::Return: {
+          const auto &ret =
+              ast::derived_cast<const Bytecode::Instruction::Return &>(*instr);
+          track(ret.reg);
+          break;
+        }
+        case Bytecode::Instruction::Type::Equal: {
+          const auto &equal =
+              ast::derived_cast<const Bytecode::Instruction::Equal &>(*instr);
+          track(equal.dst);
+          track(equal.src1);
+          track(equal.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::NotEqual: {
+          const auto &not_equal =
+              ast::derived_cast<const Bytecode::Instruction::NotEqual &>(*instr);
+          track(not_equal.dst);
+          track(not_equal.src1);
+          track(not_equal.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::Add: {
+          const auto &add =
+              ast::derived_cast<const Bytecode::Instruction::Add &>(*instr);
+          track(add.dst);
+          track(add.src1);
+          track(add.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::Subtract: {
+          const auto &subtract =
+              ast::derived_cast<const Bytecode::Instruction::Subtract &>(*instr);
+          track(subtract.dst);
+          track(subtract.src1);
+          track(subtract.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::AddImmediate: {
+          const auto &add_imm =
+              ast::derived_cast<const Bytecode::Instruction::AddImmediate &>(*instr);
+          track(add_imm.dst);
+          track(add_imm.src);
+          break;
+        }
+        case Bytecode::Instruction::Type::Multiply: {
+          const auto &multiply =
+              ast::derived_cast<const Bytecode::Instruction::Multiply &>(*instr);
+          track(multiply.dst);
+          track(multiply.src1);
+          track(multiply.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::Divide: {
+          const auto &divide =
+              ast::derived_cast<const Bytecode::Instruction::Divide &>(*instr);
+          track(divide.dst);
+          track(divide.src1);
+          track(divide.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::Modulo: {
+          const auto &modulo =
+              ast::derived_cast<const Bytecode::Instruction::Modulo &>(*instr);
+          track(modulo.dst);
+          track(modulo.src1);
+          track(modulo.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::ArrayCreate: {
+          const auto &array_create =
+              ast::derived_cast<const Bytecode::Instruction::ArrayCreate &>(*instr);
+          track(array_create.dst);
+          for (const auto reg : array_create.elements) {
+            track(reg);
+          }
+          break;
+        }
+        case Bytecode::Instruction::Type::ArrayLoad: {
+          const auto &array_load =
+              ast::derived_cast<const Bytecode::Instruction::ArrayLoad &>(*instr);
+          track(array_load.dst);
+          track(array_load.array);
+          track(array_load.index);
+          break;
+        }
+        case Bytecode::Instruction::Type::ArrayStore: {
+          const auto &array_store =
+              ast::derived_cast<const Bytecode::Instruction::ArrayStore &>(*instr);
+          track(array_store.array);
+          track(array_store.index);
+          track(array_store.value);
+          break;
+        }
+        case Bytecode::Instruction::Type::StructCreate: {
+          const auto &struct_create =
+              ast::derived_cast<const Bytecode::Instruction::StructCreate &>(*instr);
+          track(struct_create.dst);
+          for (const auto &field : struct_create.fields) {
+            track(field.second);
+          }
+          break;
+        }
+        case Bytecode::Instruction::Type::StructLoad: {
+          const auto &struct_load =
+              ast::derived_cast<const Bytecode::Instruction::StructLoad &>(*instr);
+          track(struct_load.dst);
+          track(struct_load.object);
+          break;
+        }
+        default:
+          assert(false);
+          break;
+      }
+    }
+  }
+  return count;
+}
 }  // namespace
 
 Bytecode::Instruction::Instruction(Type type) : type_(type) {}
@@ -664,7 +860,7 @@ Bytecode::Value BytecodeInterpreter::interpret(
   block_index = 0;
   instr_index_ = 0;
   call_stack_.clear();
-  registers_.clear();
+  registers_.assign(register_count(blocks), 0);
   arrays_.clear();
   structs_.clear();
   next_heap_id_ = 1;
