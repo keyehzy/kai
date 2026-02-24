@@ -3,8 +3,6 @@
 #include "../catch.hpp"
 #include "../parser.h"
 
-#include <iostream>
-
 TEST_CASE("test_parser_expression_end_to_end_literal_42") {
   kai::Parser parser("42");
   std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
@@ -391,8 +389,6 @@ fn fib(n) {
 return fib(2);
 )");
   std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
-  program->dump(std::cout);
-
   REQUIRE(program != nullptr);
 
   kai::ast::AstInterpreter ast_interpreter;

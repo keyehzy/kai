@@ -25,7 +25,6 @@ TEST_CASE("test_bytecode_fibonacci") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(fib);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 55);
@@ -50,7 +49,6 @@ TEST_CASE("test_bytecode_factorial") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(factorial);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 120);
@@ -68,7 +66,6 @@ TEST_CASE("test_bytecode_subtract") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(difference);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12);
@@ -86,7 +83,6 @@ TEST_CASE("test_bytecode_divide") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(quotient);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 4);
@@ -104,7 +100,6 @@ TEST_CASE("test_bytecode_modulo") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(remainder);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 2);
@@ -122,7 +117,6 @@ TEST_CASE("test_bytecode_greater_than") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(comparison);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 1);

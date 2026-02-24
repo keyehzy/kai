@@ -12,7 +12,6 @@ TEST_CASE("test_bytecode_struct_field_access_minimal") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);

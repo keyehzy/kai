@@ -17,7 +17,6 @@ TEST_CASE("test_bytecode_function_declaration") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 6);
@@ -37,7 +36,6 @@ TEST_CASE("test_bytecode_function_parameters") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 6);
@@ -65,7 +63,6 @@ TEST_CASE("test_bytecode_function_parameter_recursion") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 120);
@@ -87,7 +84,6 @@ TEST_CASE("test_bytecode_function_forward_call") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
@@ -109,7 +105,6 @@ TEST_CASE("test_bytecode_function_forward_call_with_parameters") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);

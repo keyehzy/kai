@@ -23,7 +23,6 @@ TEST_CASE("test_bytecode_if_else") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(max);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 7);
@@ -36,7 +35,6 @@ TEST_CASE("test_bytecode_top_level_block_example") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
@@ -66,7 +64,6 @@ TEST_CASE("test_bytecode_nested_if_inside_while") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12);

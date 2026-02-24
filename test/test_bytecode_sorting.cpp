@@ -26,7 +26,6 @@ TEST_CASE("test_bytecode_quicksort_minimal_example") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(quicksort_two);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12);
@@ -62,7 +61,6 @@ TEST_CASE("test_bytecode_quicksort") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(quicksort_three);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 123);
@@ -135,7 +133,6 @@ TEST_CASE("test_bytecode_quicksort_complete") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(quicksort_five);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12345);

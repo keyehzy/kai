@@ -12,7 +12,6 @@ TEST_CASE("test_bytecode_array_indexing") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 22);
@@ -30,7 +29,6 @@ TEST_CASE("test_bytecode_array_index_assignment_minimal_example") {
     kai::bytecode::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
-    gen.dump();
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
