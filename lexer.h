@@ -6,6 +6,8 @@
 
 #include "error_reporter.h"
 
+namespace kai {
+
 struct Token {
   enum class Type {
     end_of_file,
@@ -51,7 +53,7 @@ struct Token {
 
 class Lexer {
 public:
-  explicit Lexer(std::string_view input, kai::ErrorReporter& error_reporter)
+  explicit Lexer(std::string_view input, ErrorReporter& error_reporter)
       : input_(input.data()),
         original_input_(input),
         error_reporter_(error_reporter) {
@@ -241,7 +243,7 @@ private:
 
 
   void report_unexpected_char(char ch) {
-    kai::SourceLocation loc{input_, input_ + 1};
+    SourceLocation loc{input_, input_ + 1};
     std::string msg = "unexpected character '";
     msg += ch;
     msg += "'";
@@ -251,5 +253,7 @@ private:
   Token last_token_;
   const char *input_;
   std::string_view original_input_;
-  kai::ErrorReporter& error_reporter_;
+  ErrorReporter& error_reporter_;
 };
+
+}  // namespace kai

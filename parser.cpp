@@ -13,7 +13,7 @@ bool token_is_identifier(const Token &token, std::string_view text) {
 }
 }  // namespace
 
-Parser::Parser(std::string_view input, kai::ErrorReporter& error_reporter)
+Parser::Parser(std::string_view input, ErrorReporter& error_reporter)
     : lexer_(input, error_reporter) {}
 
 std::unique_ptr<ast::Ast::Block> Parser::parse_program() {

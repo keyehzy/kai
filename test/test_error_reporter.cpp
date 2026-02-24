@@ -2,6 +2,9 @@
 #include "../error_reporter.h"
 #include "../lexer.h"
 
+using kai::Lexer;
+using kai::Token;
+
 // --- line_column ---
 
 TEST_CASE("test_line_column_at_start_of_source") {

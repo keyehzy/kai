@@ -7,6 +7,9 @@
 
 namespace {
 
+using kai::Lexer;
+using kai::Token;
+
 using LexedToken = std::pair<Token::Type, std::string_view>;
 using TokenType = Token::Type;
 
