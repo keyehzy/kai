@@ -224,21 +224,21 @@ Bytecode::Instruction::Move::Move(Register dst, Register src)
     : Bytecode::Instruction(Type::Move), dst(dst), src(src) {}
 
 void Bytecode::Instruction::Move::dump() const {
-  std::printf("Move r%zu, r%zu", dst, src);
+  std::printf("Move r%llu, r%llu", dst, src);
 }
 
 Bytecode::Instruction::Load::Load(Register dst, Value value)
     : Bytecode::Instruction(Type::Load), dst(dst), value(value) {}
 
 void Bytecode::Instruction::Load::dump() const {
-  std::printf("Load r%zu, %zu", dst, value);
+  std::printf("Load r%llu, %llu", dst, value);
 }
 
 Bytecode::Instruction::LessThan::LessThan(Register dst, Register lhs, Register rhs)
     : Bytecode::Instruction(Type::LessThan), dst(dst), lhs(lhs), rhs(rhs) {}
 
 void Bytecode::Instruction::LessThan::dump() const {
-  std::printf("LessThan r%zu, r%zu, r%zu", dst, lhs, rhs);
+  std::printf("LessThan r%llu, r%llu, r%llu", dst, lhs, rhs);
 }
 
 Bytecode::Instruction::GreaterThan::GreaterThan(Register dst, Register lhs,
@@ -246,7 +246,7 @@ Bytecode::Instruction::GreaterThan::GreaterThan(Register dst, Register lhs,
     : Bytecode::Instruction(Type::GreaterThan), dst(dst), lhs(lhs), rhs(rhs) {}
 
 void Bytecode::Instruction::GreaterThan::dump() const {
-  std::printf("GreaterThan r%zu, r%zu, r%zu", dst, lhs, rhs);
+  std::printf("GreaterThan r%llu, r%llu, r%llu", dst, lhs, rhs);
 }
 
 Bytecode::Instruction::LessThanOrEqual::LessThanOrEqual(Register dst, Register lhs,
@@ -254,7 +254,7 @@ Bytecode::Instruction::LessThanOrEqual::LessThanOrEqual(Register dst, Register l
     : Bytecode::Instruction(Type::LessThanOrEqual), dst(dst), lhs(lhs), rhs(rhs) {}
 
 void Bytecode::Instruction::LessThanOrEqual::dump() const {
-  std::printf("LessThanOrEqual r%zu, r%zu, r%zu", dst, lhs, rhs);
+  std::printf("LessThanOrEqual r%llu, r%llu, r%llu", dst, lhs, rhs);
 }
 
 Bytecode::Instruction::GreaterThanOrEqual::GreaterThanOrEqual(Register dst,
@@ -263,13 +263,13 @@ Bytecode::Instruction::GreaterThanOrEqual::GreaterThanOrEqual(Register dst,
     : Bytecode::Instruction(Type::GreaterThanOrEqual), dst(dst), lhs(lhs), rhs(rhs) {}
 
 void Bytecode::Instruction::GreaterThanOrEqual::dump() const {
-  std::printf("GreaterThanOrEqual r%zu, r%zu, r%zu", dst, lhs, rhs);
+  std::printf("GreaterThanOrEqual r%llu, r%llu, r%llu", dst, lhs, rhs);
 }
 
 Bytecode::Instruction::Jump::Jump(Label label)
     : Bytecode::Instruction(Type::Jump), label(label) {}
 
-void Bytecode::Instruction::Jump::dump() const { std::printf("Jump @%zu", label); }
+void Bytecode::Instruction::Jump::dump() const { std::printf("Jump @%llu", label); }
 
 Bytecode::Instruction::JumpConditional::JumpConditional(Register cond, Label label1,
                                                         Label label2)
@@ -279,7 +279,7 @@ Bytecode::Instruction::JumpConditional::JumpConditional(Register cond, Label lab
       label2(label2) {}
 
 void Bytecode::Instruction::JumpConditional::dump() const {
-  std::printf("JumpConditional r%zu, @%zu, @%zu", cond, label1, label2);
+  std::printf("JumpConditional r%llu, @%llu, @%llu", cond, label1, label2);
 }
 
 Bytecode::Instruction::Call::Call(Register dst, Label label,
@@ -292,12 +292,12 @@ Bytecode::Instruction::Call::Call(Register dst, Label label,
       param_registers(std::move(param_registers)) {}
 
 void Bytecode::Instruction::Call::dump() const {
-  std::printf("Call r%zu, @%zu, [", dst, label);
+  std::printf("Call r%llu, @%llu, [", dst, label);
   for (size_t i = 0; i < arg_registers.size(); ++i) {
     if (i != 0) {
       std::printf(", ");
     }
-    std::printf("r%zu", arg_registers[i]);
+    std::printf("r%llu", arg_registers[i]);
   }
   std::printf("]");
 }
@@ -305,62 +305,62 @@ void Bytecode::Instruction::Call::dump() const {
 Bytecode::Instruction::Return::Return(Register reg)
     : Bytecode::Instruction(Type::Return), reg(reg) {}
 
-void Bytecode::Instruction::Return::dump() const { std::printf("Return r%zu", reg); }
+void Bytecode::Instruction::Return::dump() const { std::printf("Return r%llu", reg); }
 
 Bytecode::Instruction::Equal::Equal(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Equal), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Equal::dump() const {
-  std::printf("Equal r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("Equal r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::NotEqual::NotEqual(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::NotEqual), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::NotEqual::dump() const {
-  std::printf("NotEqual r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("NotEqual r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::Add::Add(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Add), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Add::dump() const {
-  std::printf("Add r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("Add r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::Subtract::Subtract(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Subtract), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Subtract::dump() const {
-  std::printf("Subtract r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("Subtract r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::AddImmediate::AddImmediate(Register dst, Register src, Value value)
     : Bytecode::Instruction(Type::AddImmediate), dst(dst), src(src), value(value) {}
 
 void Bytecode::Instruction::AddImmediate::dump() const {
-  std::printf("Add r%zu, r%zu, %zu", dst, src, value);
+  std::printf("Add r%llu, r%llu, %llu", dst, src, value);
 }
 
 Bytecode::Instruction::Multiply::Multiply(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Multiply), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Multiply::dump() const {
-  std::printf("Multiply r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("Multiply r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::Divide::Divide(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Divide), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Divide::dump() const {
-  std::printf("Divide r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("Divide r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::Modulo::Modulo(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Modulo), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Modulo::dump() const {
-  std::printf("Modulo r%zu, r%zu, r%zu", dst, src1, src2);
+  std::printf("Modulo r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
 Bytecode::Instruction::ArrayCreate::ArrayCreate(Register dst,
@@ -368,12 +368,12 @@ Bytecode::Instruction::ArrayCreate::ArrayCreate(Register dst,
     : Bytecode::Instruction(Type::ArrayCreate), dst(dst), elements(std::move(elements)) {}
 
 void Bytecode::Instruction::ArrayCreate::dump() const {
-  std::printf("ArrayCreate r%zu, [", dst);
+  std::printf("ArrayCreate r%llu, [", dst);
   for (size_t i = 0; i < elements.size(); ++i) {
     if (i != 0) {
       std::printf(", ");
     }
-    std::printf("r%zu", elements[i]);
+    std::printf("r%llu", elements[i]);
   }
   std::printf("]");
 }
@@ -382,7 +382,7 @@ Bytecode::Instruction::ArrayLoad::ArrayLoad(Register dst, Register array, Regist
     : Bytecode::Instruction(Type::ArrayLoad), dst(dst), array(array), index(index) {}
 
 void Bytecode::Instruction::ArrayLoad::dump() const {
-  std::printf("ArrayLoad r%zu, r%zu, r%zu", dst, array, index);
+  std::printf("ArrayLoad r%llu, r%llu, r%llu", dst, array, index);
 }
 
 Bytecode::Instruction::ArrayStore::ArrayStore(Register array, Register index, Register value)
@@ -392,7 +392,7 @@ Bytecode::Instruction::ArrayStore::ArrayStore(Register array, Register index, Re
       value(value) {}
 
 void Bytecode::Instruction::ArrayStore::dump() const {
-  std::printf("ArrayStore r%zu, r%zu, r%zu", array, index, value);
+  std::printf("ArrayStore r%llu, r%llu, r%llu", array, index, value);
 }
 
 Bytecode::Instruction::StructCreate::StructCreate(
@@ -400,12 +400,12 @@ Bytecode::Instruction::StructCreate::StructCreate(
     : Bytecode::Instruction(Type::StructCreate), dst(dst), fields(std::move(fields)) {}
 
 void Bytecode::Instruction::StructCreate::dump() const {
-  std::printf("StructCreate r%zu, {", dst);
+  std::printf("StructCreate r%llu, {", dst);
   for (size_t i = 0; i < fields.size(); ++i) {
     if (i != 0) {
       std::printf(", ");
     }
-    std::printf("%s: r%zu", fields[i].first.c_str(), fields[i].second);
+    std::printf("%s: r%llu", fields[i].first.c_str(), fields[i].second);
   }
   std::printf("}");
 }
@@ -418,7 +418,7 @@ Bytecode::Instruction::StructLoad::StructLoad(Register dst, Register object,
       field(std::move(field)) {}
 
 void Bytecode::Instruction::StructLoad::dump() const {
-  std::printf("StructLoad r%zu, r%zu, %s", dst, object, field.c_str());
+  std::printf("StructLoad r%llu, r%llu, %s", dst, object, field.c_str());
 }
 
 void Bytecode::BasicBlock::dump() const {
