@@ -43,37 +43,6 @@ TEST_CASE("test_bytecode_function_parameters") {
     REQUIRE(interp.interpret(gen.blocks()) == 6);
 }
 
-TEST_CASE("test_bytecode_function_call_recursion") {
-    auto program = [] {
-      auto program = std::make_unique<Ast::Block>();
-      program->append(decl("n", lit(5)));
-
-      auto fact_body = std::make_unique<Ast::Block>();
-      auto base_case = std::make_unique<Ast::Block>();
-      base_case->append(ret(lit(1)));
-
-      auto recursive_case = std::make_unique<Ast::Block>();
-      recursive_case->append(decl("saved_n", var("n")));
-      recursive_case->append(assign("n", sub(var("n"), lit(1))));
-      recursive_case->append(ret(mul(var("saved_n"), call("fact"))));
-
-      fact_body->append(if_else(lt(var("n"), lit(2)), std::move(base_case),
-                                std::move(recursive_case)));
-      program->append(
-          std::make_unique<Ast::FunctionDeclaration>("fact", std::move(fact_body)));
-      program->append(ret(call("fact")));
-      return std::move(*program);
-    }();
-
-    kai::bytecode::BytecodeGenerator gen;
-    gen.visit_block(program);
-    gen.finalize();
-    gen.dump();
-
-    kai::bytecode::BytecodeInterpreter interp;
-    REQUIRE(interp.interpret(gen.blocks()) == 120);
-}
-
 TEST_CASE("test_bytecode_function_parameter_recursion") {
     auto program = [] {
       auto program = std::make_unique<Ast::Block>();

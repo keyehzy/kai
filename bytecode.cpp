@@ -864,7 +864,9 @@ Bytecode::Value BytecodeInterpreter::interpret(
   block_index = 0;
   instr_index_ = 0;
   call_stack_.clear();
-  registers_.assign(register_count(blocks), 0);
+  register_count_ = register_count(blocks);
+  frame_base_ = 0;
+  register_stack_.assign(register_count_, 0);
   arrays_.clear();
   structs_.clear();
   next_heap_id_ = 1;
@@ -914,15 +916,15 @@ Bytecode::Value BytecodeInterpreter::interpret(
                        instr_index_ + 1);
         break;
       case Bytecode::Instruction::Type::Return: {
-        const auto reg = ast::derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
-        const auto value = registers_[reg];
+        const auto ret_reg = ast::derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
+        const auto value = register_stack_[frame_base_ + ret_reg];
         if (call_stack_.empty()) {
           return value;
         }
         auto frame = std::move(call_stack_.back());
         call_stack_.pop_back();
-        registers_ = std::move(frame.registers);
-        registers_[frame.dst_register] = value;
+        frame_base_ = frame.frame_base;
+        register_stack_[frame_base_ + frame.dst_register] = value;
         block_index = frame.return_block_index;
         instr_index_ = frame.return_instr_index;
         break;
@@ -995,34 +997,33 @@ Bytecode::Value BytecodeInterpreter::interpret(
 }
 
 void BytecodeInterpreter::interpret_move(const Bytecode::Instruction::Move &move) {
-  registers_[move.dst] = registers_[move.src];
+  reg(move.dst) = reg(move.src);
 }
 
 void BytecodeInterpreter::interpret_load(const Bytecode::Instruction::Load &load) {
-  registers_[load.dst] = load.value;
+  reg(load.dst) = load.value;
 }
 
 void BytecodeInterpreter::interpret_less_than(
     const Bytecode::Instruction::LessThan &less_than) {
-  registers_[less_than.dst] = registers_[less_than.lhs] < registers_[less_than.rhs];
+  reg(less_than.dst) = reg(less_than.lhs) < reg(less_than.rhs);
 }
 
 void BytecodeInterpreter::interpret_greater_than(
     const Bytecode::Instruction::GreaterThan &greater_than) {
-  registers_[greater_than.dst] =
-      registers_[greater_than.lhs] > registers_[greater_than.rhs];
+  reg(greater_than.dst) = reg(greater_than.lhs) > reg(greater_than.rhs);
 }
 
 void BytecodeInterpreter::interpret_less_than_or_equal(
     const Bytecode::Instruction::LessThanOrEqual &less_than_or_equal) {
-  registers_[less_than_or_equal.dst] =
-      registers_[less_than_or_equal.lhs] <= registers_[less_than_or_equal.rhs];
+  reg(less_than_or_equal.dst) =
+      reg(less_than_or_equal.lhs) <= reg(less_than_or_equal.rhs);
 }
 
 void BytecodeInterpreter::interpret_greater_than_or_equal(
     const Bytecode::Instruction::GreaterThanOrEqual &greater_than_or_equal) {
-  registers_[greater_than_or_equal.dst] =
-      registers_[greater_than_or_equal.lhs] >= registers_[greater_than_or_equal.rhs];
+  reg(greater_than_or_equal.dst) =
+      reg(greater_than_or_equal.lhs) >= reg(greater_than_or_equal.rhs);
 }
 
 void BytecodeInterpreter::interpret_jump(const Bytecode::Instruction::Jump &jump) {
@@ -1032,7 +1033,7 @@ void BytecodeInterpreter::interpret_jump(const Bytecode::Instruction::Jump &jump
 
 void BytecodeInterpreter::interpret_jump_conditional(
     const Bytecode::Instruction::JumpConditional &jump_cond) {
-  if (registers_[jump_cond.cond]) {
+  if (reg(jump_cond.cond)) {
     block_index = jump_cond.label1;
   } else {
     block_index = jump_cond.label2;
@@ -1044,54 +1045,54 @@ void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call
                                          size_t next_instr_index) {
   assert(call.arg_registers.size() == call.param_registers.size());
 
-  std::vector<Bytecode::Value> argument_values;
-  argument_values.reserve(call.arg_registers.size());
-  for (const auto arg_register : call.arg_registers) {
-    argument_values.push_back(registers_[arg_register]);
+  const size_t new_frame_base = frame_base_ + register_count_;
+  if (new_frame_base + register_count_ > register_stack_.size()) {
+    register_stack_.resize(new_frame_base + register_count_, 0);
   }
-
-  call_stack_.push_back({block_index, next_instr_index, call.dst, registers_});
   for (size_t i = 0; i < call.param_registers.size(); ++i) {
-    registers_[call.param_registers[i]] = argument_values[i];
+    register_stack_[new_frame_base + call.param_registers[i]] =
+        register_stack_[frame_base_ + call.arg_registers[i]];
   }
+  call_stack_.push_back({block_index, next_instr_index, call.dst, frame_base_});
+  frame_base_ = new_frame_base;
   block_index = call.label;
   instr_index_ = 0;
 }
 
 void BytecodeInterpreter::interpret_equal(const Bytecode::Instruction::Equal &equal) {
-  registers_[equal.dst] = registers_[equal.src1] == registers_[equal.src2];
+  reg(equal.dst) = reg(equal.src1) == reg(equal.src2);
 }
 
 void BytecodeInterpreter::interpret_not_equal(
     const Bytecode::Instruction::NotEqual &not_equal) {
-  registers_[not_equal.dst] = registers_[not_equal.src1] != registers_[not_equal.src2];
+  reg(not_equal.dst) = reg(not_equal.src1) != reg(not_equal.src2);
 }
 
 void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {
-  registers_[add.dst] = registers_[add.src1] + registers_[add.src2];
+  reg(add.dst) = reg(add.src1) + reg(add.src2);
 }
 
 void BytecodeInterpreter::interpret_subtract(
     const Bytecode::Instruction::Subtract &subtract) {
-  registers_[subtract.dst] = registers_[subtract.src1] - registers_[subtract.src2];
+  reg(subtract.dst) = reg(subtract.src1) - reg(subtract.src2);
 }
 
 void BytecodeInterpreter::interpret_add_immediate(
     const Bytecode::Instruction::AddImmediate &add_imm) {
-  registers_[add_imm.dst] = registers_[add_imm.src] + add_imm.value;
+  reg(add_imm.dst) = reg(add_imm.src) + add_imm.value;
 }
 
 void BytecodeInterpreter::interpret_multiply(
     const Bytecode::Instruction::Multiply &multiply) {
-  registers_[multiply.dst] = registers_[multiply.src1] * registers_[multiply.src2];
+  reg(multiply.dst) = reg(multiply.src1) * reg(multiply.src2);
 }
 
 void BytecodeInterpreter::interpret_divide(const Bytecode::Instruction::Divide &divide) {
-  registers_[divide.dst] = registers_[divide.src1] / registers_[divide.src2];
+  reg(divide.dst) = reg(divide.src1) / reg(divide.src2);
 }
 
 void BytecodeInterpreter::interpret_modulo(const Bytecode::Instruction::Modulo &modulo) {
-  registers_[modulo.dst] = registers_[modulo.src1] % registers_[modulo.src2];
+  reg(modulo.dst) = reg(modulo.src1) % reg(modulo.src2);
 }
 
 void BytecodeInterpreter::interpret_array_create(
@@ -1100,26 +1101,26 @@ void BytecodeInterpreter::interpret_array_create(
   auto &array = arrays_[array_id];
   array.reserve(array_create.elements.size());
   for (auto element_reg : array_create.elements) {
-    array.push_back(registers_[element_reg]);
+    array.push_back(reg(element_reg));
   }
-  registers_[array_create.dst] = array_id;
+  reg(array_create.dst) = array_id;
 }
 
 void BytecodeInterpreter::interpret_array_load(
     const Bytecode::Instruction::ArrayLoad &array_load) {
-  auto array_id = registers_[array_load.array];
-  auto index = registers_[array_load.index];
+  auto array_id = reg(array_load.array);
+  auto index = reg(array_load.index);
   const auto it = arrays_.find(array_id);
   assert(it != arrays_.end());
   assert(index < it->second.size());
-  registers_[array_load.dst] = it->second[index];
+  reg(array_load.dst) = it->second[index];
 }
 
 void BytecodeInterpreter::interpret_array_store(
     const Bytecode::Instruction::ArrayStore &array_store) {
-  const auto array_id = registers_[array_store.array];
-  const auto index = registers_[array_store.index];
-  const auto value = registers_[array_store.value];
+  const auto array_id = reg(array_store.array);
+  const auto index = reg(array_store.index);
+  const auto value = reg(array_store.value);
   const auto it = arrays_.find(array_id);
   assert(it != arrays_.end());
   assert(index < it->second.size());
@@ -1131,19 +1132,19 @@ void BytecodeInterpreter::interpret_struct_create(
   auto struct_id = next_heap_id_++;
   auto &fields = structs_[struct_id];
   for (const auto &field : struct_create.fields) {
-    fields[field.first] = registers_[field.second];
+    fields[field.first] = reg(field.second);
   }
-  registers_[struct_create.dst] = struct_id;
+  reg(struct_create.dst) = struct_id;
 }
 
 void BytecodeInterpreter::interpret_struct_load(
     const Bytecode::Instruction::StructLoad &struct_load) {
-  const auto struct_id = registers_[struct_load.object];
+  const auto struct_id = reg(struct_load.object);
   const auto struct_it = structs_.find(struct_id);
   assert(struct_it != structs_.end());
   const auto field_it = struct_it->second.find(struct_load.field);
   assert(field_it != struct_it->second.end());
-  registers_[struct_load.dst] = field_it->second;
+  reg(struct_load.dst) = field_it->second;
 }
 
 }  // namespace bytecode

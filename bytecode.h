@@ -388,16 +388,20 @@ class BytecodeInterpreter {
   void interpret_struct_create(const Bytecode::Instruction::StructCreate &struct_create);
   void interpret_struct_load(const Bytecode::Instruction::StructLoad &struct_load);
 
+  Bytecode::Value& reg(Bytecode::Register r) { return register_stack_[frame_base_ + r]; }
+
   u64 block_index = 0;
   size_t instr_index_ = 0;
   struct CallFrame {
     u64 return_block_index;
     size_t return_instr_index;
     Bytecode::Register dst_register;
-    std::vector<Bytecode::Value> registers;
+    size_t frame_base;
   };
   std::vector<CallFrame> call_stack_;
-  std::vector<Bytecode::Value> registers_;
+  std::vector<Bytecode::Value> register_stack_;
+  size_t frame_base_ = 0;
+  size_t register_count_ = 0;
   std::unordered_map<Bytecode::Value, std::vector<Bytecode::Value>> arrays_;
   std::unordered_map<Bytecode::Value, std::unordered_map<std::string, Bytecode::Value>>
       structs_;
