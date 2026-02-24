@@ -231,6 +231,8 @@ private:
         last_token_.end = input_;
       }
       break;
+    // TODO: add minus_minus (--) to mirror plus_plus (++)
+    // TODO: add ampersand_ampersand (&&) and pipe_pipe (||) for logical AND/OR
     default:
       report_unexpected_char(input_[0]);
       last_token_.type = Token::Type::unknown;
