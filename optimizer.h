@@ -19,6 +19,12 @@ class BytecodeOptimizer {
   // Removes instructions whose dst register is never read anywhere in
   // any block (pure computation with no observable effect).
   void dead_code_elimination(std::vector<Bytecode::BasicBlock> &blocks);
+
+  // Pass 0: loop-invariant code motion.
+  // Detects natural loops via back edges, then hoists pure instructions
+  // whose operands are not modified anywhere in the loop to a pre-header
+  // block that executes once.
+  void loop_invariant_code_motion(std::vector<Bytecode::BasicBlock> &blocks);
 };
 
 }  // namespace bytecode
