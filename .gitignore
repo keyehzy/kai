@@ -1,0 +1,14 @@
+# Build outputs
+cli
+cli_before
+test/main
+
+# macOS debug symbols
+*.dSYM/
+
+# macOS metadata
+.DS_Store
+
+# Editor temporaries
+*.h~
+*.cpp~
