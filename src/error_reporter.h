@@ -72,19 +72,14 @@ struct UnexpectedCharError final : public Error {
   UnexpectedCharError(SourceLocation location, char ch)
       : Error(Type::UnexpectedChar, location), ch(ch) {}
 
-  std::string format_error() const override {
-    std::string msg = "unexpected character '";
-    msg += ch;
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedEndOfExpressionError final : public Error {
   explicit ExpectedEndOfExpressionError(SourceLocation location)
       : Error(Type::ExpectedEndOfExpression, location) {}
 
-  std::string format_error() const override { return "expected end of expression"; }
+  std::string format_error() const override;
 };
 
 struct ExpectedVariableError final : public Error {
@@ -98,46 +93,14 @@ struct ExpectedVariableError final : public Error {
   ExpectedVariableError(SourceLocation location, Ctx ctx)
       : Error(Type::ExpectedVariable, location), ctx(ctx) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected variable";
-    switch (ctx) {
-      case Ctx::AsFunctionCallTarget:
-        msg += " as function call target";
-        break;
-      case Ctx::BeforePostfixIncrement:
-        msg += " before postfix '++'";
-        break;
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct InvalidAssignmentTargetError final : public Error {
   explicit InvalidAssignmentTargetError(SourceLocation location)
       : Error(Type::InvalidAssignmentTarget, location) {}
 
-  std::string format_error() const override {
-    std::string msg =
-        "invalid assignment target; expected variable or index expression before '='";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedIdentifierError final : public Error {
@@ -150,24 +113,7 @@ struct ExpectedIdentifierError final : public Error {
   ExpectedIdentifierError(SourceLocation location, Ctx ctx)
       : Error(Type::ExpectedIdentifier, location), ctx(ctx) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected identifier";
-    switch (ctx) {
-      case Ctx::AfterDotInFieldAccess:
-        msg += " after '.' in field access";
-        break;
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedFunctionIdentifierError final : public Error {
@@ -181,82 +127,28 @@ struct ExpectedFunctionIdentifierError final : public Error {
   ExpectedFunctionIdentifierError(SourceLocation location, Ctx ctx)
       : Error(Type::ExpectedFunctionIdentifier, location), ctx(ctx) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected ";
-    switch (ctx) {
-      case Ctx::AfterFnKeyword:
-        msg += "function name after 'fn'";
-        break;
-      case Ctx::InParameterList:
-        msg += "parameter name in function declaration";
-        break;
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct InvalidNumericLiteralError final : public Error {
   explicit InvalidNumericLiteralError(SourceLocation location)
       : Error(Type::InvalidNumericLiteral, location) {}
 
-  std::string format_error() const override {
-    std::string msg = "invalid numeric literal";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-
-    msg += " '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedLetVariableNameError final : public Error {
   explicit ExpectedLetVariableNameError(SourceLocation location)
       : Error(Type::ExpectedLetVariableName, location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected variable name after 'let'";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedStructFieldNameError final : public Error {
   explicit ExpectedStructFieldNameError(SourceLocation location)
       : Error(Type::ExpectedStructFieldName, location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected field name in struct literal";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedStructFieldColonError final : public Error {
@@ -268,27 +160,7 @@ struct ExpectedStructFieldColonError final : public Error {
       : Error(Type::ExpectedStructFieldColon, location),
         field_name_location(field_name_location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected ':'";
-    if (field_name_location.has_value() && !field_name_location->text().empty()) {
-      msg += " after field name '";
-      msg += std::string(field_name_location->text());
-      msg += "'";
-    } else {
-      msg += " after struct field name";
-    }
-    msg += " in struct literal";
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedStructLiteralBraceError final : public Error {
@@ -302,20 +174,7 @@ struct ExpectedStructLiteralBraceError final : public Error {
   ExpectedStructLiteralBraceError(SourceLocation location, Boundary boundary)
       : Error(Type::ExpectedStructLiteralBrace, location), boundary(boundary) {}
 
-  std::string format_error() const override {
-    std::string msg = boundary == Boundary::OpeningBrace
-                          ? "expected '{' to start struct literal"
-                          : "expected '}' to close struct literal";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedLiteralStartError final : public Error {
@@ -329,63 +188,21 @@ struct ExpectedLiteralStartError final : public Error {
   ExpectedLiteralStartError(SourceLocation location, Ctx ctx)
       : Error(Type::ExpectedLiteralStart, location), ctx(ctx) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected ";
-    switch (ctx) {
-      case Ctx::ArrayLiteral:
-        msg += "'[' to start array literal";
-        break;
-      case Ctx::StructLiteral:
-        msg += "'struct' to start struct literal";
-        break;
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedPrimaryExpressionError final : public Error {
   explicit ExpectedPrimaryExpressionError(SourceLocation location)
       : Error(Type::ExpectedPrimaryExpression, location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected primary expression";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedSemicolonError final : public Error {
   explicit ExpectedSemicolonError(SourceLocation location)
       : Error(Type::ExpectedSemicolon, location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected ';' after statement";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedEqualsError final : public Error {
@@ -400,31 +217,7 @@ struct ExpectedEqualsError final : public Error {
                       std::optional<SourceLocation> context_location = std::nullopt)
       : Error(Type::ExpectedEquals, location), ctx(ctx), context_location(context_location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected '='";
-    switch (ctx) {
-      case Ctx::AfterLetVariableName: {
-        const std::string_view variable_name_text =
-            context_location.has_value() && !context_location->text().empty()
-                ? context_location->text()
-                : std::string_view("name");
-        msg += " after variable '";
-        msg += std::string(variable_name_text);
-        msg += "' in 'let' declaration";
-        break;
-      }
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedOpeningParenthesisError final : public Error {
@@ -443,52 +236,7 @@ struct ExpectedOpeningParenthesisError final : public Error {
         ctx(ctx),
         context_location(context_location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected '('";
-    switch (ctx) {
-      case Ctx::AfterWhile: {
-        const std::string_view while_text =
-            context_location.has_value() && !context_location->text().empty()
-                ? context_location->text()
-                : std::string_view("while");
-        msg += " after '";
-        msg += std::string(while_text);
-        msg += "'";
-        break;
-      }
-      case Ctx::AfterIf: {
-        const std::string_view if_text =
-            context_location.has_value() && !context_location->text().empty()
-                ? context_location->text()
-                : std::string_view("if");
-        msg += " after '";
-        msg += std::string(if_text);
-        msg += "'";
-        break;
-      }
-      case Ctx::AfterFunctionNameInDeclaration:
-      {
-        const std::string_view function_name_text =
-            context_location.has_value() && !context_location->text().empty()
-                ? context_location->text()
-                : std::string_view("function name");
-        msg += " after function name '";
-        msg += std::string(function_name_text);
-        msg += "' in declaration";
-        break;
-      }
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedClosingParenthesisError final : public Error {
@@ -509,50 +257,7 @@ struct ExpectedClosingParenthesisError final : public Error {
         ctx(ctx),
         context_location(context_location) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected ')'";
-    switch (ctx) {
-      case Ctx::ToCloseWhileCondition: {
-        const std::string_view while_text =
-            context_location.has_value() && !context_location->text().empty()
-                ? context_location->text()
-                : std::string_view("while");
-        msg += " to close '";
-        msg += std::string(while_text);
-        msg += "' condition";
-        break;
-      }
-      case Ctx::ToCloseIfCondition: {
-        const std::string_view if_text =
-            context_location.has_value() && !context_location->text().empty()
-                ? context_location->text()
-                : std::string_view("if");
-        msg += " to close '";
-        msg += std::string(if_text);
-        msg += "' condition";
-        break;
-      }
-      case Ctx::ToCloseFunctionParameterList:
-        msg += " to close function parameter list";
-        break;
-      case Ctx::ToCloseFunctionCallArguments:
-        msg += " to close function call arguments";
-        break;
-      case Ctx::ToCloseGroupedExpression:
-        msg += " to close grouped expression";
-        break;
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedClosingSquareBracketError final : public Error {
@@ -566,27 +271,7 @@ struct ExpectedClosingSquareBracketError final : public Error {
   ExpectedClosingSquareBracketError(SourceLocation location, Ctx ctx)
       : Error(Type::ExpectedClosingSquareBracket, location), ctx(ctx) {}
 
-  std::string format_error() const override {
-    std::string msg = "expected ']'";
-    switch (ctx) {
-      case Ctx::ToCloseIndexExpression:
-        msg += " to close index expression";
-        break;
-      case Ctx::ToCloseArrayLiteral:
-        msg += " to close array literal";
-        break;
-    }
-
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 struct ExpectedBlockError final : public Error {
@@ -603,26 +288,7 @@ struct ExpectedBlockError final : public Error {
         block_token(block_token),
         boundary(boundary) {}
 
-  std::string format_error() const override {
-    std::string msg =
-        (boundary == Boundary::OpeningBrace)
-            ? "expected '{' to start "
-            : "expected '}' to close ";
-    if (block_token.has_value()) {
-      msg += (*block_token).sv();
-      msg += " ";
-    }
-    msg += "block";
-    const std::string_view found = location.text();
-    if (found.empty()) {
-      msg += ", found end of input";
-      return msg;
-    }
-    msg += ", found '";
-    msg += std::string(found);
-    msg += "'";
-    return msg;
-  }
+  std::string format_error() const override;
 };
 
 class ErrorReporter {
