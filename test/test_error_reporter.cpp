@@ -127,6 +127,16 @@ TEST_CASE("test_error_reporter_expected_variable_error_with_context") {
           "expected variable as function call target, found '('");
 }
 
+TEST_CASE("test_error_reporter_invalid_assignment_target_error_type") {
+  std::string_view src = "=";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::InvalidAssignmentTargetError>(
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidAssignmentTarget);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "invalid assignment target; expected variable or index expression before '=', found '='");
+}
+
 TEST_CASE("test_error_reporter_expected_identifier_error_with_context") {
   std::string_view src = ";";
   kai::ErrorReporter reporter;

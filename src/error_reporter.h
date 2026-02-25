@@ -37,6 +37,7 @@ struct Error {
   enum class Type {
     ExpectedEndOfExpression,
     ExpectedVariable,
+    InvalidAssignmentTarget,
     ExpectedIdentifier,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
@@ -102,6 +103,25 @@ struct ExpectedVariableError final : public Error {
         break;
     }
 
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct InvalidAssignmentTargetError final : public Error {
+  explicit InvalidAssignmentTargetError(SourceLocation location)
+      : Error(Type::InvalidAssignmentTarget, location) {}
+
+  std::string format_error() const override {
+    std::string msg =
+        "invalid assignment target; expected variable or index expression before '='";
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";

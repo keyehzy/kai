@@ -407,6 +407,22 @@ TEST_CASE("test_parser_reports_missing_equals_in_let_declaration") {
   REQUIRE(reporter.errors()[0]->location.text() == "1");
 }
 
+TEST_CASE("test_parser_reports_invalid_assignment_target") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 = 2", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Literal);
+  REQUIRE(ast_cast<const Ast::Literal&>(*parsed).value == 1);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidAssignmentTarget);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "invalid assignment target; expected variable or index expression before '=', found '='");
+  REQUIRE(reporter.errors()[0]->location.text() == "=");
+}
+
 TEST_CASE("test_parser_reports_expected_primary_expression_for_standalone_semicolon") {
   kai::ErrorReporter reporter;
   kai::Parser parser(";", reporter);

@@ -186,6 +186,7 @@ std::unique_ptr<ast::Ast> Parser::parse_assignment() {
     return left;
   }
 
+  const Token equals_token = lexer_.peek();
   lexer_.skip();
   std::unique_ptr<ast::Ast> value = parse_assignment();
 
@@ -200,8 +201,8 @@ std::unique_ptr<ast::Ast> Parser::parse_assignment() {
         std::move(index.array), std::move(index.index), std::move(value));
   }
 
-  assert(false);
-  return nullptr;
+  error_reporter_.report<InvalidAssignmentTargetError>(equals_token.source_location());
+  return left;
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_equality() {
