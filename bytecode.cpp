@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <optional>
 
 namespace kai {
 namespace bytecode {
@@ -52,12 +53,26 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(less_than.rhs);
           break;
         }
+        case Bytecode::Instruction::Type::LessThanImmediate: {
+          const auto &less_than_imm =
+              ast::derived_cast<const Bytecode::Instruction::LessThanImmediate &>(*instr);
+          track(less_than_imm.dst);
+          track(less_than_imm.lhs);
+          break;
+        }
         case Bytecode::Instruction::Type::GreaterThan: {
           const auto &greater_than =
               ast::derived_cast<const Bytecode::Instruction::GreaterThan &>(*instr);
           track(greater_than.dst);
           track(greater_than.lhs);
           track(greater_than.rhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::GreaterThanImmediate: {
+          const auto &greater_than_imm =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThanImmediate &>(*instr);
+          track(greater_than_imm.dst);
+          track(greater_than_imm.lhs);
           break;
         }
         case Bytecode::Instruction::Type::LessThanOrEqual: {
@@ -68,12 +83,27 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(less_than_or_equal.rhs);
           break;
         }
+        case Bytecode::Instruction::Type::LessThanOrEqualImmediate: {
+          const auto &less_than_or_equal_imm =
+              ast::derived_cast<const Bytecode::Instruction::LessThanOrEqualImmediate &>(*instr);
+          track(less_than_or_equal_imm.dst);
+          track(less_than_or_equal_imm.lhs);
+          break;
+        }
         case Bytecode::Instruction::Type::GreaterThanOrEqual: {
           const auto &greater_than_or_equal = ast::derived_cast<
               const Bytecode::Instruction::GreaterThanOrEqual &>(*instr);
           track(greater_than_or_equal.dst);
           track(greater_than_or_equal.lhs);
           track(greater_than_or_equal.rhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::GreaterThanOrEqualImmediate: {
+          const auto &greater_than_or_equal_imm =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThanOrEqualImmediate &>(
+                  *instr);
+          track(greater_than_or_equal_imm.dst);
+          track(greater_than_or_equal_imm.lhs);
           break;
         }
         case Bytecode::Instruction::Type::Jump:
@@ -110,12 +140,26 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(equal.src2);
           break;
         }
+        case Bytecode::Instruction::Type::EqualImmediate: {
+          const auto &equal_imm =
+              ast::derived_cast<const Bytecode::Instruction::EqualImmediate &>(*instr);
+          track(equal_imm.dst);
+          track(equal_imm.src);
+          break;
+        }
         case Bytecode::Instruction::Type::NotEqual: {
           const auto &not_equal =
               ast::derived_cast<const Bytecode::Instruction::NotEqual &>(*instr);
           track(not_equal.dst);
           track(not_equal.src1);
           track(not_equal.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::NotEqualImmediate: {
+          const auto &not_equal_imm =
+              ast::derived_cast<const Bytecode::Instruction::NotEqualImmediate &>(*instr);
+          track(not_equal_imm.dst);
+          track(not_equal_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Add: {
@@ -126,6 +170,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(add.src2);
           break;
         }
+        case Bytecode::Instruction::Type::AddImmediate: {
+          const auto &add_imm =
+              ast::derived_cast<const Bytecode::Instruction::AddImmediate &>(*instr);
+          track(add_imm.dst);
+          track(add_imm.src);
+          break;
+        }
         case Bytecode::Instruction::Type::Subtract: {
           const auto &subtract =
               ast::derived_cast<const Bytecode::Instruction::Subtract &>(*instr);
@@ -134,11 +185,11 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(subtract.src2);
           break;
         }
-        case Bytecode::Instruction::Type::AddImmediate: {
-          const auto &add_imm =
-              ast::derived_cast<const Bytecode::Instruction::AddImmediate &>(*instr);
-          track(add_imm.dst);
-          track(add_imm.src);
+        case Bytecode::Instruction::Type::SubtractImmediate: {
+          const auto &subtract_imm =
+              ast::derived_cast<const Bytecode::Instruction::SubtractImmediate &>(*instr);
+          track(subtract_imm.dst);
+          track(subtract_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Multiply: {
@@ -149,6 +200,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(multiply.src2);
           break;
         }
+        case Bytecode::Instruction::Type::MultiplyImmediate: {
+          const auto &multiply_imm =
+              ast::derived_cast<const Bytecode::Instruction::MultiplyImmediate &>(*instr);
+          track(multiply_imm.dst);
+          track(multiply_imm.src);
+          break;
+        }
         case Bytecode::Instruction::Type::Divide: {
           const auto &divide =
               ast::derived_cast<const Bytecode::Instruction::Divide &>(*instr);
@@ -157,12 +215,26 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(divide.src2);
           break;
         }
+        case Bytecode::Instruction::Type::DivideImmediate: {
+          const auto &divide_imm =
+              ast::derived_cast<const Bytecode::Instruction::DivideImmediate &>(*instr);
+          track(divide_imm.dst);
+          track(divide_imm.src);
+          break;
+        }
         case Bytecode::Instruction::Type::Modulo: {
           const auto &modulo =
               ast::derived_cast<const Bytecode::Instruction::Modulo &>(*instr);
           track(modulo.dst);
           track(modulo.src1);
           track(modulo.src2);
+          break;
+        }
+        case Bytecode::Instruction::Type::ModuloImmediate: {
+          const auto &modulo_imm =
+              ast::derived_cast<const Bytecode::Instruction::ModuloImmediate &>(*instr);
+          track(modulo_imm.dst);
+          track(modulo_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::ArrayCreate: {
@@ -228,6 +300,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
   }
   return count;
 }
+
+std::optional<Bytecode::Value> literal_value(const Ast &ast) {
+  if (ast.type != Ast::Type::Literal) {
+    return std::nullopt;
+  }
+  return ast_cast<const Ast::Literal &>(ast).value;
+}
 }  // namespace
 
 Bytecode::Instruction::Instruction(Type type) : type_(type) {}
@@ -255,12 +334,28 @@ void Bytecode::Instruction::LessThan::dump() const {
   std::printf("LessThan r%llu, r%llu, r%llu", dst, lhs, rhs);
 }
 
+Bytecode::Instruction::LessThanImmediate::LessThanImmediate(Register dst, Register lhs,
+                                                            Value value)
+    : Bytecode::Instruction(Type::LessThanImmediate), dst(dst), lhs(lhs), value(value) {}
+
+void Bytecode::Instruction::LessThanImmediate::dump() const {
+  std::printf("LessThanImmediate r%llu, r%llu, %llu", dst, lhs, value);
+}
+
 Bytecode::Instruction::GreaterThan::GreaterThan(Register dst, Register lhs,
                                                 Register rhs)
     : Bytecode::Instruction(Type::GreaterThan), dst(dst), lhs(lhs), rhs(rhs) {}
 
 void Bytecode::Instruction::GreaterThan::dump() const {
   std::printf("GreaterThan r%llu, r%llu, r%llu", dst, lhs, rhs);
+}
+
+Bytecode::Instruction::GreaterThanImmediate::GreaterThanImmediate(Register dst, Register lhs,
+                                                                  Value value)
+    : Bytecode::Instruction(Type::GreaterThanImmediate), dst(dst), lhs(lhs), value(value) {}
+
+void Bytecode::Instruction::GreaterThanImmediate::dump() const {
+  std::printf("GreaterThanImmediate r%llu, r%llu, %llu", dst, lhs, value);
 }
 
 Bytecode::Instruction::LessThanOrEqual::LessThanOrEqual(Register dst, Register lhs,
@@ -271,6 +366,18 @@ void Bytecode::Instruction::LessThanOrEqual::dump() const {
   std::printf("LessThanOrEqual r%llu, r%llu, r%llu", dst, lhs, rhs);
 }
 
+Bytecode::Instruction::LessThanOrEqualImmediate::LessThanOrEqualImmediate(Register dst,
+                                                                          Register lhs,
+                                                                          Value value)
+    : Bytecode::Instruction(Type::LessThanOrEqualImmediate),
+      dst(dst),
+      lhs(lhs),
+      value(value) {}
+
+void Bytecode::Instruction::LessThanOrEqualImmediate::dump() const {
+  std::printf("LessThanOrEqualImmediate r%llu, r%llu, %llu", dst, lhs, value);
+}
+
 Bytecode::Instruction::GreaterThanOrEqual::GreaterThanOrEqual(Register dst,
                                                               Register lhs,
                                                               Register rhs)
@@ -278,6 +385,18 @@ Bytecode::Instruction::GreaterThanOrEqual::GreaterThanOrEqual(Register dst,
 
 void Bytecode::Instruction::GreaterThanOrEqual::dump() const {
   std::printf("GreaterThanOrEqual r%llu, r%llu, r%llu", dst, lhs, rhs);
+}
+
+Bytecode::Instruction::GreaterThanOrEqualImmediate::GreaterThanOrEqualImmediate(Register dst,
+                                                                                Register lhs,
+                                                                                Value value)
+    : Bytecode::Instruction(Type::GreaterThanOrEqualImmediate),
+      dst(dst),
+      lhs(lhs),
+      value(value) {}
+
+void Bytecode::Instruction::GreaterThanOrEqualImmediate::dump() const {
+  std::printf("GreaterThanOrEqualImmediate r%llu, r%llu, %llu", dst, lhs, value);
 }
 
 Bytecode::Instruction::Jump::Jump(Label label)
@@ -328,11 +447,26 @@ void Bytecode::Instruction::Equal::dump() const {
   std::printf("Equal r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
+Bytecode::Instruction::EqualImmediate::EqualImmediate(Register dst, Register src, Value value)
+    : Bytecode::Instruction(Type::EqualImmediate), dst(dst), src(src), value(value) {}
+
+void Bytecode::Instruction::EqualImmediate::dump() const {
+  std::printf("EqualImmediate r%llu, r%llu, %llu", dst, src, value);
+}
+
 Bytecode::Instruction::NotEqual::NotEqual(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::NotEqual), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::NotEqual::dump() const {
   std::printf("NotEqual r%llu, r%llu, r%llu", dst, src1, src2);
+}
+
+Bytecode::Instruction::NotEqualImmediate::NotEqualImmediate(Register dst, Register src,
+                                                            Value value)
+    : Bytecode::Instruction(Type::NotEqualImmediate), dst(dst), src(src), value(value) {}
+
+void Bytecode::Instruction::NotEqualImmediate::dump() const {
+  std::printf("NotEqualImmediate r%llu, r%llu, %llu", dst, src, value);
 }
 
 Bytecode::Instruction::Add::Add(Register dst, Register src1, Register src2)
@@ -342,6 +476,13 @@ void Bytecode::Instruction::Add::dump() const {
   std::printf("Add r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
+Bytecode::Instruction::AddImmediate::AddImmediate(Register dst, Register src, Value value)
+    : Bytecode::Instruction(Type::AddImmediate), dst(dst), src(src), value(value) {}
+
+void Bytecode::Instruction::AddImmediate::dump() const {
+  std::printf("AddImmediate r%llu, r%llu, %llu", dst, src, value);
+}
+
 Bytecode::Instruction::Subtract::Subtract(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Subtract), dst(dst), src1(src1), src2(src2) {}
 
@@ -349,11 +490,12 @@ void Bytecode::Instruction::Subtract::dump() const {
   std::printf("Subtract r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
-Bytecode::Instruction::AddImmediate::AddImmediate(Register dst, Register src, Value value)
-    : Bytecode::Instruction(Type::AddImmediate), dst(dst), src(src), value(value) {}
+Bytecode::Instruction::SubtractImmediate::SubtractImmediate(Register dst, Register src,
+                                                            Value value)
+    : Bytecode::Instruction(Type::SubtractImmediate), dst(dst), src(src), value(value) {}
 
-void Bytecode::Instruction::AddImmediate::dump() const {
-  std::printf("Add r%llu, r%llu, %llu", dst, src, value);
+void Bytecode::Instruction::SubtractImmediate::dump() const {
+  std::printf("SubtractImmediate r%llu, r%llu, %llu", dst, src, value);
 }
 
 Bytecode::Instruction::Multiply::Multiply(Register dst, Register src1, Register src2)
@@ -363,6 +505,14 @@ void Bytecode::Instruction::Multiply::dump() const {
   std::printf("Multiply r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
+Bytecode::Instruction::MultiplyImmediate::MultiplyImmediate(Register dst, Register src,
+                                                            Value value)
+    : Bytecode::Instruction(Type::MultiplyImmediate), dst(dst), src(src), value(value) {}
+
+void Bytecode::Instruction::MultiplyImmediate::dump() const {
+  std::printf("MultiplyImmediate r%llu, r%llu, %llu", dst, src, value);
+}
+
 Bytecode::Instruction::Divide::Divide(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Divide), dst(dst), src1(src1), src2(src2) {}
 
@@ -370,11 +520,25 @@ void Bytecode::Instruction::Divide::dump() const {
   std::printf("Divide r%llu, r%llu, r%llu", dst, src1, src2);
 }
 
+Bytecode::Instruction::DivideImmediate::DivideImmediate(Register dst, Register src, Value value)
+    : Bytecode::Instruction(Type::DivideImmediate), dst(dst), src(src), value(value) {}
+
+void Bytecode::Instruction::DivideImmediate::dump() const {
+  std::printf("DivideImmediate r%llu, r%llu, %llu", dst, src, value);
+}
+
 Bytecode::Instruction::Modulo::Modulo(Register dst, Register src1, Register src2)
     : Bytecode::Instruction(Type::Modulo), dst(dst), src1(src1), src2(src2) {}
 
 void Bytecode::Instruction::Modulo::dump() const {
   std::printf("Modulo r%llu, r%llu, r%llu", dst, src1, src2);
+}
+
+Bytecode::Instruction::ModuloImmediate::ModuloImmediate(Register dst, Register src, Value value)
+    : Bytecode::Instruction(Type::ModuloImmediate), dst(dst), src(src), value(value) {}
+
+void Bytecode::Instruction::ModuloImmediate::dump() const {
+  std::printf("ModuloImmediate r%llu, r%llu, %llu", dst, src, value);
 }
 
 Bytecode::Instruction::ArrayCreate::ArrayCreate(Register dst,
@@ -666,18 +830,28 @@ void BytecodeGenerator::visit_variable_declaration(
 
 void BytecodeGenerator::visit_less_than(const Ast::LessThan &less_than) {
   visit(*less_than.left);
-  auto left_reg = reg_alloc_.current();
+  const auto left_reg = reg_alloc_.current();
+  if (const auto imm = literal_value(*less_than.right)) {
+    current_block().append<Bytecode::Instruction::LessThanImmediate>(reg_alloc_.allocate(),
+                                                                     left_reg, *imm);
+    return;
+  }
   visit(*less_than.right);
-  auto right_reg = reg_alloc_.current();
+  const auto right_reg = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::LessThan>(reg_alloc_.allocate(), left_reg,
                                                           right_reg);
 }
 
 void BytecodeGenerator::visit_greater_than(const Ast::GreaterThan &greater_than) {
   visit(*greater_than.left);
-  auto left_reg = reg_alloc_.current();
+  const auto left_reg = reg_alloc_.current();
+  if (const auto imm = literal_value(*greater_than.right)) {
+    current_block().append<Bytecode::Instruction::GreaterThanImmediate>(reg_alloc_.allocate(),
+                                                                        left_reg, *imm);
+    return;
+  }
   visit(*greater_than.right);
-  auto right_reg = reg_alloc_.current();
+  const auto right_reg = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::GreaterThan>(reg_alloc_.allocate(),
                                                              left_reg, right_reg);
 }
@@ -686,6 +860,11 @@ void BytecodeGenerator::visit_less_than_or_equal(
     const Ast::LessThanOrEqual &less_than_or_equal) {
   visit(*less_than_or_equal.left);
   const auto left_reg = reg_alloc_.current();
+  if (const auto imm = literal_value(*less_than_or_equal.right)) {
+    current_block().append<Bytecode::Instruction::LessThanOrEqualImmediate>(
+        reg_alloc_.allocate(), left_reg, *imm);
+    return;
+  }
   visit(*less_than_or_equal.right);
   const auto right_reg = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::LessThanOrEqual>(reg_alloc_.allocate(),
@@ -696,6 +875,11 @@ void BytecodeGenerator::visit_greater_than_or_equal(
     const Ast::GreaterThanOrEqual &greater_than_or_equal) {
   visit(*greater_than_or_equal.left);
   const auto left_reg = reg_alloc_.current();
+  if (const auto imm = literal_value(*greater_than_or_equal.right)) {
+    current_block().append<Bytecode::Instruction::GreaterThanOrEqualImmediate>(
+        reg_alloc_.allocate(), left_reg, *imm);
+    return;
+  }
   visit(*greater_than_or_equal.right);
   const auto right_reg = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::GreaterThanOrEqual>(
@@ -782,63 +966,97 @@ void BytecodeGenerator::visit_return(const Ast::Return &return_) {
 
 void BytecodeGenerator::visit_equal(const Ast::Equal &equal) {
   visit(*equal.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*equal.right)) {
+    current_block().append<Bytecode::Instruction::EqualImmediate>(reg_alloc_.allocate(),
+                                                                  reg_left, *imm);
+    return;
+  }
   visit(*equal.right);
-  auto reg_right = reg_alloc_.current();
+  const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::Equal>(reg_alloc_.allocate(), reg_left,
                                                        reg_right);
 }
 
 void BytecodeGenerator::visit_not_equal(const Ast::NotEqual &not_equal) {
   visit(*not_equal.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*not_equal.right)) {
+    current_block().append<Bytecode::Instruction::NotEqualImmediate>(reg_alloc_.allocate(),
+                                                                     reg_left, *imm);
+    return;
+  }
   visit(*not_equal.right);
-  auto reg_right = reg_alloc_.current();
+  const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::NotEqual>(reg_alloc_.allocate(), reg_left,
                                                           reg_right);
 }
 
 void BytecodeGenerator::visit_add(const Ast::Add &add) {
   visit(*add.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*add.right)) {
+    current_block().append<Bytecode::Instruction::AddImmediate>(reg_alloc_.allocate(), reg_left,
+                                                                *imm);
+    return;
+  }
   visit(*add.right);
-  auto reg_right = reg_alloc_.current();
-  current_block().append<Bytecode::Instruction::Add>(reg_alloc_.allocate(), reg_left,
-                                                     reg_right);
+  const auto reg_right = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::Add>(reg_alloc_.allocate(), reg_left, reg_right);
 }
 
 void BytecodeGenerator::visit_subtract(const Ast::Subtract &subtract) {
   visit(*subtract.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*subtract.right)) {
+    current_block().append<Bytecode::Instruction::SubtractImmediate>(reg_alloc_.allocate(),
+                                                                     reg_left, *imm);
+    return;
+  }
   visit(*subtract.right);
-  auto reg_right = reg_alloc_.current();
+  const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::Subtract>(reg_alloc_.allocate(), reg_left,
                                                           reg_right);
 }
 
 void BytecodeGenerator::visit_multiply(const Ast::Multiply &multiply) {
   visit(*multiply.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*multiply.right)) {
+    current_block().append<Bytecode::Instruction::MultiplyImmediate>(reg_alloc_.allocate(),
+                                                                     reg_left, *imm);
+    return;
+  }
   visit(*multiply.right);
-  auto reg_right = reg_alloc_.current();
+  const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::Multiply>(reg_alloc_.allocate(), reg_left,
                                                           reg_right);
 }
 
 void BytecodeGenerator::visit_divide(const Ast::Divide &divide) {
   visit(*divide.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*divide.right)) {
+    current_block().append<Bytecode::Instruction::DivideImmediate>(reg_alloc_.allocate(),
+                                                                   reg_left, *imm);
+    return;
+  }
   visit(*divide.right);
-  auto reg_right = reg_alloc_.current();
+  const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::Divide>(reg_alloc_.allocate(), reg_left,
                                                         reg_right);
 }
 
 void BytecodeGenerator::visit_modulo(const Ast::Modulo &modulo) {
   visit(*modulo.left);
-  auto reg_left = reg_alloc_.current();
+  const auto reg_left = reg_alloc_.current();
+  if (const auto imm = literal_value(*modulo.right)) {
+    current_block().append<Bytecode::Instruction::ModuloImmediate>(reg_alloc_.allocate(),
+                                                                   reg_left, *imm);
+    return;
+  }
   visit(*modulo.right);
-  auto reg_right = reg_alloc_.current();
+  const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::Modulo>(reg_alloc_.allocate(), reg_left,
                                                         reg_right);
 }
@@ -946,9 +1164,19 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_less_than(ast::derived_cast<Bytecode::Instruction::LessThan const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::LessThanImmediate:
+        interpret_less_than_immediate(
+            ast::derived_cast<Bytecode::Instruction::LessThanImmediate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::GreaterThan:
         interpret_greater_than(
             ast::derived_cast<Bytecode::Instruction::GreaterThan const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::GreaterThanImmediate:
+        interpret_greater_than_immediate(
+            ast::derived_cast<Bytecode::Instruction::GreaterThanImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::LessThanOrEqual:
@@ -956,9 +1184,19 @@ Bytecode::Value BytecodeInterpreter::interpret(
             ast::derived_cast<Bytecode::Instruction::LessThanOrEqual const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::LessThanOrEqualImmediate:
+        interpret_less_than_or_equal_immediate(
+            ast::derived_cast<Bytecode::Instruction::LessThanOrEqualImmediate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::GreaterThanOrEqual:
         interpret_greater_than_or_equal(
             ast::derived_cast<Bytecode::Instruction::GreaterThanOrEqual const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::GreaterThanOrEqualImmediate:
+        interpret_greater_than_or_equal_immediate(ast::derived_cast<
+            Bytecode::Instruction::GreaterThanOrEqualImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Jump:
@@ -990,17 +1228,23 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_equal(ast::derived_cast<Bytecode::Instruction::Equal const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::EqualImmediate:
+        interpret_equal_immediate(
+            ast::derived_cast<Bytecode::Instruction::EqualImmediate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::NotEqual:
         interpret_not_equal(
             ast::derived_cast<Bytecode::Instruction::NotEqual const &>(*instr));
         ++instr_index_;
         break;
-      case Bytecode::Instruction::Type::Add:
-        interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
+      case Bytecode::Instruction::Type::NotEqualImmediate:
+        interpret_not_equal_immediate(
+            ast::derived_cast<Bytecode::Instruction::NotEqualImmediate const &>(*instr));
         ++instr_index_;
         break;
-      case Bytecode::Instruction::Type::Subtract:
-        interpret_subtract(ast::derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
+      case Bytecode::Instruction::Type::Add:
+        interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::AddImmediate:
@@ -1008,16 +1252,40 @@ Bytecode::Value BytecodeInterpreter::interpret(
             ast::derived_cast<Bytecode::Instruction::AddImmediate const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::Subtract:
+        interpret_subtract(ast::derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::SubtractImmediate:
+        interpret_subtract_immediate(
+            ast::derived_cast<Bytecode::Instruction::SubtractImmediate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::Multiply:
         interpret_multiply(ast::derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::MultiplyImmediate:
+        interpret_multiply_immediate(
+            ast::derived_cast<Bytecode::Instruction::MultiplyImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Divide:
         interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::DivideImmediate:
+        interpret_divide_immediate(
+            ast::derived_cast<Bytecode::Instruction::DivideImmediate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::Modulo:
         interpret_modulo(ast::derived_cast<Bytecode::Instruction::Modulo const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::ModuloImmediate:
+        interpret_modulo_immediate(
+            ast::derived_cast<Bytecode::Instruction::ModuloImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::ArrayCreate:
@@ -1075,9 +1343,19 @@ void BytecodeInterpreter::interpret_less_than(
   reg(less_than.dst) = reg(less_than.lhs) < reg(less_than.rhs);
 }
 
+void BytecodeInterpreter::interpret_less_than_immediate(
+    const Bytecode::Instruction::LessThanImmediate &less_than_imm) {
+  reg(less_than_imm.dst) = reg(less_than_imm.lhs) < less_than_imm.value;
+}
+
 void BytecodeInterpreter::interpret_greater_than(
     const Bytecode::Instruction::GreaterThan &greater_than) {
   reg(greater_than.dst) = reg(greater_than.lhs) > reg(greater_than.rhs);
+}
+
+void BytecodeInterpreter::interpret_greater_than_immediate(
+    const Bytecode::Instruction::GreaterThanImmediate &greater_than_imm) {
+  reg(greater_than_imm.dst) = reg(greater_than_imm.lhs) > greater_than_imm.value;
 }
 
 void BytecodeInterpreter::interpret_less_than_or_equal(
@@ -1086,10 +1364,22 @@ void BytecodeInterpreter::interpret_less_than_or_equal(
       reg(less_than_or_equal.lhs) <= reg(less_than_or_equal.rhs);
 }
 
+void BytecodeInterpreter::interpret_less_than_or_equal_immediate(
+    const Bytecode::Instruction::LessThanOrEqualImmediate &less_than_or_equal_imm) {
+  reg(less_than_or_equal_imm.dst) =
+      reg(less_than_or_equal_imm.lhs) <= less_than_or_equal_imm.value;
+}
+
 void BytecodeInterpreter::interpret_greater_than_or_equal(
     const Bytecode::Instruction::GreaterThanOrEqual &greater_than_or_equal) {
   reg(greater_than_or_equal.dst) =
       reg(greater_than_or_equal.lhs) >= reg(greater_than_or_equal.rhs);
+}
+
+void BytecodeInterpreter::interpret_greater_than_or_equal_immediate(
+    const Bytecode::Instruction::GreaterThanOrEqualImmediate &greater_than_or_equal_imm) {
+  reg(greater_than_or_equal_imm.dst) =
+      reg(greater_than_or_equal_imm.lhs) >= greater_than_or_equal_imm.value;
 }
 
 void BytecodeInterpreter::interpret_jump(const Bytecode::Instruction::Jump &jump) {
@@ -1129,18 +1419,23 @@ void BytecodeInterpreter::interpret_equal(const Bytecode::Instruction::Equal &eq
   reg(equal.dst) = reg(equal.src1) == reg(equal.src2);
 }
 
+void BytecodeInterpreter::interpret_equal_immediate(
+    const Bytecode::Instruction::EqualImmediate &equal_imm) {
+  reg(equal_imm.dst) = reg(equal_imm.src) == equal_imm.value;
+}
+
 void BytecodeInterpreter::interpret_not_equal(
     const Bytecode::Instruction::NotEqual &not_equal) {
   reg(not_equal.dst) = reg(not_equal.src1) != reg(not_equal.src2);
 }
 
-void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {
-  reg(add.dst) = reg(add.src1) + reg(add.src2);
+void BytecodeInterpreter::interpret_not_equal_immediate(
+    const Bytecode::Instruction::NotEqualImmediate &not_equal_imm) {
+  reg(not_equal_imm.dst) = reg(not_equal_imm.src) != not_equal_imm.value;
 }
 
-void BytecodeInterpreter::interpret_subtract(
-    const Bytecode::Instruction::Subtract &subtract) {
-  reg(subtract.dst) = reg(subtract.src1) - reg(subtract.src2);
+void BytecodeInterpreter::interpret_add(const Bytecode::Instruction::Add &add) {
+  reg(add.dst) = reg(add.src1) + reg(add.src2);
 }
 
 void BytecodeInterpreter::interpret_add_immediate(
@@ -1148,17 +1443,42 @@ void BytecodeInterpreter::interpret_add_immediate(
   reg(add_imm.dst) = reg(add_imm.src) + add_imm.value;
 }
 
+void BytecodeInterpreter::interpret_subtract(
+    const Bytecode::Instruction::Subtract &subtract) {
+  reg(subtract.dst) = reg(subtract.src1) - reg(subtract.src2);
+}
+
+void BytecodeInterpreter::interpret_subtract_immediate(
+    const Bytecode::Instruction::SubtractImmediate &subtract_imm) {
+  reg(subtract_imm.dst) = reg(subtract_imm.src) - subtract_imm.value;
+}
+
 void BytecodeInterpreter::interpret_multiply(
     const Bytecode::Instruction::Multiply &multiply) {
   reg(multiply.dst) = reg(multiply.src1) * reg(multiply.src2);
+}
+
+void BytecodeInterpreter::interpret_multiply_immediate(
+    const Bytecode::Instruction::MultiplyImmediate &multiply_imm) {
+  reg(multiply_imm.dst) = reg(multiply_imm.src) * multiply_imm.value;
 }
 
 void BytecodeInterpreter::interpret_divide(const Bytecode::Instruction::Divide &divide) {
   reg(divide.dst) = reg(divide.src1) / reg(divide.src2);
 }
 
+void BytecodeInterpreter::interpret_divide_immediate(
+    const Bytecode::Instruction::DivideImmediate &divide_imm) {
+  reg(divide_imm.dst) = reg(divide_imm.src) / divide_imm.value;
+}
+
 void BytecodeInterpreter::interpret_modulo(const Bytecode::Instruction::Modulo &modulo) {
   reg(modulo.dst) = reg(modulo.src1) % reg(modulo.src2);
+}
+
+void BytecodeInterpreter::interpret_modulo_immediate(
+    const Bytecode::Instruction::ModuloImmediate &modulo_imm) {
+  reg(modulo_imm.dst) = reg(modulo_imm.src) % modulo_imm.value;
 }
 
 void BytecodeInterpreter::interpret_array_create(

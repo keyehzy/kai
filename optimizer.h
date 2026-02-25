@@ -29,8 +29,8 @@ class BytecodeOptimizer {
   // Pass 3: peephole optimization.
   // Collapses two-instruction sequences where a pure producer writes to a
   // temporary register that is used only by an immediately-following Move:
-  //   AddImmediate r_tmp, r_src, K  +  Move r_var, r_tmp  →  AddImmediate r_var, r_src, K
-  //   Load r_tmp, K                 +  Move r_var, r_tmp  →  Load r_var, K
+  //   <immediate-op> r_tmp, r_src, K + Move r_var, r_tmp -> <immediate-op> r_var, r_src, K
+  //   Load r_tmp, K                  + Move r_var, r_tmp -> Load r_var, K
   void peephole(std::vector<Bytecode::BasicBlock> &blocks);
 
   // Pass 4: register compaction.

@@ -422,9 +422,9 @@ TEST_CASE("optimizer_reduces_instruction_count_for_while_loop") {
 // Pass 0: Loop-Invariant Code Motion (LICM)
 // ============================================================
 
-// After optimize(), a Load of the loop bound (value 10) must not remain in
-// the condition block (block 1) — it must have been hoisted to block 0.
-TEST_CASE("licm_hoists_load_out_of_condition_block") {
+// After optimize(), the while condition i < 10 should use a LessThanImmediate
+// instruction and avoid materializing the constant 10 in any Load.
+TEST_CASE("licm_uses_immediate_compare_for_loop_bound") {
   auto body = std::make_unique<Ast::Block>();
   body->append(decl("i", lit(0)));
   auto while_body = std::make_unique<Ast::Block>();
@@ -439,27 +439,36 @@ TEST_CASE("licm_hoists_load_out_of_condition_block") {
   BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
-  // Load(10) must not appear in the condition block or later loop blocks.
+  // Load(10) must not appear in the condition block.
   bool load_10_in_condition = false;
+  bool has_lt_immediate_in_condition = false;
   for (const auto &instr_ptr : gen.blocks()[1].instructions) {
+    if (instr_ptr->type() == Type::LessThanImmediate) {
+      has_lt_immediate_in_condition = true;
+    }
     if (instr_ptr->type() == Type::Load) {
       const auto &load =
           static_cast<const Bytecode::Instruction::Load &>(*instr_ptr);
       if (load.value == 10) load_10_in_condition = true;
     }
   }
+  REQUIRE(has_lt_immediate_in_condition);
   REQUIRE_FALSE(load_10_in_condition);
 
-  // Load(10) must have been moved to the pre-header (block 0).
-  bool load_10_in_preheader = false;
-  for (const auto &instr_ptr : gen.blocks()[0].instructions) {
-    if (instr_ptr->type() == Type::Load) {
-      const auto &load =
-          static_cast<const Bytecode::Instruction::Load &>(*instr_ptr);
-      if (load.value == 10) load_10_in_preheader = true;
+  // Load(10) must not appear anywhere after immediate lowering.
+  bool load_10_anywhere = false;
+  for (const auto &block : gen.blocks()) {
+    for (const auto &instr_ptr : block.instructions) {
+      if (instr_ptr->type() == Type::Load) {
+        const auto &load =
+            static_cast<const Bytecode::Instruction::Load &>(*instr_ptr);
+        if (load.value == 10) {
+          load_10_anywhere = true;
+        }
+      }
     }
   }
-  REQUIRE(load_10_in_preheader);
+  REQUIRE_FALSE(load_10_anywhere);
 }
 
 // The interpreter must still produce the correct result (10) after LICM.
@@ -709,6 +718,48 @@ TEST_CASE("peephole_folds_add_immediate_move") {
   REQUIRE(ai.dst == 0);    // was r2, now r0
   REQUIRE(ai.src == 0);    // source register unchanged
   REQUIRE(ai.value == 1);
+}
+
+TEST_CASE("peephole_folds_subtract_immediate_move") {
+  std::vector<Bytecode::BasicBlock> blocks(2);
+  blocks[0].append<Bytecode::Instruction::Load>(0, 10);
+  blocks[0].append<Bytecode::Instruction::SubtractImmediate>(2, 0, 3);  // r2 = r0 - 3
+  blocks[0].append<Bytecode::Instruction::Move>(1, 2);                  // r1 = r2
+  blocks[0].append<Bytecode::Instruction::Jump>(1);
+
+  blocks[1].append<Bytecode::Instruction::Return>(1);
+
+  BytecodeOptimizer opt;
+  opt.optimize(blocks);
+
+  REQUIRE(blocks[0].instructions.size() == 3);
+  REQUIRE(blocks[0].instructions[1]->type() == Type::SubtractImmediate);
+  const auto &si = static_cast<const Bytecode::Instruction::SubtractImmediate &>(
+      *blocks[0].instructions[1]);
+  REQUIRE(si.dst == 1);
+  REQUIRE(si.src == 0);
+  REQUIRE(si.value == 3);
+}
+
+TEST_CASE("peephole_folds_compare_immediate_move") {
+  std::vector<Bytecode::BasicBlock> blocks(2);
+  blocks[0].append<Bytecode::Instruction::Load>(0, 5);
+  blocks[0].append<Bytecode::Instruction::LessThanImmediate>(2, 0, 8);  // r2 = r0 < 8
+  blocks[0].append<Bytecode::Instruction::Move>(1, 2);                  // r1 = r2
+  blocks[0].append<Bytecode::Instruction::Jump>(1);
+
+  blocks[1].append<Bytecode::Instruction::Return>(1);
+
+  BytecodeOptimizer opt;
+  opt.optimize(blocks);
+
+  REQUIRE(blocks[0].instructions.size() == 3);
+  REQUIRE(blocks[0].instructions[1]->type() == Type::LessThanImmediate);
+  const auto &lti = static_cast<const Bytecode::Instruction::LessThanImmediate &>(
+      *blocks[0].instructions[1]);
+  REQUIRE(lti.dst == 1);
+  REQUIRE(lti.lhs == 0);
+  REQUIRE(lti.value == 8);
 }
 
 // Load r_tmp + Move r_var, r_tmp collapses to Load r_var when r_tmp is used
