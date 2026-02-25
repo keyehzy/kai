@@ -314,7 +314,8 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
     if (lexer_.peek().type == Token::Type::lparen) {
       if (expr->type != ast::Ast::Type::Variable) {
         const Token &token = lexer_.peek();
-        error_reporter_.report<ExpectedExpressionError>(token.source_location());
+        error_reporter_.report<ExpectedVariableError>(
+            token.source_location(), ExpectedVariableError::Ctx::AsFunctionCallTarget);
         break;
       }
       const std::string callee_name =
@@ -359,7 +360,8 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
     if (lexer_.peek().type == Token::Type::plus_plus) {
       if (expr->type != ast::Ast::Type::Variable) {
         const Token &token = lexer_.peek();
-        error_reporter_.report<ExpectedExpressionError>(token.source_location());
+        error_reporter_.report<ExpectedVariableError>(
+            token.source_location(), ExpectedVariableError::Ctx::BeforePostfixIncrement);
         lexer_.skip();
         continue;
       }
@@ -432,8 +434,7 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
     const auto [ptr, ec] =
         std::from_chars(source.data(), source.data() + source.size(), value);
     if (ec != std::errc() || ptr != source.data() + source.size()) {
-      error_reporter_.report<ExpectedExpressionError>(
-          token.source_location());
+      error_reporter_.report<InvalidNumericLiteralError>(token.source_location());
       lexer_.skip();
       return std::make_unique<ast::Ast::Literal>(0);
     }
@@ -459,7 +460,7 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
     return parse_array_literal();
   }
 
-  error_reporter_.report<ExpectedExpressionError>(token.source_location());
+  error_reporter_.report<ExpectedPrimaryExpressionError>(token.source_location());
   if (token.type != Token::Type::end_of_file) {
     lexer_.skip();
   }

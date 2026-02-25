@@ -36,7 +36,9 @@ inline LineColumn line_column(std::string_view source, const char* pos) {
 struct Error {
   enum class Type {
     ExpectedEndOfExpression,
-    ExpectedExpression,
+    ExpectedVariable,
+    InvalidNumericLiteral,
+    ExpectedPrimaryExpression,
     ExpectedSemicolon,
     ExpectedOpeningParenthesis,
     ExpectedClosingParenthesis,
@@ -75,12 +77,65 @@ struct ExpectedEndOfExpressionError final : public Error {
   std::string format_error() const override { return "expected end of expression"; }
 };
 
-struct ExpectedExpressionError final : public Error {
-  explicit ExpectedExpressionError(SourceLocation location)
-      : Error(Type::ExpectedExpression, location) {}
+struct ExpectedVariableError final : public Error {
+  enum class Ctx {
+    AsFunctionCallTarget,
+    BeforePostfixIncrement,
+  };
+
+  Ctx ctx;
+
+  ExpectedVariableError(SourceLocation location, Ctx ctx)
+      : Error(Type::ExpectedVariable, location), ctx(ctx) {}
 
   std::string format_error() const override {
-    std::string msg = "expected expression";
+    std::string msg = "expected variable";
+    switch (ctx) {
+      case Ctx::AsFunctionCallTarget:
+        msg += " as function call target";
+        break;
+      case Ctx::BeforePostfixIncrement:
+        msg += " before postfix '++'";
+        break;
+    }
+
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct InvalidNumericLiteralError final : public Error {
+  explicit InvalidNumericLiteralError(SourceLocation location)
+      : Error(Type::InvalidNumericLiteral, location) {}
+
+  std::string format_error() const override {
+    std::string msg = "invalid numeric literal";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+
+    msg += " '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedPrimaryExpressionError final : public Error {
+  explicit ExpectedPrimaryExpressionError(SourceLocation location)
+      : Error(Type::ExpectedPrimaryExpression, location) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected primary expression";
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";

@@ -107,13 +107,34 @@ TEST_CASE("test_error_reporter_expected_end_of_expression_error_type") {
   REQUIRE(expected_end != nullptr);
 }
 
-TEST_CASE("test_error_reporter_expected_expression_error_type") {
+TEST_CASE("test_error_reporter_expected_primary_expression_error_type") {
   std::string_view src = ";";
   kai::ErrorReporter reporter;
-  reporter.report<kai::ExpectedExpressionError>(
+  reporter.report<kai::ExpectedPrimaryExpressionError>(
       kai::SourceLocation{src.data(), src.data() + 1});
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected expression, found ';'");
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedPrimaryExpression);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected primary expression, found ';'");
+}
+
+TEST_CASE("test_error_reporter_expected_variable_error_with_context") {
+  std::string_view src = "(";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedVariableError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedVariableError::Ctx::AsFunctionCallTarget);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedVariable);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected variable as function call target, found '('");
+}
+
+TEST_CASE("test_error_reporter_invalid_numeric_literal_error_type") {
+  std::string_view src = "99999999999999999999999999999999999999";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::InvalidNumericLiteralError>(
+      kai::SourceLocation{src.data(), src.data() + src.size()});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidNumericLiteral);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "invalid numeric literal '99999999999999999999999999999999999999'");
 }
 
 TEST_CASE("test_error_reporter_expected_semicolon_error_type") {

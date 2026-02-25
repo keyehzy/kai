@@ -391,7 +391,7 @@ TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
   REQUIRE(reporter.errors()[0]->location.text() == "2");
 }
 
-TEST_CASE("test_parser_reports_expected_expression_for_standalone_semicolon") {
+TEST_CASE("test_parser_reports_expected_primary_expression_for_standalone_semicolon") {
   kai::ErrorReporter reporter;
   kai::Parser parser(";", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
@@ -400,9 +400,51 @@ TEST_CASE("test_parser_reports_expected_expression_for_standalone_semicolon") {
   REQUIRE(parsed->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected expression, found ';'");
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedPrimaryExpression);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected primary expression, found ';'");
   REQUIRE(reporter.errors()[0]->location.text() == ";");
+}
+
+TEST_CASE("test_parser_reports_expected_variable_for_function_call_target") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1()", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Literal);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedVariable);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected variable as function call target, found '('");
+}
+
+TEST_CASE("test_parser_reports_expected_variable_before_postfix_increment") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1++", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Literal);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedVariable);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected variable before postfix '++', found '++'");
+}
+
+TEST_CASE("test_parser_reports_invalid_numeric_literal") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("99999999999999999999999999999999999999", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Literal);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidNumericLiteral);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "invalid numeric literal '99999999999999999999999999999999999999'");
 }
 
 TEST_CASE("test_parser_reports_missing_while_block_with_context") {
