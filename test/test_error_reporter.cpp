@@ -179,6 +179,17 @@ TEST_CASE("test_error_reporter_expected_let_variable_name_error_type") {
           "expected variable name after 'let', found '='");
 }
 
+TEST_CASE("test_error_reporter_expected_struct_field_colon_error_type") {
+  std::string_view src = "x 1";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedStructFieldColonError>(
+      kai::SourceLocation{src.data() + 2, src.data() + 3},
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructFieldColon);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ':' after field name 'x' in struct literal, found '1'");
+}
+
 TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
   std::string_view src = "2";
   kai::ErrorReporter reporter;

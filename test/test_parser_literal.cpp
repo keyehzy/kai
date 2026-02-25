@@ -364,6 +364,21 @@ TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
   REQUIRE(struct_literal.fields[1].second->type == Ast::Type::Literal);
 }
 
+TEST_CASE("test_parser_reports_missing_colon_in_struct_literal_field") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("struct { x 1 }", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::StructLiteral);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructFieldColon);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ':' after field name 'x' in struct literal, found '1'");
+  REQUIRE(reporter.errors()[0]->location.text() == "1");
+}
+
 TEST_CASE("test_parser_expression_stops_at_trailing_tokens") {
   kai::ErrorReporter reporter;
   kai::Parser parser("1 2", reporter);

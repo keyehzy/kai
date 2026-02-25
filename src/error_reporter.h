@@ -41,6 +41,7 @@ struct Error {
     ExpectedIdentifier,
     ExpectedFunctionIdentifier,
     ExpectedLetVariableName,
+    ExpectedStructFieldColon,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
     ExpectedSemicolon,
@@ -225,6 +226,38 @@ struct ExpectedLetVariableNameError final : public Error {
 
   std::string format_error() const override {
     std::string msg = "expected variable name after 'let'";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedStructFieldColonError final : public Error {
+  std::optional<SourceLocation> field_name_location;
+
+  explicit ExpectedStructFieldColonError(
+      SourceLocation location,
+      std::optional<SourceLocation> field_name_location = std::nullopt)
+      : Error(Type::ExpectedStructFieldColon, location),
+        field_name_location(field_name_location) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected ':'";
+    if (field_name_location.has_value() && !field_name_location->text().empty()) {
+      msg += " after field name '";
+      msg += std::string(field_name_location->text());
+      msg += "'";
+    } else {
+      msg += " after struct field name";
+    }
+    msg += " in struct literal";
+
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";

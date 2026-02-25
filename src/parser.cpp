@@ -456,10 +456,11 @@ std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
   if (lexer_.peek().type != Token::Type::rcurly) {
     while (true) {
       assert(lexer_.peek().type == Token::Type::identifier);
-      std::string field_name(lexer_.peek().sv());
+      const Token field_name_token = lexer_.peek();
+      std::string field_name(field_name_token.sv());
       lexer_.skip();
-      assert(lexer_.peek().type == Token::Type::colon);
-      lexer_.skip();
+      consume<ExpectedStructFieldColonError>(Token::Type::colon,
+                                             field_name_token.source_location());
       fields.emplace_back(std::move(field_name), parse_expression());
       if (lexer_.peek().type != Token::Type::comma) {
         break;
