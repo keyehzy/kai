@@ -90,7 +90,18 @@ struct ExpectedSemicolonError final : public Error {
   explicit ExpectedSemicolonError(SourceLocation location)
       : Error(Type::ExpectedSemicolon, location) {}
 
-  std::string format_error() const override { return "expected ';' after statement"; }
+  std::string format_error() const override {
+    std::string msg = "expected ';' after statement";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += " found end of input";
+      return msg;
+    }
+    msg += " found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
 };
 
 class ErrorReporter {

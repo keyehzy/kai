@@ -122,7 +122,8 @@ TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
   reporter.report<kai::ExpectedSemicolonError>(
       kai::SourceLocation{src.data(), src.data() + 1});
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedSemicolon);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected ';' after statement");
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ';' after statement found '2'");
 }
 
 // --- Lexer + ErrorReporter integration ---

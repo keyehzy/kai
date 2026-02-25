@@ -388,7 +388,8 @@ TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedSemicolon);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected ';' after statement");
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ';' after statement found '2'");
   REQUIRE(reporter.errors()[0]->location.text() == "2");
 }
 
