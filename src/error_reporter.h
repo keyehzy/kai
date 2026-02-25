@@ -37,6 +37,7 @@ struct Error {
   enum class Type {
     ExpectedEndOfExpression,
     ExpectedVariable,
+    ExpectedIdentifier,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
     ExpectedSemicolon,
@@ -97,6 +98,36 @@ struct ExpectedVariableError final : public Error {
         break;
       case Ctx::BeforePostfixIncrement:
         msg += " before postfix '++'";
+        break;
+    }
+
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedIdentifierError final : public Error {
+  enum class Ctx {
+    AfterDotInFieldAccess,
+  };
+
+  Ctx ctx;
+
+  ExpectedIdentifierError(SourceLocation location, Ctx ctx)
+      : Error(Type::ExpectedIdentifier, location), ctx(ctx) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected identifier";
+    switch (ctx) {
+      case Ctx::AfterDotInFieldAccess:
+        msg += " after '.' in field access";
         break;
     }
 

@@ -127,6 +127,17 @@ TEST_CASE("test_error_reporter_expected_variable_error_with_context") {
           "expected variable as function call target, found '('");
 }
 
+TEST_CASE("test_error_reporter_expected_identifier_error_with_context") {
+  std::string_view src = ";";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedIdentifierError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedIdentifierError::Ctx::AfterDotInFieldAccess);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedIdentifier);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected identifier after '.' in field access, found ';'");
+}
+
 TEST_CASE("test_error_reporter_invalid_numeric_literal_error_type") {
   std::string_view src = "99999999999999999999999999999999999999";
   kai::ErrorReporter reporter;

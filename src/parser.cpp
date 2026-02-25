@@ -351,7 +351,12 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
 
     if (lexer_.peek().type == Token::Type::dot) {
       lexer_.skip();
-      assert(lexer_.peek().type == Token::Type::identifier);
+      if (lexer_.peek().type != Token::Type::identifier) {
+        const Token& token = lexer_.peek();
+        error_reporter_.report<ExpectedIdentifierError>(
+            token.source_location(), ExpectedIdentifierError::Ctx::AfterDotInFieldAccess);
+        break;
+      }
       const std::string field_name(lexer_.peek().sv());
       lexer_.skip();
       expr = std::make_unique<ast::Ast::FieldAccess>(std::move(expr), field_name);
