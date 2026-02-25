@@ -387,7 +387,7 @@ TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedSemicolon);
   REQUIRE(reporter.errors()[0]->format_error() ==
-          "expected ';' after statement found '2'");
+          "expected ';' after statement, found '2'");
   REQUIRE(reporter.errors()[0]->location.text() == "2");
 }
 
@@ -401,7 +401,7 @@ TEST_CASE("test_parser_reports_expected_expression_for_standalone_semicolon") {
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected expression found ';'");
+  REQUIRE(reporter.errors()[0]->format_error() == "expected expression, found ';'");
   REQUIRE(reporter.errors()[0]->location.text() == ";");
 }
 
@@ -415,7 +415,7 @@ TEST_CASE("test_parser_reports_missing_while_block_with_context") {
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
   REQUIRE(reporter.errors()[0]->format_error() ==
-          "expected '{' to start while block found 'return'");
+          "expected '{' to start while block, found 'return'");
 }
 
 TEST_CASE("test_parser_reports_missing_else_block_with_context") {
@@ -428,7 +428,7 @@ TEST_CASE("test_parser_reports_missing_else_block_with_context") {
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
   REQUIRE(reporter.errors()[0]->format_error() ==
-          "expected '{' to start else block found 'return'");
+          "expected '{' to start else block, found 'return'");
 }
 
 TEST_CASE("test_parser_reports_unterminated_anonymous_block") {
@@ -441,7 +441,7 @@ TEST_CASE("test_parser_reports_unterminated_anonymous_block") {
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
   REQUIRE(reporter.errors()[0]->format_error() ==
-          "expected '}' to close block found end of input");
+          "expected '}' to close block, found end of input");
 }
 
 TEST_CASE("test_parser_reports_missing_closing_parenthesis_in_while_condition") {
@@ -454,5 +454,17 @@ TEST_CASE("test_parser_reports_missing_closing_parenthesis_in_while_condition") 
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingParenthesis);
   REQUIRE(reporter.errors()[0]->format_error() ==
-          "expected ')' to close 'while' condition found '{'");
+          "expected ')' to close 'while' condition, found '{'");
+}
+
+TEST_CASE("test_parser_reports_missing_opening_parenthesis_in_while_condition") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("while 1) { return 1; }", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedOpeningParenthesis);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected '(' after 'while', found '1'");
 }

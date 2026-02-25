@@ -29,6 +29,7 @@ class Parser {
   std::unique_ptr<ast::Ast> parse_array_literal();
   std::unique_ptr<ast::Ast> parse_struct_literal();
   std::unique_ptr<ast::Ast> parse_primary();
+  bool consume_opening_parenthesis(std::string_view context);
   bool consume_closing_parenthesis(std::string_view context);
   void consume_statement_terminator();
 

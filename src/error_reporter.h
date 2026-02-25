@@ -48,6 +48,7 @@ struct Error {
     ExpectedEndOfExpression,
     ExpectedExpression,
     ExpectedSemicolon,
+    ExpectedOpeningParenthesis,
     ExpectedClosingParenthesis,
     ExpectedBlock,
     UnexpectedChar,
@@ -92,10 +93,10 @@ struct ExpectedExpressionError final : public Error {
     std::string msg = "expected expression";
     const std::string_view found = location.text();
     if (found.empty()) {
-      msg += " found end of input";
+      msg += ", found end of input";
       return msg;
     }
-    msg += " found '";
+    msg += ", found '";
     msg += std::string(found);
     msg += "'";
     return msg;
@@ -110,10 +111,34 @@ struct ExpectedSemicolonError final : public Error {
     std::string msg = "expected ';' after statement";
     const std::string_view found = location.text();
     if (found.empty()) {
-      msg += " found end of input";
+      msg += ", found end of input";
       return msg;
     }
-    msg += " found '";
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedOpeningParenthesisError final : public Error {
+  std::string context;
+
+  ExpectedOpeningParenthesisError(SourceLocation location, std::string context = {})
+      : Error(Type::ExpectedOpeningParenthesis, location), context(std::move(context)) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected '('";
+    if (!context.empty()) {
+      msg += " ";
+      msg += context;
+    }
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
     msg += std::string(found);
     msg += "'";
     return msg;
@@ -134,10 +159,10 @@ struct ExpectedClosingParenthesisError final : public Error {
     }
     const std::string_view found = location.text();
     if (found.empty()) {
-      msg += " found end of input";
+      msg += ", found end of input";
       return msg;
     }
-    msg += " found '";
+    msg += ", found '";
     msg += std::string(found);
     msg += "'";
     return msg;
@@ -170,10 +195,10 @@ struct ExpectedBlockError final : public Error {
     msg += "block";
     const std::string_view found = location.text();
     if (found.empty()) {
-      msg += " found end of input";
+      msg += ", found end of input";
       return msg;
     }
-    msg += " found '";
+    msg += ", found '";
     msg += std::string(found);
     msg += "'";
     return msg;

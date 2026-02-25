@@ -28,6 +28,18 @@ std::unique_ptr<ast::Ast> Parser::parse_expression() {
   return parse_assignment();
 }
 
+bool Parser::consume_opening_parenthesis(std::string_view context) {
+  if (lexer_.peek().type == Token::Type::lparen) {
+    lexer_.skip();
+    return true;
+  }
+
+  const Token &token = lexer_.peek();
+  error_reporter_.report<ExpectedOpeningParenthesisError>(
+      SourceLocation{token.begin, token.end}, std::string(context));
+  return false;
+}
+
 bool Parser::consume_closing_parenthesis(std::string_view context) {
   if (lexer_.peek().type == Token::Type::rparen) {
     lexer_.skip();
@@ -58,8 +70,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
   if (token_is_identifier(token, "while")) {
     const Token while_token = token;
     lexer_.skip();
-    assert(lexer_.peek().type == Token::Type::lparen);
-    lexer_.skip();
+    consume_opening_parenthesis("after 'while'");
     std::unique_ptr<ast::Ast> condition = parse_expression();
     consume_closing_parenthesis("to close 'while' condition");
     std::unique_ptr<ast::Ast::Block> body = parse_block(while_token);
@@ -69,8 +80,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
   if (token_is_identifier(token, "if")) {
     const Token if_token = token;
     lexer_.skip();
-    assert(lexer_.peek().type == Token::Type::lparen);
-    lexer_.skip();
+    consume_opening_parenthesis("after 'if'");
     std::unique_ptr<ast::Ast> condition = parse_expression();
     consume_closing_parenthesis("to close 'if' condition");
 
@@ -102,8 +112,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     const std::string name(lexer_.peek().sv());
     lexer_.skip();
 
-    assert(lexer_.peek().type == Token::Type::lparen);
-    lexer_.skip();
+    consume_opening_parenthesis("after function name in declaration");
     std::vector<std::string> parameters;
     if (lexer_.peek().type != Token::Type::rparen) {
       while (true) {
