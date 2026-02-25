@@ -391,6 +391,22 @@ TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
   REQUIRE(reporter.errors()[0]->location.text() == "2");
 }
 
+TEST_CASE("test_parser_reports_missing_equals_in_let_declaration") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("let x 1;", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 1);
+  REQUIRE(program->children[0]->type == Ast::Type::VariableDeclaration);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedEquals);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '=' after variable 'x' in 'let' declaration, found '1'");
+  REQUIRE(reporter.errors()[0]->location.text() == "1");
+}
+
 TEST_CASE("test_parser_reports_expected_primary_expression_for_standalone_semicolon") {
   kai::ErrorReporter reporter;
   kai::Parser parser(";", reporter);

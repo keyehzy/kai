@@ -34,10 +34,12 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
   if (token_is_identifier(token, "let")) {
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::identifier);
-    const std::string name(lexer_.peek().sv());
+    const Token variable_name_token = lexer_.peek();
+    const std::string name(variable_name_token.sv());
     lexer_.skip();
-    assert(lexer_.peek().type == Token::Type::equals);
-    lexer_.skip();
+    consume<ExpectedEqualsError>(Token::Type::equals,
+                                 ExpectedEqualsError::Ctx::AfterLetVariableName,
+                                 variable_name_token.source_location());
     std::unique_ptr<ast::Ast> initializer = parse_expression();
     consume_statement_terminator();
     return std::make_unique<ast::Ast::VariableDeclaration>(name, std::move(initializer));

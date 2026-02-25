@@ -41,6 +41,7 @@ struct Error {
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
     ExpectedSemicolon,
+    ExpectedEquals,
     ExpectedOpeningParenthesis,
     ExpectedClosingParenthesis,
     ExpectedClosingSquareBracket,
@@ -186,6 +187,45 @@ struct ExpectedSemicolonError final : public Error {
 
   std::string format_error() const override {
     std::string msg = "expected ';' after statement";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedEqualsError final : public Error {
+  enum class Ctx {
+    AfterLetVariableName,
+  };
+
+  Ctx ctx;
+  std::optional<SourceLocation> context_location;
+
+  ExpectedEqualsError(SourceLocation location, Ctx ctx,
+                      std::optional<SourceLocation> context_location = std::nullopt)
+      : Error(Type::ExpectedEquals, location), ctx(ctx), context_location(context_location) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected '='";
+    switch (ctx) {
+      case Ctx::AfterLetVariableName: {
+        const std::string_view variable_name_text =
+            context_location.has_value() && !context_location->text().empty()
+                ? context_location->text()
+                : std::string_view("name");
+        msg += " after variable '";
+        msg += std::string(variable_name_text);
+        msg += "' in 'let' declaration";
+        break;
+      }
+    }
+
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";

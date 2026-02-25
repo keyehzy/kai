@@ -158,6 +158,18 @@ TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
           "expected ';' after statement, found '2'");
 }
 
+TEST_CASE("test_error_reporter_expected_equals_error_type") {
+  std::string_view src = "x 1";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedEqualsError>(
+      kai::SourceLocation{src.data() + 2, src.data() + 3},
+      kai::ExpectedEqualsError::Ctx::AfterLetVariableName,
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedEquals);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '=' after variable 'x' in 'let' declaration, found '1'");
+}
+
 TEST_CASE("test_error_reporter_expected_closing_square_bracket_error_type") {
   std::string_view src = ";";
   kai::ErrorReporter reporter;
