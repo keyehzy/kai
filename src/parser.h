@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include "ast.h"
@@ -29,8 +30,18 @@ class Parser {
   std::unique_ptr<ast::Ast> parse_array_literal();
   std::unique_ptr<ast::Ast> parse_struct_literal();
   std::unique_ptr<ast::Ast> parse_primary();
-  bool consume_opening_parenthesis(std::string_view context);
-  bool consume_closing_parenthesis(std::string_view context);
+  template <typename ErrorT>
+  bool consume_parenthesis(Token::Type expected, std::string_view context) {
+    if (lexer_.peek().type == expected) {
+      lexer_.skip();
+      return true;
+    }
+
+    const Token& token = lexer_.peek();
+    error_reporter_.report<ErrorT>(SourceLocation{token.begin, token.end},
+                                   std::string(context));
+    return false;
+  }
   void consume_statement_terminator();
 
   ErrorReporter& error_reporter_;
