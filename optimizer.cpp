@@ -1,5 +1,6 @@
 #include "optimizer.h"
 
+#include <algorithm>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
@@ -321,6 +322,7 @@ void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
   copy_propagation(blocks);
   dead_code_elimination(blocks);
   peephole(blocks);
+  compact_registers(blocks);
 }
 
 void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &blocks) {
@@ -950,6 +952,386 @@ void BytecodeOptimizer::peephole(std::vector<Bytecode::BasicBlock> &blocks) {
       }
       instrs.erase(instrs.begin() + static_cast<std::ptrdiff_t>(i + 1));
       // Do not advance i: re-check this position for chained folding.
+    }
+  }
+}
+
+void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blocks) {
+  std::vector<Register> regs;
+  regs.reserve(64);
+
+  const auto track = [&regs](Register r) { regs.push_back(r); };
+
+  for (const auto &block : blocks) {
+    for (const auto &instr_ptr : block.instructions) {
+      const auto &instr = *instr_ptr;
+      switch (instr.type()) {
+        case Type::Move: {
+          const auto &m = ast::derived_cast<const Bytecode::Instruction::Move &>(instr);
+          track(m.dst);
+          track(m.src);
+          break;
+        }
+        case Type::Load:
+          track(ast::derived_cast<const Bytecode::Instruction::Load &>(instr).dst);
+          break;
+        case Type::LessThan: {
+          const auto &lt = ast::derived_cast<const Bytecode::Instruction::LessThan &>(instr);
+          track(lt.dst);
+          track(lt.lhs);
+          track(lt.rhs);
+          break;
+        }
+        case Type::GreaterThan: {
+          const auto &gt =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThan &>(instr);
+          track(gt.dst);
+          track(gt.lhs);
+          track(gt.rhs);
+          break;
+        }
+        case Type::LessThanOrEqual: {
+          const auto &lte =
+              ast::derived_cast<const Bytecode::Instruction::LessThanOrEqual &>(instr);
+          track(lte.dst);
+          track(lte.lhs);
+          track(lte.rhs);
+          break;
+        }
+        case Type::GreaterThanOrEqual: {
+          const auto &gte =
+              ast::derived_cast<const Bytecode::Instruction::GreaterThanOrEqual &>(instr);
+          track(gte.dst);
+          track(gte.lhs);
+          track(gte.rhs);
+          break;
+        }
+        case Type::Jump:
+          break;
+        case Type::JumpConditional:
+          track(ast::derived_cast<const Bytecode::Instruction::JumpConditional &>(instr).cond);
+          break;
+        case Type::Call: {
+          const auto &c = ast::derived_cast<const Bytecode::Instruction::Call &>(instr);
+          track(c.dst);
+          for (auto r : c.arg_registers) track(r);
+          for (auto r : c.param_registers) track(r);
+          break;
+        }
+        case Type::Return:
+          track(ast::derived_cast<const Bytecode::Instruction::Return &>(instr).reg);
+          break;
+        case Type::Equal: {
+          const auto &e = ast::derived_cast<const Bytecode::Instruction::Equal &>(instr);
+          track(e.dst);
+          track(e.src1);
+          track(e.src2);
+          break;
+        }
+        case Type::NotEqual: {
+          const auto &ne =
+              ast::derived_cast<const Bytecode::Instruction::NotEqual &>(instr);
+          track(ne.dst);
+          track(ne.src1);
+          track(ne.src2);
+          break;
+        }
+        case Type::Add: {
+          const auto &a = ast::derived_cast<const Bytecode::Instruction::Add &>(instr);
+          track(a.dst);
+          track(a.src1);
+          track(a.src2);
+          break;
+        }
+        case Type::Subtract: {
+          const auto &s = ast::derived_cast<const Bytecode::Instruction::Subtract &>(instr);
+          track(s.dst);
+          track(s.src1);
+          track(s.src2);
+          break;
+        }
+        case Type::AddImmediate: {
+          const auto &ai =
+              ast::derived_cast<const Bytecode::Instruction::AddImmediate &>(instr);
+          track(ai.dst);
+          track(ai.src);
+          break;
+        }
+        case Type::Multiply: {
+          const auto &m =
+              ast::derived_cast<const Bytecode::Instruction::Multiply &>(instr);
+          track(m.dst);
+          track(m.src1);
+          track(m.src2);
+          break;
+        }
+        case Type::Divide: {
+          const auto &d = ast::derived_cast<const Bytecode::Instruction::Divide &>(instr);
+          track(d.dst);
+          track(d.src1);
+          track(d.src2);
+          break;
+        }
+        case Type::Modulo: {
+          const auto &mo = ast::derived_cast<const Bytecode::Instruction::Modulo &>(instr);
+          track(mo.dst);
+          track(mo.src1);
+          track(mo.src2);
+          break;
+        }
+        case Type::ArrayCreate: {
+          const auto &ac =
+              ast::derived_cast<const Bytecode::Instruction::ArrayCreate &>(instr);
+          track(ac.dst);
+          for (auto elem : ac.elements) track(elem);
+          break;
+        }
+        case Type::ArrayLoad: {
+          const auto &al =
+              ast::derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
+          track(al.dst);
+          track(al.array);
+          track(al.index);
+          break;
+        }
+        case Type::ArrayStore: {
+          const auto &as = ast::derived_cast<const Bytecode::Instruction::ArrayStore &>(instr);
+          track(as.array);
+          track(as.index);
+          track(as.value);
+          break;
+        }
+        case Type::StructCreate: {
+          const auto &sc =
+              ast::derived_cast<const Bytecode::Instruction::StructCreate &>(instr);
+          track(sc.dst);
+          for (const auto &[name, reg] : sc.fields) track(reg);
+          break;
+        }
+        case Type::StructLoad: {
+          const auto &sl =
+              ast::derived_cast<const Bytecode::Instruction::StructLoad &>(instr);
+          track(sl.dst);
+          track(sl.object);
+          break;
+        }
+        case Type::Negate: {
+          const auto &n = ast::derived_cast<const Bytecode::Instruction::Negate &>(instr);
+          track(n.dst);
+          track(n.src);
+          break;
+        }
+        case Type::LogicalNot: {
+          const auto &ln =
+              ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr);
+          track(ln.dst);
+          track(ln.src);
+          break;
+        }
+      }
+    }
+  }
+
+  if (regs.empty()) {
+    return;
+  }
+
+  std::sort(regs.begin(), regs.end());
+  regs.erase(std::unique(regs.begin(), regs.end()), regs.end());
+
+  bool already_dense = true;
+  for (size_t i = 0; i < regs.size(); ++i) {
+    if (regs[i] != static_cast<Register>(i)) {
+      already_dense = false;
+      break;
+    }
+  }
+  if (already_dense) {
+    return;
+  }
+
+  std::unordered_map<Register, Register> mapping;
+  mapping.reserve(regs.size());
+  for (size_t i = 0; i < regs.size(); ++i) {
+    mapping[regs[i]] = static_cast<Register>(i);
+  }
+
+  const auto remap = [&mapping](Register r) {
+    const auto it = mapping.find(r);
+    return it != mapping.end() ? it->second : r;
+  };
+
+  for (auto &block : blocks) {
+    for (auto &instr_ptr : block.instructions) {
+      auto &instr = *instr_ptr;
+      switch (instr.type()) {
+        case Type::Move: {
+          auto &m = ast::derived_cast<Bytecode::Instruction::Move &>(instr);
+          m.dst = remap(m.dst);
+          m.src = remap(m.src);
+          break;
+        }
+        case Type::Load: {
+          auto &l = ast::derived_cast<Bytecode::Instruction::Load &>(instr);
+          l.dst = remap(l.dst);
+          break;
+        }
+        case Type::LessThan: {
+          auto &lt = ast::derived_cast<Bytecode::Instruction::LessThan &>(instr);
+          lt.dst = remap(lt.dst);
+          lt.lhs = remap(lt.lhs);
+          lt.rhs = remap(lt.rhs);
+          break;
+        }
+        case Type::GreaterThan: {
+          auto &gt = ast::derived_cast<Bytecode::Instruction::GreaterThan &>(instr);
+          gt.dst = remap(gt.dst);
+          gt.lhs = remap(gt.lhs);
+          gt.rhs = remap(gt.rhs);
+          break;
+        }
+        case Type::LessThanOrEqual: {
+          auto &lte = ast::derived_cast<Bytecode::Instruction::LessThanOrEqual &>(instr);
+          lte.dst = remap(lte.dst);
+          lte.lhs = remap(lte.lhs);
+          lte.rhs = remap(lte.rhs);
+          break;
+        }
+        case Type::GreaterThanOrEqual: {
+          auto &gte =
+              ast::derived_cast<Bytecode::Instruction::GreaterThanOrEqual &>(instr);
+          gte.dst = remap(gte.dst);
+          gte.lhs = remap(gte.lhs);
+          gte.rhs = remap(gte.rhs);
+          break;
+        }
+        case Type::Jump:
+          break;
+        case Type::JumpConditional: {
+          auto &jc = ast::derived_cast<Bytecode::Instruction::JumpConditional &>(instr);
+          jc.cond = remap(jc.cond);
+          break;
+        }
+        case Type::Call: {
+          auto &c = ast::derived_cast<Bytecode::Instruction::Call &>(instr);
+          c.dst = remap(c.dst);
+          for (auto &arg : c.arg_registers) {
+            arg = remap(arg);
+          }
+          for (auto &param : c.param_registers) {
+            param = remap(param);
+          }
+          break;
+        }
+        case Type::Return: {
+          auto &r = ast::derived_cast<Bytecode::Instruction::Return &>(instr);
+          r.reg = remap(r.reg);
+          break;
+        }
+        case Type::Equal: {
+          auto &e = ast::derived_cast<Bytecode::Instruction::Equal &>(instr);
+          e.dst = remap(e.dst);
+          e.src1 = remap(e.src1);
+          e.src2 = remap(e.src2);
+          break;
+        }
+        case Type::NotEqual: {
+          auto &ne = ast::derived_cast<Bytecode::Instruction::NotEqual &>(instr);
+          ne.dst = remap(ne.dst);
+          ne.src1 = remap(ne.src1);
+          ne.src2 = remap(ne.src2);
+          break;
+        }
+        case Type::Add: {
+          auto &a = ast::derived_cast<Bytecode::Instruction::Add &>(instr);
+          a.dst = remap(a.dst);
+          a.src1 = remap(a.src1);
+          a.src2 = remap(a.src2);
+          break;
+        }
+        case Type::Subtract: {
+          auto &s = ast::derived_cast<Bytecode::Instruction::Subtract &>(instr);
+          s.dst = remap(s.dst);
+          s.src1 = remap(s.src1);
+          s.src2 = remap(s.src2);
+          break;
+        }
+        case Type::AddImmediate: {
+          auto &ai = ast::derived_cast<Bytecode::Instruction::AddImmediate &>(instr);
+          ai.dst = remap(ai.dst);
+          ai.src = remap(ai.src);
+          break;
+        }
+        case Type::Multiply: {
+          auto &m = ast::derived_cast<Bytecode::Instruction::Multiply &>(instr);
+          m.dst = remap(m.dst);
+          m.src1 = remap(m.src1);
+          m.src2 = remap(m.src2);
+          break;
+        }
+        case Type::Divide: {
+          auto &d = ast::derived_cast<Bytecode::Instruction::Divide &>(instr);
+          d.dst = remap(d.dst);
+          d.src1 = remap(d.src1);
+          d.src2 = remap(d.src2);
+          break;
+        }
+        case Type::Modulo: {
+          auto &mo = ast::derived_cast<Bytecode::Instruction::Modulo &>(instr);
+          mo.dst = remap(mo.dst);
+          mo.src1 = remap(mo.src1);
+          mo.src2 = remap(mo.src2);
+          break;
+        }
+        case Type::ArrayCreate: {
+          auto &ac = ast::derived_cast<Bytecode::Instruction::ArrayCreate &>(instr);
+          ac.dst = remap(ac.dst);
+          for (auto &elem : ac.elements) {
+            elem = remap(elem);
+          }
+          break;
+        }
+        case Type::ArrayLoad: {
+          auto &al = ast::derived_cast<Bytecode::Instruction::ArrayLoad &>(instr);
+          al.dst = remap(al.dst);
+          al.array = remap(al.array);
+          al.index = remap(al.index);
+          break;
+        }
+        case Type::ArrayStore: {
+          auto &as = ast::derived_cast<Bytecode::Instruction::ArrayStore &>(instr);
+          as.array = remap(as.array);
+          as.index = remap(as.index);
+          as.value = remap(as.value);
+          break;
+        }
+        case Type::StructCreate: {
+          auto &sc = ast::derived_cast<Bytecode::Instruction::StructCreate &>(instr);
+          sc.dst = remap(sc.dst);
+          for (auto &[name, reg] : sc.fields) {
+            reg = remap(reg);
+          }
+          break;
+        }
+        case Type::StructLoad: {
+          auto &sl = ast::derived_cast<Bytecode::Instruction::StructLoad &>(instr);
+          sl.dst = remap(sl.dst);
+          sl.object = remap(sl.object);
+          break;
+        }
+        case Type::Negate: {
+          auto &n = ast::derived_cast<Bytecode::Instruction::Negate &>(instr);
+          n.dst = remap(n.dst);
+          n.src = remap(n.src);
+          break;
+        }
+        case Type::LogicalNot: {
+          auto &ln = ast::derived_cast<Bytecode::Instruction::LogicalNot &>(instr);
+          ln.dst = remap(ln.dst);
+          ln.src = remap(ln.src);
+          break;
+        }
+      }
     }
   }
 }

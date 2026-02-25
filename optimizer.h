@@ -32,6 +32,11 @@ class BytecodeOptimizer {
   //   AddImmediate r_tmp, r_src, K  +  Move r_var, r_tmp  →  AddImmediate r_var, r_src, K
   //   Load r_tmp, K                 +  Move r_var, r_tmp  →  Load r_var, K
   void peephole(std::vector<Bytecode::BasicBlock> &blocks);
+
+  // Pass 4: register compaction.
+  // Renumbers all referenced registers to a dense 0..N-1 range to eliminate
+  // gaps left by earlier optimizations.
+  void compact_registers(std::vector<Bytecode::BasicBlock> &blocks);
 };
 
 }  // namespace bytecode

@@ -69,14 +69,14 @@ TEST_CASE("copy_prop_substitutes_source_in_binary_op") {
 
   // After copy prop: Add r3, r0, r1 (r2 substituted with r0).
   // After DCE: Move r2 has no live readers → removed.
-  // 4 instructions: Load r0, Load r1, Add r3, Return r3.
+  // 4 instructions: Load r0, Load r1, Add r2, Return r2 after compaction.
   REQUIRE(blocks[0].instructions.size() == 4);
   REQUIRE(blocks[0].instructions[2]->type() == Type::Add);
   const auto &add =
       static_cast<const Bytecode::Instruction::Add &>(*blocks[0].instructions[2]);
   REQUIRE(add.src1 == 0);  // was r2, now r0
   REQUIRE(add.src2 == 1);
-  REQUIRE(add.dst  == 3);
+  REQUIRE(add.dst  == 2);
 }
 
 // AddImmediate (used by i++) has its source register substituted through a
@@ -187,7 +187,7 @@ TEST_CASE("dce_dead_load_removed") {
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
   const auto &load =
       static_cast<const Bytecode::Instruction::Load &>(*blocks[0].instructions[0]);
-  REQUIRE(load.dst == 1);
+  REQUIRE(load.dst == 0);
   REQUIRE(load.value == 42);
 }
 
@@ -728,12 +728,12 @@ TEST_CASE("peephole_folds_load_move") {
   BytecodeOptimizer opt;
   opt.optimize(blocks);
 
-  // Block 0 must have 2 instructions: Load r1, 0 and Jump @1.
+  // Block 0 must have 2 instructions: Load r0, 0 and Jump @1 after compaction.
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
   const auto &ld =
       static_cast<const Bytecode::Instruction::Load &>(*blocks[0].instructions[0]);
-  REQUIRE(ld.dst == 1);   // was r0, redirected to r1
+  REQUIRE(ld.dst == 0);   // r1 gets compacted to r0
   REQUIRE(ld.value == 0);
 }
 
@@ -868,4 +868,78 @@ TEST_CASE("optimizer_is_idempotent") {
   const size_t after_second = total_instr_count(gen.blocks());
 
   REQUIRE(after_second == after_first);
+}
+
+// ============================================================
+// Pass 4: Register Compaction
+// ============================================================
+
+TEST_CASE("register_compaction_removes_gaps_left_by_copy_prop") {
+  std::vector<Bytecode::BasicBlock> blocks(1);
+  blocks[0].append<Bytecode::Instruction::Load>(0, 40);
+  blocks[0].append<Bytecode::Instruction::Load>(1, 2);
+  blocks[0].append<Bytecode::Instruction::Move>(2, 0);   // removed after copy-prop + DCE
+  blocks[0].append<Bytecode::Instruction::Add>(3, 2, 1); // src1 rewritten to r0
+  blocks[0].append<Bytecode::Instruction::Return>(3);
+
+  BytecodeOptimizer opt;
+  opt.optimize(blocks);
+
+  REQUIRE(blocks[0].instructions.size() == 4);
+  REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
+  REQUIRE(blocks[0].instructions[1]->type() == Type::Load);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::Add);
+  REQUIRE(blocks[0].instructions[3]->type() == Type::Return);
+
+  const auto &add =
+      static_cast<const Bytecode::Instruction::Add &>(*blocks[0].instructions[2]);
+  const auto &ret =
+      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[3]);
+
+  // After compaction, live registers are dense: r0, r1, r2.
+  REQUIRE(add.dst == 2);
+  REQUIRE(add.src1 == 0);
+  REQUIRE(add.src2 == 1);
+  REQUIRE(ret.reg == 2);
+}
+
+TEST_CASE("register_compaction_renumbers_call_parameter_slots_consistently") {
+  std::vector<Bytecode::BasicBlock> blocks(2);
+
+  // Entry: call block 1 with arg r0 and parameter slot r8, then return call result.
+  blocks[0].append<Bytecode::Instruction::Load>(0, 7);
+  blocks[0].append<Bytecode::Instruction::Call>(
+      10, 1, std::vector<Bytecode::Register>{0}, std::vector<Bytecode::Register>{8});
+  blocks[0].append<Bytecode::Instruction::Return>(10);
+
+  // Callee body uses the same parameter register slot.
+  blocks[1].append<Bytecode::Instruction::AddImmediate>(9, 8, 1);
+  blocks[1].append<Bytecode::Instruction::Return>(9);
+
+  BytecodeOptimizer opt;
+  opt.optimize(blocks);
+
+  REQUIRE(blocks[0].instructions[1]->type() == Type::Call);
+  REQUIRE(blocks[1].instructions[0]->type() == Type::AddImmediate);
+
+  const auto &call =
+      static_cast<const Bytecode::Instruction::Call &>(*blocks[0].instructions[1]);
+  const auto &add_imm = static_cast<const Bytecode::Instruction::AddImmediate &>(
+      *blocks[1].instructions[0]);
+  const auto &callee_ret =
+      static_cast<const Bytecode::Instruction::Return &>(*blocks[1].instructions[1]);
+  const auto &entry_ret =
+      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[2]);
+
+  // Original used registers {0,8,9,10} become dense {0,1,2,3}.
+  REQUIRE(call.dst == 3);
+  REQUIRE(call.arg_registers == std::vector<Bytecode::Register>{0});
+  REQUIRE(call.param_registers == std::vector<Bytecode::Register>{1});
+  REQUIRE(add_imm.src == 1);
+  REQUIRE(add_imm.dst == 2);
+  REQUIRE(callee_ret.reg == 2);
+  REQUIRE(entry_ret.reg == 3);
+
+  kai::bytecode::BytecodeInterpreter interp;
+  REQUIRE(interp.interpret(blocks) == 8);
 }
