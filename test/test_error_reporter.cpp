@@ -158,6 +158,16 @@ TEST_CASE("test_error_reporter_invalid_numeric_literal_error_type") {
           "invalid numeric literal '99999999999999999999999999999999999999'");
 }
 
+TEST_CASE("test_error_reporter_expected_let_variable_name_error_type") {
+  std::string_view src = "=";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedLetVariableNameError>(
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedLetVariableName);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected variable name after 'let', found '='");
+}
+
 TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
   std::string_view src = "2";
   kai::ErrorReporter reporter;

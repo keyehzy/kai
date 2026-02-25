@@ -33,7 +33,21 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
 
   if (token_is_identifier(token, "let")) {
     lexer_.skip();
-    assert(lexer_.peek().type == Token::Type::identifier);
+    if (lexer_.peek().type != Token::Type::identifier) {
+      const Token &missing_name_token = lexer_.peek();
+      error_reporter_.report<ExpectedLetVariableNameError>(
+          missing_name_token.source_location());
+      while (lexer_.peek().type != Token::Type::end_of_file &&
+             lexer_.peek().type != Token::Type::rcurly &&
+             lexer_.peek().type != Token::Type::semicolon) {
+        lexer_.skip();
+      }
+      if (lexer_.peek().type == Token::Type::semicolon) {
+        lexer_.skip();
+      }
+      return std::make_unique<ast::Ast::Literal>(0);
+    }
+
     const Token variable_name_token = lexer_.peek();
     const std::string name(variable_name_token.sv());
     lexer_.skip();

@@ -39,6 +39,7 @@ struct Error {
     ExpectedVariable,
     InvalidAssignmentTarget,
     ExpectedIdentifier,
+    ExpectedLetVariableName,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
     ExpectedSemicolon,
@@ -177,6 +178,24 @@ struct InvalidNumericLiteralError final : public Error {
     }
 
     msg += " '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedLetVariableNameError final : public Error {
+  explicit ExpectedLetVariableNameError(SourceLocation location)
+      : Error(Type::ExpectedLetVariableName, location) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected variable name after 'let'";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
     msg += std::string(found);
     msg += "'";
     return msg;

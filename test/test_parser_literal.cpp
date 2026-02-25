@@ -407,6 +407,22 @@ TEST_CASE("test_parser_reports_missing_equals_in_let_declaration") {
   REQUIRE(reporter.errors()[0]->location.text() == "1");
 }
 
+TEST_CASE("test_parser_reports_missing_variable_name_in_let_declaration") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("let = 1;", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 1);
+  REQUIRE(program->children[0]->type == Ast::Type::Literal);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedLetVariableName);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected variable name after 'let', found '='");
+  REQUIRE(reporter.errors()[0]->location.text() == "=");
+}
+
 TEST_CASE("test_parser_reports_invalid_assignment_target") {
   kai::ErrorReporter reporter;
   kai::Parser parser("1 = 2", reporter);
