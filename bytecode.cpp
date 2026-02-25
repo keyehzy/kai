@@ -17,6 +17,7 @@ bool has_terminator(const Bytecode::BasicBlock &block) {
   const auto last_type = block.instructions.back()->type();
   return last_type == Bytecode::Instruction::Type::Jump ||
          last_type == Bytecode::Instruction::Type::JumpConditional ||
+         last_type == Bytecode::Instruction::Type::TailCall ||
          last_type == Bytecode::Instruction::Type::Return;
 }
 
@@ -122,6 +123,17 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
             track(reg);
           }
           for (const auto reg : call.param_registers) {
+            track(reg);
+          }
+          break;
+        }
+        case Bytecode::Instruction::Type::TailCall: {
+          const auto &tail_call =
+              ast::derived_cast<const Bytecode::Instruction::TailCall &>(*instr);
+          for (const auto reg : tail_call.arg_registers) {
+            track(reg);
+          }
+          for (const auto reg : tail_call.param_registers) {
             track(reg);
           }
           break;
@@ -426,6 +438,25 @@ Bytecode::Instruction::Call::Call(Register dst, Label label,
 
 void Bytecode::Instruction::Call::dump() const {
   std::printf("Call r%llu, @%llu, [", dst, label);
+  for (size_t i = 0; i < arg_registers.size(); ++i) {
+    if (i != 0) {
+      std::printf(", ");
+    }
+    std::printf("r%llu", arg_registers[i]);
+  }
+  std::printf("]");
+}
+
+Bytecode::Instruction::TailCall::TailCall(Label label,
+                                          std::vector<Register> arg_registers,
+                                          std::vector<Register> param_registers)
+    : Bytecode::Instruction(Type::TailCall),
+      label(label),
+      arg_registers(std::move(arg_registers)),
+      param_registers(std::move(param_registers)) {}
+
+void Bytecode::Instruction::TailCall::dump() const {
+  std::printf("TailCall @%llu, [", label);
   for (size_t i = 0; i < arg_registers.size(); ++i) {
     if (i != 0) {
       std::printf(", ");
@@ -1210,6 +1241,10 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_call(ast::derived_cast<Bytecode::Instruction::Call const &>(*instr),
                        instr_index_ + 1);
         break;
+      case Bytecode::Instruction::Type::TailCall:
+        interpret_tail_call(
+            ast::derived_cast<Bytecode::Instruction::TailCall const &>(*instr));
+        break;
       case Bytecode::Instruction::Type::Return: {
         const auto ret_reg = ast::derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
         const auto value = register_stack_[frame_base_ + ret_reg];
@@ -1412,6 +1447,24 @@ void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call
   call_stack_.push_back({block_index, next_instr_index, call.dst, frame_base_});
   frame_base_ = new_frame_base;
   block_index = call.label;
+  instr_index_ = 0;
+}
+
+void BytecodeInterpreter::interpret_tail_call(
+    const Bytecode::Instruction::TailCall &tail_call) {
+  assert(tail_call.arg_registers.size() == tail_call.param_registers.size());
+
+  // Copy argument values first to avoid clobbering when args and params overlap.
+  std::vector<Bytecode::Value> args;
+  args.reserve(tail_call.arg_registers.size());
+  for (const auto arg : tail_call.arg_registers) {
+    args.push_back(reg(arg));
+  }
+  for (size_t i = 0; i < tail_call.param_registers.size(); ++i) {
+    reg(tail_call.param_registers[i]) = args[i];
+  }
+
+  block_index = tail_call.label;
   instr_index_ = 0;
 }
 

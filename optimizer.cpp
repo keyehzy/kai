@@ -80,6 +80,7 @@ static std::optional<Register> get_dst_reg(const Bytecode::Instruction &instr) {
       return ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(instr).dst;
     case Type::Jump:
     case Type::JumpConditional:
+    case Type::TailCall:
     case Type::Return:
     case Type::ArrayStore:
       return std::nullopt;
@@ -287,6 +288,11 @@ static std::unordered_map<Register, size_t> compute_use_count(
           for (auto r : c.arg_registers) use(r);
           break;
         }
+        case Type::TailCall: {
+          const auto &tc = ast::derived_cast<const Bytecode::Instruction::TailCall &>(instr);
+          for (auto r : tc.arg_registers) use(r);
+          break;
+        }
         case Type::Return:
           use(ast::derived_cast<const Bytecode::Instruction::Return &>(instr).reg);
           break;
@@ -406,6 +412,7 @@ void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
   loop_invariant_code_motion(blocks);
   copy_propagation(blocks);
   dead_code_elimination(blocks);
+  tail_call_optimization(blocks);
   peephole(blocks);
   compact_registers(blocks);
 }
@@ -509,6 +516,13 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
             arg = resolve(arg);
           }
           invalidate(c.dst);
+          break;
+        }
+        case Type::TailCall: {
+          auto &tc = ast::derived_cast<Bytecode::Instruction::TailCall &>(instr);
+          for (auto &arg : tc.arg_registers) {
+            arg = resolve(arg);
+          }
           break;
         }
         case Type::Return: {
@@ -755,6 +769,14 @@ void BytecodeOptimizer::dead_code_elimination(
           }
           break;
         }
+        case Type::TailCall: {
+          const auto &tc =
+              ast::derived_cast<const Bytecode::Instruction::TailCall &>(instr);
+          for (const auto &arg : tc.arg_registers) {
+            live.insert(arg);
+          }
+          break;
+        }
         case Type::Return: {
           const auto &r =
               ast::derived_cast<const Bytecode::Instruction::Return &>(instr);
@@ -915,6 +937,7 @@ void BytecodeOptimizer::dead_code_elimination(
         case Type::JumpConditional:
         case Type::Return:
         case Type::Call:
+        case Type::TailCall:
         case Type::ArrayStore:
           return false;
         default:
@@ -1076,6 +1099,32 @@ void BytecodeOptimizer::dead_code_elimination(
           return false;
       }
     });
+  }
+}
+
+void BytecodeOptimizer::tail_call_optimization(
+    std::vector<Bytecode::BasicBlock> &blocks) {
+  for (auto &block : blocks) {
+    auto &instrs = block.instructions;
+    size_t i = 0;
+    while (i + 1 < instrs.size()) {
+      if (instrs[i]->type() != Type::Call || instrs[i + 1]->type() != Type::Return) {
+        ++i;
+        continue;
+      }
+
+      auto &call = ast::derived_cast<Bytecode::Instruction::Call &>(*instrs[i]);
+      const auto &ret =
+          ast::derived_cast<const Bytecode::Instruction::Return &>(*instrs[i + 1]);
+      if (ret.reg != call.dst) {
+        ++i;
+        continue;
+      }
+
+      instrs[i] = std::make_unique<Bytecode::Instruction::TailCall>(
+          call.label, std::move(call.arg_registers), std::move(call.param_registers));
+      instrs.erase(instrs.begin() + static_cast<std::ptrdiff_t>(i + 1));
+    }
   }
 }
 
@@ -1362,6 +1411,13 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           for (auto r : c.param_registers) track(r);
           break;
         }
+        case Type::TailCall: {
+          const auto &tc =
+              ast::derived_cast<const Bytecode::Instruction::TailCall &>(instr);
+          for (auto r : tc.arg_registers) track(r);
+          for (auto r : tc.param_registers) track(r);
+          break;
+        }
         case Type::Return:
           track(ast::derived_cast<const Bytecode::Instruction::Return &>(instr).reg);
           break;
@@ -1631,6 +1687,16 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
             arg = remap(arg);
           }
           for (auto &param : c.param_registers) {
+            param = remap(param);
+          }
+          break;
+        }
+        case Type::TailCall: {
+          auto &tc = ast::derived_cast<Bytecode::Instruction::TailCall &>(instr);
+          for (auto &arg : tc.arg_registers) {
+            arg = remap(arg);
+          }
+          for (auto &param : tc.param_registers) {
             param = remap(param);
           }
           break;

@@ -1,6 +1,7 @@
 #include "../ast.h"
 #include "../bytecode.h"
 #include "../catch.hpp"
+#include "../optimizer.h"
 #include "../parser.h"
 
 TEST_CASE("test_parser_expression_end_to_end_literal_42") {
@@ -418,6 +419,42 @@ return fib(2);
 
   kai::bytecode::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+}
+
+TEST_CASE("test_program_end_to_end_tail_recursion_uses_tail_call") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser(R"(
+fn sum_down(n, acc) {
+  if (n < 1) {
+    return acc;
+  } else {
+    return sum_down(n - 1, acc + n);
+  }
+}
+return sum_down(10000, 0);
+)", reporter);
+  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  kai::bytecode::BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  kai::bytecode::BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+
+  bool has_tail_call = false;
+  for (const auto &block : generator.blocks()) {
+    for (const auto &instr : block.instructions) {
+      if (instr->type() == kai::bytecode::Bytecode::Instruction::Type::TailCall) {
+        has_tail_call = true;
+      }
+    }
+  }
+  REQUIRE(has_tail_call);
+
+  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 50005000);
 }
 
 TEST_CASE("test_program_end_to_end_quicksort") {

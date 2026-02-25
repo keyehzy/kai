@@ -40,6 +40,7 @@ struct Bytecode::Instruction {
     Jump,
     JumpConditional,
     Call,
+    TailCall,
     Return,
     Equal,
     EqualImmediate,
@@ -79,6 +80,7 @@ struct Bytecode::Instruction {
   struct Jump;
   struct JumpConditional;
   struct Call;
+  struct TailCall;
   struct Return;
   struct Equal;
   struct EqualImmediate;
@@ -221,6 +223,16 @@ struct Bytecode::Instruction::Call final : Bytecode::Instruction {
   void dump() const override;
 
   Register dst;
+  Label label;
+  std::vector<Register> arg_registers;
+  std::vector<Register> param_registers;
+};
+
+struct Bytecode::Instruction::TailCall final : Bytecode::Instruction {
+  TailCall(Label label, std::vector<Register> arg_registers = {},
+           std::vector<Register> param_registers = {});
+  void dump() const override;
+
   Label label;
   std::vector<Register> arg_registers;
   std::vector<Register> param_registers;
@@ -515,6 +527,7 @@ class BytecodeInterpreter {
   void interpret_jump(const Bytecode::Instruction::Jump &jump);
   void interpret_jump_conditional(const Bytecode::Instruction::JumpConditional &jump_cond);
   void interpret_call(const Bytecode::Instruction::Call &call, size_t next_instr_index);
+  void interpret_tail_call(const Bytecode::Instruction::TailCall &tail_call);
   void interpret_equal(const Bytecode::Instruction::Equal &equal);
   void interpret_equal_immediate(const Bytecode::Instruction::EqualImmediate &equal_imm);
   void interpret_not_equal(const Bytecode::Instruction::NotEqual &not_equal);

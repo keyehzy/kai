@@ -1,0 +1,9 @@
+fn sum_down(n, acc) {
+  if (n < 1) {
+    return acc;
+  } else {
+    return sum_down(n - 1, acc + n);
+  }
+}
+
+return sum_down(20000000, 0);
