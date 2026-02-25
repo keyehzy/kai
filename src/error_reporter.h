@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "token.h"
+
 namespace kai {
 
 // A half-open byte range [begin, end) into the original source string.
@@ -45,6 +47,7 @@ struct Error {
     ExpectedEndOfExpression,
     ExpectedExpression,
     ExpectedSemicolon,
+    ExpectedBlock,
     UnexpectedChar,
   };
 
@@ -103,6 +106,42 @@ struct ExpectedSemicolonError final : public Error {
 
   std::string format_error() const override {
     std::string msg = "expected ';' after statement";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += " found end of input";
+      return msg;
+    }
+    msg += " found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedBlockError final : public Error {
+  enum class Boundary {
+    OpeningBrace,
+    ClosingBrace,
+  };
+
+  std::optional<Token> block_token;
+  Boundary boundary;
+
+  ExpectedBlockError(SourceLocation location, std::optional<Token> block_token, Boundary boundary)
+      : Error(Type::ExpectedBlock, location),
+        block_token(block_token),
+        boundary(boundary) {}
+
+  std::string format_error() const override {
+    std::string msg =
+        (boundary == Boundary::OpeningBrace)
+            ? "expected '{' to start "
+            : "expected '}' to close ";
+    if (block_token.has_value()) {
+      msg += (*block_token).sv();
+      msg += " ";
+    }
+    msg += "block";
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += " found end of input";

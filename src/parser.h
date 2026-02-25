@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include "ast.h"
@@ -17,7 +18,7 @@ class Parser {
 
  private:
   std::unique_ptr<ast::Ast> parse_statement();
-  std::unique_ptr<ast::Ast::Block> parse_block();
+  std::unique_ptr<ast::Ast::Block> parse_block(std::optional<Token> block_owner);
   std::unique_ptr<ast::Ast> parse_assignment();
   std::unique_ptr<ast::Ast> parse_equality();
   std::unique_ptr<ast::Ast> parse_comparison();

@@ -404,3 +404,42 @@ TEST_CASE("test_parser_reports_expected_expression_for_standalone_semicolon") {
   REQUIRE(reporter.errors()[0]->format_error() == "expected expression found ';'");
   REQUIRE(reporter.errors()[0]->location.text() == ";");
 }
+
+TEST_CASE("test_parser_reports_missing_while_block_with_context") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("while (1) return 1;", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '{' to start while block found 'return'");
+}
+
+TEST_CASE("test_parser_reports_missing_else_block_with_context") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("if (1) { return 1; } else return 2;", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '{' to start else block found 'return'");
+}
+
+TEST_CASE("test_parser_reports_unterminated_anonymous_block") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("{ return 1;", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '}' to close block found end of input");
+}

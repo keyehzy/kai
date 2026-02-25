@@ -44,17 +44,19 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
   }
 
   if (token_is_identifier(token, "while")) {
+    const Token while_token = token;
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::lparen);
     lexer_.skip();
     std::unique_ptr<ast::Ast> condition = parse_expression();
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
-    std::unique_ptr<ast::Ast::Block> body = parse_block();
+    std::unique_ptr<ast::Ast::Block> body = parse_block(while_token);
     return std::make_unique<ast::Ast::While>(std::move(condition), std::move(body));
   }
 
   if (token_is_identifier(token, "if")) {
+    const Token if_token = token;
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::lparen);
     lexer_.skip();
@@ -62,11 +64,12 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
 
-    std::unique_ptr<ast::Ast::Block> body = parse_block();
+    std::unique_ptr<ast::Ast::Block> body = parse_block(if_token);
     std::unique_ptr<ast::Ast::Block> else_body;
     if (token_is_identifier(lexer_.peek(), "else")) {
+      const Token else_token = lexer_.peek();
       lexer_.skip();
-      else_body = parse_block();
+      else_body = parse_block(else_token);
     } else {
       else_body = std::make_unique<ast::Ast::Block>();
     }
@@ -83,6 +86,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
   }
 
   if (token_is_identifier(token, "fn")) {
+    const Token fn_token = token;
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::identifier);
     const std::string name(lexer_.peek().sv());
@@ -105,13 +109,13 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
 
-    std::unique_ptr<ast::Ast::Block> body = parse_block();
+    std::unique_ptr<ast::Ast::Block> body = parse_block(fn_token);
     return std::make_unique<ast::Ast::FunctionDeclaration>(name, std::move(parameters),
                                                            std::move(body));
   }
 
   if (token.type == Token::Type::lcurly) {
-    return parse_block();
+    return parse_block(std::nullopt);
   }
 
   std::unique_ptr<ast::Ast> expr = parse_expression();
@@ -137,17 +141,31 @@ void Parser::consume_statement_terminator() {
   }
 }
 
-std::unique_ptr<ast::Ast::Block> Parser::parse_block() {
-  assert(lexer_.peek().type == Token::Type::lcurly);
+std::unique_ptr<ast::Ast::Block> Parser::parse_block(std::optional<Token> block_owner) {
+  if (lexer_.peek().type != Token::Type::lcurly) {
+    const Token &token = lexer_.peek();
+    error_reporter_.report<ExpectedBlockError>(
+        SourceLocation{token.begin, token.end}, block_owner,
+        ExpectedBlockError::Boundary::OpeningBrace);
+    return std::make_unique<ast::Ast::Block>();
+  }
   lexer_.skip();
 
   auto block = std::make_unique<ast::Ast::Block>();
-  while (lexer_.peek().type != Token::Type::rcurly) {
+  while (lexer_.peek().type != Token::Type::rcurly &&
+         lexer_.peek().type != Token::Type::end_of_file) {
     block->append(parse_statement());
   }
 
-  assert(lexer_.peek().type == Token::Type::rcurly);
-  lexer_.skip();
+  if (lexer_.peek().type == Token::Type::rcurly) {
+    lexer_.skip();
+    return block;
+  }
+
+  const Token &token = lexer_.peek();
+  error_reporter_.report<ExpectedBlockError>(
+      SourceLocation{token.begin, token.end}, block_owner,
+      ExpectedBlockError::Boundary::ClosingBrace);
   return block;
 }
 
