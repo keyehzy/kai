@@ -107,6 +107,24 @@ TEST_CASE("test_error_reporter_expected_end_of_expression_error_type") {
   REQUIRE(expected_end != nullptr);
 }
 
+TEST_CASE("test_error_reporter_expected_expression_error_type") {
+  std::string_view src = ";";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedExpressionError>(
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected expression");
+}
+
+TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
+  std::string_view src = "2";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedSemicolonError>(
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedSemicolon);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected ';' after statement");
+}
+
 // --- Lexer + ErrorReporter integration ---
 
 TEST_CASE("test_lexer_no_errors_for_valid_source") {

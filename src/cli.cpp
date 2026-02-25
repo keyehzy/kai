@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -58,7 +59,12 @@ void ensure_bytecode_program_returns_value(kai::ast::Ast::Block &program) {
       std::make_unique<kai::ast::Ast::Return>(std::move(last_statement));
 }
 
-std::unique_ptr<kai::ast::Ast::Block> parse_program(const std::string &source) {
+struct ParseResult {
+  std::unique_ptr<kai::ast::Ast::Block> program;
+  bool has_errors;
+};
+
+ParseResult parse_program(const std::string &source) {
   kai::ErrorReporter reporter;
   kai::Parser parser(source, reporter);
   auto program = parser.parse_program();
@@ -67,20 +73,24 @@ std::unique_ptr<kai::ast::Ast::Block> parse_program(const std::string &source) {
     std::cerr << lc.line << ":" << lc.column << ": error: " << error->format_error()
               << "\n";
   }
-  return program;
+  return {std::move(program), reporter.has_errors()};
 }
 
-kai::ast::Value run_source(const std::string &source, Backend backend) {
-  auto program = parse_program(source);
+std::optional<kai::ast::Value> run_source(const std::string &source, Backend backend) {
+  auto parse_result = parse_program(source);
+  if (parse_result.has_errors) {
+    return std::nullopt;
+  }
+  auto &program = *parse_result.program;
 
   if (backend == Backend::Ast) {
     kai::ast::AstInterpreter interpreter;
-    return interpreter.interpret(*program);
+    return interpreter.interpret(program);
   }
 
-  ensure_bytecode_program_returns_value(*program);
+  ensure_bytecode_program_returns_value(program);
   kai::bytecode::BytecodeGenerator generator;
-  generator.visit_block(*program);
+  generator.visit_block(program);
   generator.finalize();
 
   kai::bytecode::BytecodeOptimizer optimizer;
@@ -90,21 +100,26 @@ kai::ast::Value run_source(const std::string &source, Backend backend) {
   return interpreter.interpret(generator.blocks());
 }
 
-void dump_source(const std::string &source, Backend backend) {
-  auto program = parse_program(source);
+bool dump_source(const std::string &source, Backend backend) {
+  auto parse_result = parse_program(source);
+  if (parse_result.has_errors) {
+    return false;
+  }
+  auto &program = *parse_result.program;
   if (backend == Backend::Ast) {
-    program->dump(std::cout);
+    program.dump(std::cout);
     std::cout << "\n";
-    return;
+    return true;
   }
 
   kai::bytecode::BytecodeGenerator generator;
-  generator.visit_block(*program);
+  generator.visit_block(program);
   generator.finalize();
 
   kai::bytecode::BytecodeOptimizer optimizer;
   optimizer.optimize(generator.blocks());
   generator.dump();
+  return true;
 }
 
 std::string normalize_repl_input(std::string_view line) {
@@ -137,6 +152,8 @@ void repl(Backend backend) {
       continue;
     }
 
+    const std::string previous_source = source;
+    const int previous_brace_depth = brace_depth;
     if (!source.empty()) {
       source.push_back('\n');
     }
@@ -160,7 +177,13 @@ void repl(Backend backend) {
       continue;
     }
 
-    std::cout << run_source(source, backend) << "\n";
+    const auto value = run_source(source, backend);
+    if (!value.has_value()) {
+      source = previous_source;
+      brace_depth = previous_brace_depth;
+      continue;
+    }
+    std::cout << *value << "\n";
   }
 }
 
@@ -209,11 +232,14 @@ int main(int argc, char **argv) {
     if (files.size() == 1) {
       const std::string source = read_file(files[0]);
       if (do_dump) {
-        dump_source(source, backend);
-        return 0;
+        return dump_source(source, backend) ? 0 : 1;
       }
 
-      std::cout << run_source(source, backend) << "\n";
+      const auto value = run_source(source, backend);
+      if (!value.has_value()) {
+        return 1;
+      }
+      std::cout << *value << "\n";
       return 0;
     }
 

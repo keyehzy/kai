@@ -28,6 +28,7 @@ class Parser {
   std::unique_ptr<ast::Ast> parse_array_literal();
   std::unique_ptr<ast::Ast> parse_struct_literal();
   std::unique_ptr<ast::Ast> parse_primary();
+  void consume_statement_terminator();
 
   ErrorReporter& error_reporter_;
   Lexer lexer_;

@@ -43,6 +43,8 @@ inline LineColumn line_column(std::string_view source, const char* pos) {
 struct Error {
   enum class Type {
     ExpectedEndOfExpression,
+    ExpectedExpression,
+    ExpectedSemicolon,
     UnexpectedChar,
   };
 
@@ -75,6 +77,20 @@ struct ExpectedEndOfExpressionError final : public Error {
       : Error(Type::ExpectedEndOfExpression, location) {}
 
   std::string format_error() const override { return "expected end of expression"; }
+};
+
+struct ExpectedExpressionError final : public Error {
+  explicit ExpectedExpressionError(SourceLocation location)
+      : Error(Type::ExpectedExpression, location) {}
+
+  std::string format_error() const override { return "expected expression"; }
+};
+
+struct ExpectedSemicolonError final : public Error {
+  explicit ExpectedSemicolonError(SourceLocation location)
+      : Error(Type::ExpectedSemicolon, location) {}
+
+  std::string format_error() const override { return "expected ';' after statement"; }
 };
 
 class ErrorReporter {

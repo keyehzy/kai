@@ -376,3 +376,32 @@ TEST_CASE("test_parser_reports_error_for_trailing_tokens_in_expression") {
   REQUIRE(reporter.errors()[0]->format_error() == "expected end of expression");
   REQUIRE(reporter.errors()[0]->location.text() == "2");
 }
+
+TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 2", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(program->children.size() == 1);
+  REQUIRE(program->children[0]->type == Ast::Type::Literal);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedSemicolon);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected ';' after statement");
+  REQUIRE(reporter.errors()[0]->location.text() == "2");
+}
+
+TEST_CASE("test_parser_reports_expected_expression_for_standalone_semicolon") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser(";", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Literal);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected expression");
+  REQUIRE(reporter.errors()[0]->location.text() == ";");
+}
