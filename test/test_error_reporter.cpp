@@ -211,6 +211,28 @@ TEST_CASE("test_error_reporter_expected_struct_literal_brace_error_type") {
           "expected '{' to start struct literal, found ';'");
 }
 
+TEST_CASE("test_error_reporter_expected_array_literal_start_error_type") {
+  std::string_view src = "{";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedLiteralStartError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedLiteralStartError::Ctx::ArrayLiteral);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedLiteralStart);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '[' to start array literal, found '{'");
+}
+
+TEST_CASE("test_error_reporter_expected_struct_literal_start_error_type") {
+  std::string_view src = "x";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedLiteralStartError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedLiteralStartError::Ctx::StructLiteral);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedLiteralStart);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected 'struct' to start struct literal, found 'x'");
+}
+
 TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
   std::string_view src = "2";
   kai::ErrorReporter reporter;

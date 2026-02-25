@@ -51,6 +51,7 @@ struct Error {
     ExpectedOpeningParenthesis,
     ExpectedClosingParenthesis,
     ExpectedClosingSquareBracket,
+    ExpectedLiteralStart,
     ExpectedBlock,
     UnexpectedChar,
   };
@@ -305,6 +306,40 @@ struct ExpectedStructLiteralBraceError final : public Error {
     std::string msg = boundary == Boundary::OpeningBrace
                           ? "expected '{' to start struct literal"
                           : "expected '}' to close struct literal";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedLiteralStartError final : public Error {
+  enum class Ctx {
+    ArrayLiteral,
+    StructLiteral,
+  };
+
+  Ctx ctx;
+
+  ExpectedLiteralStartError(SourceLocation location, Ctx ctx)
+      : Error(Type::ExpectedLiteralStart, location), ctx(ctx) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected ";
+    switch (ctx) {
+      case Ctx::ArrayLiteral:
+        msg += "'[' to start array literal";
+        break;
+      case Ctx::StructLiteral:
+        msg += "'struct' to start struct literal";
+        break;
+    }
+
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";

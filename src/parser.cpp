@@ -1,6 +1,5 @@
 #include "parser.h"
 
-#include <cassert>
 #include <charconv>
 #include <system_error>
 #include <utility>
@@ -426,7 +425,16 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_array_literal() {
-  assert(lexer_.peek().type == Token::Type::lsquare);
+  if (lexer_.peek().type != Token::Type::lsquare) {
+    const Token& token = lexer_.peek();
+    error_reporter_.report<ExpectedLiteralStartError>(
+        token.source_location(), ExpectedLiteralStartError::Ctx::ArrayLiteral);
+    if (token.type != Token::Type::end_of_file) {
+      lexer_.skip();
+    }
+    return std::make_unique<ast::Ast::ArrayLiteral>(
+        std::vector<std::unique_ptr<ast::Ast>>{});
+  }
   lexer_.skip();
 
   std::vector<std::unique_ptr<ast::Ast>> elements;
@@ -447,7 +455,16 @@ std::unique_ptr<ast::Ast> Parser::parse_array_literal() {
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
-  assert(token_is_identifier(lexer_.peek(), "struct"));
+  if (!token_is_identifier(lexer_.peek(), "struct")) {
+    const Token& token = lexer_.peek();
+    error_reporter_.report<ExpectedLiteralStartError>(
+        token.source_location(), ExpectedLiteralStartError::Ctx::StructLiteral);
+    if (token.type != Token::Type::end_of_file) {
+      lexer_.skip();
+    }
+    return std::make_unique<ast::Ast::StructLiteral>(
+        std::vector<std::pair<std::string, std::unique_ptr<ast::Ast>>>{});
+  }
   lexer_.skip();
   std::vector<std::pair<std::string, std::unique_ptr<ast::Ast>>> fields;
   if (lexer_.peek().type != Token::Type::lcurly) {
