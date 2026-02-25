@@ -179,6 +179,16 @@ TEST_CASE("test_error_reporter_expected_let_variable_name_error_type") {
           "expected variable name after 'let', found '='");
 }
 
+TEST_CASE("test_error_reporter_expected_struct_field_name_error_type") {
+  std::string_view src = ":";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedStructFieldNameError>(
+      kai::SourceLocation{src.data(), src.data() + 1});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructFieldName);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected field name in struct literal, found ':'");
+}
+
 TEST_CASE("test_error_reporter_expected_struct_field_colon_error_type") {
   std::string_view src = "x 1";
   kai::ErrorReporter reporter;
@@ -221,6 +231,17 @@ TEST_CASE("test_error_reporter_expected_closing_square_bracket_error_type") {
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ']' to close index expression, found ';'");
+}
+
+TEST_CASE("test_error_reporter_expected_array_literal_closing_square_bracket_error_type") {
+  std::string_view src = ";";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedClosingSquareBracketError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedClosingSquareBracketError::Ctx::ToCloseArrayLiteral);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ']' to close array literal, found ';'");
 }
 
 // --- Lexer + ErrorReporter integration ---

@@ -440,8 +440,8 @@ std::unique_ptr<ast::Ast> Parser::parse_array_literal() {
     }
   }
 
-  assert(lexer_.peek().type == Token::Type::rsquare);
-  lexer_.skip();
+  consume<ExpectedClosingSquareBracketError>(
+      Token::Type::rsquare, ExpectedClosingSquareBracketError::Ctx::ToCloseArrayLiteral);
 
   return std::make_unique<ast::Ast::ArrayLiteral>(std::move(elements));
 }
@@ -455,7 +455,20 @@ std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
   std::vector<std::pair<std::string, std::unique_ptr<ast::Ast>>> fields;
   if (lexer_.peek().type != Token::Type::rcurly) {
     while (true) {
-      assert(lexer_.peek().type == Token::Type::identifier);
+      if (lexer_.peek().type != Token::Type::identifier) {
+        const Token& token = lexer_.peek();
+        error_reporter_.report<ExpectedStructFieldNameError>(token.source_location());
+        while (lexer_.peek().type != Token::Type::end_of_file &&
+               lexer_.peek().type != Token::Type::rcurly &&
+               lexer_.peek().type != Token::Type::comma) {
+          lexer_.skip();
+        }
+        if (lexer_.peek().type == Token::Type::comma) {
+          lexer_.skip();
+          continue;
+        }
+        break;
+      }
       const Token field_name_token = lexer_.peek();
       std::string field_name(field_name_token.sv());
       lexer_.skip();

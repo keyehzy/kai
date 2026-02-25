@@ -379,6 +379,21 @@ TEST_CASE("test_parser_reports_missing_colon_in_struct_literal_field") {
   REQUIRE(reporter.errors()[0]->location.text() == "1");
 }
 
+TEST_CASE("test_parser_reports_missing_field_name_in_struct_literal") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("struct { : 1 }", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::StructLiteral);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructFieldName);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected field name in struct literal, found ':'");
+  REQUIRE(reporter.errors()[0]->location.text() == ":");
+}
+
 TEST_CASE("test_parser_expression_stops_at_trailing_tokens") {
   kai::ErrorReporter reporter;
   kai::Parser parser("1 2", reporter);
@@ -522,6 +537,22 @@ TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_index_expressio
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ']' to close index expression, found end of input");
+}
+
+TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_array_literal") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("[1", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::ArrayLiteral);
+  const auto& array_literal = ast_cast<const Ast::ArrayLiteral&>(*parsed);
+  REQUIRE(array_literal.elements.size() == 1);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ']' to close array literal, found end of input");
 }
 
 TEST_CASE("test_parser_reports_invalid_numeric_literal") {

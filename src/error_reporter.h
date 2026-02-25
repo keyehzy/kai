@@ -41,6 +41,7 @@ struct Error {
     ExpectedIdentifier,
     ExpectedFunctionIdentifier,
     ExpectedLetVariableName,
+    ExpectedStructFieldName,
     ExpectedStructFieldColon,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
@@ -226,6 +227,24 @@ struct ExpectedLetVariableNameError final : public Error {
 
   std::string format_error() const override {
     std::string msg = "expected variable name after 'let'";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedStructFieldNameError final : public Error {
+  explicit ExpectedStructFieldNameError(SourceLocation location)
+      : Error(Type::ExpectedStructFieldName, location) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected field name in struct literal";
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";
@@ -476,6 +495,7 @@ struct ExpectedClosingParenthesisError final : public Error {
 struct ExpectedClosingSquareBracketError final : public Error {
   enum class Ctx {
     ToCloseIndexExpression,
+    ToCloseArrayLiteral,
   };
 
   Ctx ctx;
@@ -488,6 +508,9 @@ struct ExpectedClosingSquareBracketError final : public Error {
     switch (ctx) {
       case Ctx::ToCloseIndexExpression:
         msg += " to close index expression";
+        break;
+      case Ctx::ToCloseArrayLiteral:
+        msg += " to close array literal";
         break;
     }
 
