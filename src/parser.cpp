@@ -449,10 +449,15 @@ std::unique_ptr<ast::Ast> Parser::parse_array_literal() {
 std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
   assert(token_is_identifier(lexer_.peek(), "struct"));
   lexer_.skip();
-  assert(lexer_.peek().type == Token::Type::lcurly);
+  std::vector<std::pair<std::string, std::unique_ptr<ast::Ast>>> fields;
+  if (lexer_.peek().type != Token::Type::lcurly) {
+    const Token& token = lexer_.peek();
+    error_reporter_.report<ExpectedStructLiteralBraceError>(
+        token.source_location(), ExpectedStructLiteralBraceError::Boundary::OpeningBrace);
+    return std::make_unique<ast::Ast::StructLiteral>(std::move(fields));
+  }
   lexer_.skip();
 
-  std::vector<std::pair<std::string, std::unique_ptr<ast::Ast>>> fields;
   if (lexer_.peek().type != Token::Type::rcurly) {
     while (true) {
       if (lexer_.peek().type != Token::Type::identifier) {
@@ -482,7 +487,12 @@ std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
     }
   }
 
-  assert(lexer_.peek().type == Token::Type::rcurly);
+  if (lexer_.peek().type != Token::Type::rcurly) {
+    const Token& token = lexer_.peek();
+    error_reporter_.report<ExpectedStructLiteralBraceError>(
+        token.source_location(), ExpectedStructLiteralBraceError::Boundary::ClosingBrace);
+    return std::make_unique<ast::Ast::StructLiteral>(std::move(fields));
+  }
   lexer_.skip();
   return std::make_unique<ast::Ast::StructLiteral>(std::move(fields));
 }

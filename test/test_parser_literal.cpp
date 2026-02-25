@@ -394,6 +394,38 @@ TEST_CASE("test_parser_reports_missing_field_name_in_struct_literal") {
   REQUIRE(reporter.errors()[0]->location.text() == ":");
 }
 
+TEST_CASE("test_parser_reports_missing_opening_brace_in_struct_literal") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("struct x: 1 }", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::StructLiteral);
+  const auto& struct_literal = ast_cast<const Ast::StructLiteral&>(*parsed);
+  REQUIRE(struct_literal.fields.empty());
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructLiteralBrace);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '{' to start struct literal, found 'x'");
+}
+
+TEST_CASE("test_parser_reports_missing_closing_brace_in_struct_literal") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("struct { x: 1", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::StructLiteral);
+  const auto& struct_literal = ast_cast<const Ast::StructLiteral&>(*parsed);
+  REQUIRE(struct_literal.fields.size() == 1);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructLiteralBrace);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '}' to close struct literal, found end of input");
+}
+
 TEST_CASE("test_parser_expression_stops_at_trailing_tokens") {
   kai::ErrorReporter reporter;
   kai::Parser parser("1 2", reporter);

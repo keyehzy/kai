@@ -200,6 +200,17 @@ TEST_CASE("test_error_reporter_expected_struct_field_colon_error_type") {
           "expected ':' after field name 'x' in struct literal, found '1'");
 }
 
+TEST_CASE("test_error_reporter_expected_struct_literal_brace_error_type") {
+  std::string_view src = ";";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedStructLiteralBraceError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedStructLiteralBraceError::Boundary::OpeningBrace);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructLiteralBrace);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '{' to start struct literal, found ';'");
+}
+
 TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
   std::string_view src = "2";
   kai::ErrorReporter reporter;

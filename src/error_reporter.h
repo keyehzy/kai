@@ -43,6 +43,7 @@ struct Error {
     ExpectedLetVariableName,
     ExpectedStructFieldName,
     ExpectedStructFieldColon,
+    ExpectedStructLiteralBrace,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
     ExpectedSemicolon,
@@ -277,6 +278,33 @@ struct ExpectedStructFieldColonError final : public Error {
     }
     msg += " in struct literal";
 
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedStructLiteralBraceError final : public Error {
+  enum class Boundary {
+    OpeningBrace,
+    ClosingBrace,
+  };
+
+  Boundary boundary;
+
+  ExpectedStructLiteralBraceError(SourceLocation location, Boundary boundary)
+      : Error(Type::ExpectedStructLiteralBrace, location), boundary(boundary) {}
+
+  std::string format_error() const override {
+    std::string msg = boundary == Boundary::OpeningBrace
+                          ? "expected '{' to start struct literal"
+                          : "expected '}' to close struct literal";
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";
