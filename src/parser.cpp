@@ -45,24 +45,30 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
 
   if (token_is_identifier(token, "while")) {
     const Token while_token = token;
+    const SourceLocation while_source_location{while_token.begin, while_token.end};
     lexer_.skip();
-    consume_parenthesis<ExpectedOpeningParenthesisError>(Token::Type::lparen,
-                                                         "after 'while'");
+    consume<ExpectedOpeningParenthesisError>(Token::Type::lparen,
+                                             ExpectedOpeningParenthesisError::Ctx::AfterWhile,
+                                             while_source_location);
     std::unique_ptr<ast::Ast> condition = parse_expression();
-    consume_parenthesis<ExpectedClosingParenthesisError>(Token::Type::rparen,
-                                                         "to close 'while' condition");
+    consume<ExpectedClosingParenthesisError>(
+        Token::Type::rparen, ExpectedClosingParenthesisError::Ctx::ToCloseWhileCondition,
+        while_source_location);
     std::unique_ptr<ast::Ast::Block> body = parse_block(while_token);
     return std::make_unique<ast::Ast::While>(std::move(condition), std::move(body));
   }
 
   if (token_is_identifier(token, "if")) {
     const Token if_token = token;
+    const SourceLocation if_source_location{if_token.begin, if_token.end};
     lexer_.skip();
-    consume_parenthesis<ExpectedOpeningParenthesisError>(Token::Type::lparen,
-                                                         "after 'if'");
+    consume<ExpectedOpeningParenthesisError>(Token::Type::lparen,
+                                             ExpectedOpeningParenthesisError::Ctx::AfterIf,
+                                             if_source_location);
     std::unique_ptr<ast::Ast> condition = parse_expression();
-    consume_parenthesis<ExpectedClosingParenthesisError>(Token::Type::rparen,
-                                                         "to close 'if' condition");
+    consume<ExpectedClosingParenthesisError>(
+        Token::Type::rparen, ExpectedClosingParenthesisError::Ctx::ToCloseIfCondition,
+        if_source_location);
 
     std::unique_ptr<ast::Ast::Block> body = parse_block(if_token);
     std::unique_ptr<ast::Ast::Block> else_body;
@@ -89,11 +95,14 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     const Token fn_token = token;
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::identifier);
+    const Token function_name_token = lexer_.peek();
     const std::string name(lexer_.peek().sv());
     lexer_.skip();
 
-    consume_parenthesis<ExpectedOpeningParenthesisError>(
-        Token::Type::lparen, "after function name in declaration");
+    consume<ExpectedOpeningParenthesisError>(
+        Token::Type::lparen,
+        ExpectedOpeningParenthesisError::Ctx::AfterFunctionNameInDeclaration,
+        SourceLocation{function_name_token.begin, function_name_token.end});
     std::vector<std::string> parameters;
     if (lexer_.peek().type != Token::Type::rparen) {
       while (true) {
@@ -106,8 +115,9 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
         lexer_.skip();
       }
     }
-    consume_parenthesis<ExpectedClosingParenthesisError>(
-        Token::Type::rparen, "to close function parameter list");
+    consume<ExpectedClosingParenthesisError>(
+        Token::Type::rparen,
+        ExpectedClosingParenthesisError::Ctx::ToCloseFunctionParameterList);
 
     std::unique_ptr<ast::Ast::Block> body = parse_block(fn_token);
     return std::make_unique<ast::Ast::FunctionDeclaration>(name, std::move(parameters),
@@ -324,8 +334,9 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
           lexer_.skip();
         }
       }
-      consume_parenthesis<ExpectedClosingParenthesisError>(
-          Token::Type::rparen, "to close function call arguments");
+      consume<ExpectedClosingParenthesisError>(
+          Token::Type::rparen,
+          ExpectedClosingParenthesisError::Ctx::ToCloseFunctionCallArguments);
       expr = std::make_unique<ast::Ast::FunctionCall>(callee_name, std::move(arguments));
       continue;
     }
@@ -444,8 +455,8 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
   if (token.type == Token::Type::lparen) {
     lexer_.skip();
     std::unique_ptr<ast::Ast> expr = parse_expression();
-    consume_parenthesis<ExpectedClosingParenthesisError>(
-        Token::Type::rparen, "to close grouped expression");
+    consume<ExpectedClosingParenthesisError>(
+        Token::Type::rparen, ExpectedClosingParenthesisError::Ctx::ToCloseGroupedExpression);
     return expr;
   }
   if (token.type == Token::Type::lsquare) {

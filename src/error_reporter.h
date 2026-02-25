@@ -122,17 +122,49 @@ struct ExpectedSemicolonError final : public Error {
 };
 
 struct ExpectedOpeningParenthesisError final : public Error {
-  std::string context;
+  enum class Ctx {
+    AfterWhile,
+    AfterIf,
+    AfterFunctionNameInDeclaration,
+  };
 
-  ExpectedOpeningParenthesisError(SourceLocation location, std::string context = {})
-      : Error(Type::ExpectedOpeningParenthesis, location), context(std::move(context)) {}
+  Ctx ctx;
+  std::optional<SourceLocation> context_location;
+
+  ExpectedOpeningParenthesisError(SourceLocation location, Ctx ctx,
+                                  std::optional<SourceLocation> context_location = std::nullopt)
+      : Error(Type::ExpectedOpeningParenthesis, location),
+        ctx(ctx),
+        context_location(context_location) {}
 
   std::string format_error() const override {
     std::string msg = "expected '('";
-    if (!context.empty()) {
-      msg += " ";
-      msg += context;
+    switch (ctx) {
+      case Ctx::AfterWhile: {
+        const std::string_view while_text =
+            context_location.has_value() && !context_location->text().empty()
+                ? context_location->text()
+                : std::string_view("while");
+        msg += " after '";
+        msg += std::string(while_text);
+        msg += "'";
+        break;
+      }
+      case Ctx::AfterIf: {
+        const std::string_view if_text =
+            context_location.has_value() && !context_location->text().empty()
+                ? context_location->text()
+                : std::string_view("if");
+        msg += " after '";
+        msg += std::string(if_text);
+        msg += "'";
+        break;
+      }
+      case Ctx::AfterFunctionNameInDeclaration:
+        msg += " after function name in declaration";
+        break;
     }
+
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";
@@ -146,17 +178,57 @@ struct ExpectedOpeningParenthesisError final : public Error {
 };
 
 struct ExpectedClosingParenthesisError final : public Error {
-  std::string context;
+  enum class Ctx {
+    ToCloseWhileCondition,
+    ToCloseIfCondition,
+    ToCloseFunctionParameterList,
+    ToCloseFunctionCallArguments,
+    ToCloseGroupedExpression,
+  };
 
-  ExpectedClosingParenthesisError(SourceLocation location, std::string context = {})
-      : Error(Type::ExpectedClosingParenthesis, location), context(std::move(context)) {}
+  Ctx ctx;
+  std::optional<SourceLocation> context_location;
+
+  ExpectedClosingParenthesisError(SourceLocation location, Ctx ctx,
+                                  std::optional<SourceLocation> context_location = std::nullopt)
+      : Error(Type::ExpectedClosingParenthesis, location),
+        ctx(ctx),
+        context_location(context_location) {}
 
   std::string format_error() const override {
     std::string msg = "expected ')'";
-    if (!context.empty()) {
-      msg += " ";
-      msg += context;
+    switch (ctx) {
+      case Ctx::ToCloseWhileCondition: {
+        const std::string_view while_text =
+            context_location.has_value() && !context_location->text().empty()
+                ? context_location->text()
+                : std::string_view("while");
+        msg += " to close '";
+        msg += std::string(while_text);
+        msg += "' condition";
+        break;
+      }
+      case Ctx::ToCloseIfCondition: {
+        const std::string_view if_text =
+            context_location.has_value() && !context_location->text().empty()
+                ? context_location->text()
+                : std::string_view("if");
+        msg += " to close '";
+        msg += std::string(if_text);
+        msg += "' condition";
+        break;
+      }
+      case Ctx::ToCloseFunctionParameterList:
+        msg += " to close function parameter list";
+        break;
+      case Ctx::ToCloseFunctionCallArguments:
+        msg += " to close function call arguments";
+        break;
+      case Ctx::ToCloseGroupedExpression:
+        msg += " to close grouped expression";
+        break;
     }
+
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += ", found end of input";
