@@ -25,13 +25,7 @@ std::unique_ptr<ast::Ast::Block> Parser::parse_program() {
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_expression() {
-  std::unique_ptr<ast::Ast> result = parse_assignment();
-  const Token& trailing_token = lexer_.peek();
-  if (trailing_token.type != Token::Type::end_of_file) {
-    error_reporter_.report<ExpectedEndOfExpressionError>(
-        SourceLocation{trailing_token.begin, trailing_token.end});
-  }
-  return result;
+  return parse_assignment();
 }
 
 std::unique_ptr<ast::Ast> Parser::parse_statement() {
@@ -44,7 +38,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::equals);
     lexer_.skip();
-    std::unique_ptr<ast::Ast> initializer = parse_assignment();
+    std::unique_ptr<ast::Ast> initializer = parse_expression();
     consume_statement_terminator();
     return std::make_unique<ast::Ast::VariableDeclaration>(name, std::move(initializer));
   }
@@ -53,7 +47,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::lparen);
     lexer_.skip();
-    std::unique_ptr<ast::Ast> condition = parse_assignment();
+    std::unique_ptr<ast::Ast> condition = parse_expression();
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
     std::unique_ptr<ast::Ast::Block> body = parse_block();
@@ -64,7 +58,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     lexer_.skip();
     assert(lexer_.peek().type == Token::Type::lparen);
     lexer_.skip();
-    std::unique_ptr<ast::Ast> condition = parse_assignment();
+    std::unique_ptr<ast::Ast> condition = parse_expression();
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
 
@@ -83,7 +77,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
 
   if (token_is_identifier(token, "return")) {
     lexer_.skip();
-    std::unique_ptr<ast::Ast> value = parse_assignment();
+    std::unique_ptr<ast::Ast> value = parse_expression();
     consume_statement_terminator();
     return std::make_unique<ast::Ast::Return>(std::move(value));
   }
@@ -120,7 +114,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     return parse_block();
   }
 
-  std::unique_ptr<ast::Ast> expr = parse_assignment();
+  std::unique_ptr<ast::Ast> expr = parse_expression();
   consume_statement_terminator();
   return expr;
 }
@@ -305,7 +299,7 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
       std::vector<std::unique_ptr<ast::Ast>> arguments;
       if (lexer_.peek().type != Token::Type::rparen) {
         while (true) {
-          arguments.emplace_back(parse_assignment());
+          arguments.emplace_back(parse_expression());
           if (lexer_.peek().type != Token::Type::comma) {
             break;
           }
@@ -320,7 +314,7 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
 
     if (lexer_.peek().type == Token::Type::lsquare) {
       lexer_.skip();
-      std::unique_ptr<ast::Ast> index = parse_assignment();
+      std::unique_ptr<ast::Ast> index = parse_expression();
       assert(lexer_.peek().type == Token::Type::rsquare);
       lexer_.skip();
       expr = std::make_unique<ast::Ast::Index>(std::move(expr), std::move(index));
@@ -364,7 +358,7 @@ std::unique_ptr<ast::Ast> Parser::parse_array_literal() {
   std::vector<std::unique_ptr<ast::Ast>> elements;
   if (lexer_.peek().type != Token::Type::rsquare) {
     while (true) {
-      elements.emplace_back(parse_assignment());
+      elements.emplace_back(parse_expression());
       if (lexer_.peek().type != Token::Type::comma) {
         break;
       }
@@ -392,7 +386,7 @@ std::unique_ptr<ast::Ast> Parser::parse_struct_literal() {
       lexer_.skip();
       assert(lexer_.peek().type == Token::Type::colon);
       lexer_.skip();
-      fields.emplace_back(std::move(field_name), parse_assignment());
+      fields.emplace_back(std::move(field_name), parse_expression());
       if (lexer_.peek().type != Token::Type::comma) {
         break;
       }
@@ -431,7 +425,7 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
   }
   if (token.type == Token::Type::lparen) {
     lexer_.skip();
-    std::unique_ptr<ast::Ast> expr = parse_assignment();
+    std::unique_ptr<ast::Ast> expr = parse_expression();
     assert(lexer_.peek().type == Token::Type::rparen);
     lexer_.skip();
     return expr;
