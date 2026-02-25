@@ -363,3 +363,16 @@ TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
   REQUIRE(struct_literal.fields[0].second->type == Ast::Type::Literal);
   REQUIRE(struct_literal.fields[1].second->type == Ast::Type::Literal);
 }
+
+TEST_CASE("test_parser_reports_error_for_trailing_tokens_in_expression") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("1 2", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedEndOfExpression);
+  REQUIRE(reporter.errors()[0]->format_error() == "expected end of expression");
+  REQUIRE(reporter.errors()[0]->location.text() == "2");
+}

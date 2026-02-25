@@ -42,7 +42,7 @@ inline LineColumn line_column(std::string_view source, const char* pos) {
 
 struct Error {
   enum class Type {
-    Generic,
+    ExpectedEndOfExpression,
     UnexpectedChar,
   };
 
@@ -54,15 +54,6 @@ struct Error {
   virtual ~Error() = default;
 
   virtual std::string format_error() const = 0;
-};
-
-struct GenericError final : public Error {
-  std::string message;
-
-  GenericError(SourceLocation location, std::string message)
-      : Error(Type::Generic, location), message(std::move(message)) {}
-
-  std::string format_error() const override { return message; }
 };
 
 struct UnexpectedCharError final : public Error {
@@ -79,6 +70,13 @@ struct UnexpectedCharError final : public Error {
   }
 };
 
+struct ExpectedEndOfExpressionError final : public Error {
+  explicit ExpectedEndOfExpressionError(SourceLocation location)
+      : Error(Type::ExpectedEndOfExpression, location) {}
+
+  std::string format_error() const override { return "expected end of expression"; }
+};
+
 class ErrorReporter {
  public:
   template <typename ErrorT, typename... Args>
@@ -86,10 +84,6 @@ class ErrorReporter {
     static_assert(std::is_base_of_v<Error, ErrorT>,
                   "ErrorReporter::report requires an Error subtype");
     errors_.push_back(std::make_unique<ErrorT>(std::forward<Args>(args)...));
-  }
-
-  void report(SourceLocation location, std::string message) {
-    report<GenericError>(location, std::move(message));
   }
 
   bool has_errors() const { return !errors_.empty(); }

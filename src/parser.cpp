@@ -14,7 +14,7 @@ bool token_is_identifier(const Token &token, std::string_view text) {
 }  // namespace
 
 Parser::Parser(std::string_view input, ErrorReporter& error_reporter)
-    : lexer_(input, error_reporter) {}
+    : error_reporter_(error_reporter), lexer_(input, error_reporter_) {}
 
 std::unique_ptr<ast::Ast::Block> Parser::parse_program() {
   auto program = std::make_unique<ast::Ast::Block>();
@@ -26,7 +26,11 @@ std::unique_ptr<ast::Ast::Block> Parser::parse_program() {
 
 std::unique_ptr<ast::Ast> Parser::parse_expression() {
   std::unique_ptr<ast::Ast> result = parse_assignment();
-  assert(lexer_.peek().type == Token::Type::end_of_file);
+  const Token& trailing_token = lexer_.peek();
+  if (trailing_token.type != Token::Type::end_of_file) {
+    error_reporter_.report<ExpectedEndOfExpressionError>(
+        SourceLocation{trailing_token.begin, trailing_token.end});
+  }
   return result;
 }
 

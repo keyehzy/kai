@@ -74,30 +74,37 @@ TEST_CASE("test_error_reporter_starts_empty") {
 TEST_CASE("test_error_reporter_records_single_error") {
   std::string_view src = "abc";
   kai::ErrorReporter reporter;
-  reporter.report({src.data(), src.data() + 3}, "something went wrong");
+  reporter.report<kai::ExpectedEndOfExpressionError>(
+      kai::SourceLocation{src.data(), src.data() + 3});
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->format_error() == "something went wrong");
+  REQUIRE(reporter.errors()[0]->format_error() == "expected end of expression");
   REQUIRE(reporter.errors()[0]->location.text() == "abc");
 }
 
 TEST_CASE("test_error_reporter_records_multiple_errors_in_order") {
   std::string_view src = "abc def";
   kai::ErrorReporter reporter;
-  reporter.report({src.data(), src.data() + 3}, "first error");
-  reporter.report({src.data() + 4, src.data() + 7}, "second error");
+  reporter.report<kai::ExpectedEndOfExpressionError>(
+      kai::SourceLocation{src.data(), src.data() + 3});
+  reporter.report<kai::UnexpectedCharError>(
+      kai::SourceLocation{src.data() + 4, src.data() + 7}, '$');
   REQUIRE(reporter.errors().size() == 2);
-  REQUIRE(reporter.errors()[0]->format_error() == "first error");
+  REQUIRE(reporter.errors()[0]->format_error() == "expected end of expression");
   REQUIRE(reporter.errors()[0]->location.text() == "abc");
-  REQUIRE(reporter.errors()[1]->format_error() == "second error");
+  REQUIRE(reporter.errors()[1]->format_error() == "unexpected character '$'");
   REQUIRE(reporter.errors()[1]->location.text() == "def");
 }
 
-TEST_CASE("test_error_reporter_generic_error_type") {
+TEST_CASE("test_error_reporter_expected_end_of_expression_error_type") {
   std::string_view src = "abc";
   kai::ErrorReporter reporter;
-  reporter.report({src.data(), src.data() + 3}, "something went wrong");
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::Generic);
+  reporter.report<kai::ExpectedEndOfExpressionError>(
+      kai::SourceLocation{src.data(), src.data() + 3});
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedEndOfExpression);
+  const auto* expected_end = dynamic_cast<const kai::ExpectedEndOfExpressionError*>(
+      reporter.errors()[0].get());
+  REQUIRE(expected_end != nullptr);
 }
 
 // --- Lexer + ErrorReporter integration ---

@@ -29,6 +29,7 @@ class Parser {
   std::unique_ptr<ast::Ast> parse_struct_literal();
   std::unique_ptr<ast::Ast> parse_primary();
 
+  ErrorReporter& error_reporter_;
   Lexer lexer_;
 };
 
