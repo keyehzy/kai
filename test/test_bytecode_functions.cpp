@@ -1,6 +1,13 @@
 #include "../catch.hpp"
 #include "test_bytecode_cases.h"
 
+using Type = kai::bytecode::Bytecode::Instruction::Type;
+
+static bool is_single_jump_block(const kai::bytecode::Bytecode::BasicBlock &block) {
+  return block.instructions.size() == 1 &&
+         block.instructions[0]->type() == Type::Jump;
+}
+
 TEST_CASE("test_bytecode_function_declaration") {
     auto program = [] {
       auto decl_body = std::make_unique<Ast::Block>();
@@ -168,4 +175,95 @@ TEST_CASE("test_bytecode_bug_generator_scope_poisoning") {
 
     kai::bytecode::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 10);
+}
+
+TEST_CASE("test_bytecode_function_entry_starts_with_if_without_trampoline_jump") {
+    auto program = [] {
+      auto root = std::make_unique<Ast::Block>();
+
+      auto if_body = std::make_unique<Ast::Block>();
+      if_body->append(ret(lit(1)));
+      auto else_body = std::make_unique<Ast::Block>();
+      else_body->append(ret(lit(2)));
+
+      auto f_body = std::make_unique<Ast::Block>();
+      f_body->append(if_else(lt(var("n"), lit(2)), std::move(if_body), std::move(else_body)));
+      root->append(std::make_unique<Ast::FunctionDeclaration>(
+          "f", std::vector<std::string>{"n"}, std::move(f_body)));
+      root->append(ret(call("f", lit(1))));
+      return std::move(*root);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+
+    kai::bytecode::Bytecode::Label call_label = 0;
+    bool found_call = false;
+    for (const auto &block : gen.blocks()) {
+      for (const auto &instr_ptr : block.instructions) {
+        if (instr_ptr->type() != Type::Call) {
+          continue;
+        }
+        call_label =
+            static_cast<const kai::bytecode::Bytecode::Instruction::Call &>(*instr_ptr).label;
+        found_call = true;
+        break;
+      }
+      if (found_call) {
+        break;
+      }
+    }
+
+    REQUIRE(found_call);
+    REQUIRE(call_label < gen.blocks().size());
+    REQUIRE_FALSE(is_single_jump_block(gen.blocks()[call_label]));
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 1);
+}
+
+TEST_CASE("test_bytecode_function_entry_starts_with_while_without_trampoline_jump") {
+    auto program = [] {
+      auto root = std::make_unique<Ast::Block>();
+
+      auto while_body = std::make_unique<Ast::Block>();
+      while_body->append(inc("n"));
+
+      auto f_body = std::make_unique<Ast::Block>();
+      f_body->append(while_loop(lt(var("n"), lit(0)), std::move(while_body)));
+      f_body->append(ret(var("n")));
+      root->append(std::make_unique<Ast::FunctionDeclaration>(
+          "f", std::vector<std::string>{"n"}, std::move(f_body)));
+      root->append(ret(call("f", lit(1))));
+      return std::move(*root);
+    }();
+
+    kai::bytecode::BytecodeGenerator gen;
+    gen.visit_block(program);
+    gen.finalize();
+
+    kai::bytecode::Bytecode::Label call_label = 0;
+    bool found_call = false;
+    for (const auto &block : gen.blocks()) {
+      for (const auto &instr_ptr : block.instructions) {
+        if (instr_ptr->type() != Type::Call) {
+          continue;
+        }
+        call_label =
+            static_cast<const kai::bytecode::Bytecode::Instruction::Call &>(*instr_ptr).label;
+        found_call = true;
+        break;
+      }
+      if (found_call) {
+        break;
+      }
+    }
+
+    REQUIRE(found_call);
+    REQUIRE(call_label < gen.blocks().size());
+    REQUIRE_FALSE(is_single_jump_block(gen.blocks()[call_label]));
+
+    kai::bytecode::BytecodeInterpreter interp;
+    REQUIRE(interp.interpret(gen.blocks()) == 1);
 }

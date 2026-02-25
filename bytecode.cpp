@@ -712,7 +712,9 @@ void BytecodeGenerator::visit_increment(const Ast::Increment &increment) {
 }
 
 void BytecodeGenerator::visit_if_else(const Ast::IfElse &ifelse) {
-  blocks_.emplace_back();
+  if (!current_block().instructions.empty()) {
+    blocks_.emplace_back();
+  }
   visit(*ifelse.condition);
   auto reg_id = reg_alloc_.current();
   auto &jump_conditional =
@@ -733,7 +735,9 @@ void BytecodeGenerator::visit_if_else(const Ast::IfElse &ifelse) {
 }
 
 void BytecodeGenerator::visit_while(const Ast::While &while_) {
-  blocks_.emplace_back();
+  if (!current_block().instructions.empty()) {
+    blocks_.emplace_back();
+  }
   auto condition_label = current_label();
   visit(*while_.condition);
   auto reg_id = reg_alloc_.current();
