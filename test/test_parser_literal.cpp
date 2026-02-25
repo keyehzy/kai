@@ -468,3 +468,16 @@ TEST_CASE("test_parser_reports_missing_opening_parenthesis_in_while_condition") 
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedOpeningParenthesis);
   REQUIRE(reporter.errors()[0]->format_error() == "expected '(' after 'while', found '1'");
 }
+
+TEST_CASE("test_parser_reports_missing_opening_parenthesis_after_function_name") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("fn add a) { return a; }", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+
+  REQUIRE(program != nullptr);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedOpeningParenthesis);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected '(' after function name 'add' in declaration, found 'a'");
+}

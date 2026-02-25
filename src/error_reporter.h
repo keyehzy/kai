@@ -151,8 +151,16 @@ struct ExpectedOpeningParenthesisError final : public Error {
         break;
       }
       case Ctx::AfterFunctionNameInDeclaration:
-        msg += " after function name in declaration";
+      {
+        const std::string_view function_name_text =
+            context_location.has_value() && !context_location->text().empty()
+                ? context_location->text()
+                : std::string_view("function name");
+        msg += " after function name '";
+        msg += std::string(function_name_text);
+        msg += "' in declaration";
         break;
+      }
     }
 
     const std::string_view found = location.text();
