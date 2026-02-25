@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -47,6 +48,7 @@ struct Error {
     ExpectedEndOfExpression,
     ExpectedExpression,
     ExpectedSemicolon,
+    ExpectedClosingParenthesis,
     ExpectedBlock,
     UnexpectedChar,
   };
@@ -106,6 +108,30 @@ struct ExpectedSemicolonError final : public Error {
 
   std::string format_error() const override {
     std::string msg = "expected ';' after statement";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += " found end of input";
+      return msg;
+    }
+    msg += " found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedClosingParenthesisError final : public Error {
+  std::string context;
+
+  ExpectedClosingParenthesisError(SourceLocation location, std::string context = {})
+      : Error(Type::ExpectedClosingParenthesis, location), context(std::move(context)) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected ')'";
+    if (!context.empty()) {
+      msg += " ";
+      msg += context;
+    }
     const std::string_view found = location.text();
     if (found.empty()) {
       msg += " found end of input";
