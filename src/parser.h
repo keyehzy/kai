@@ -39,8 +39,7 @@ class Parser {
     }
 
     const Token& token = lexer_.peek();
-    error_reporter_.report<ErrorT>(SourceLocation{token.begin, token.end},
-                                   std::forward<Args>(args)...);
+    error_reporter_.report<ErrorT>(token.source_location(), std::forward<Args>(args)...);
     return false;
   }
   void consume_statement_terminator();

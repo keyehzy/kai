@@ -45,30 +45,28 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
 
   if (token_is_identifier(token, "while")) {
     const Token while_token = token;
-    const SourceLocation while_source_location{while_token.begin, while_token.end};
     lexer_.skip();
     consume<ExpectedOpeningParenthesisError>(Token::Type::lparen,
                                              ExpectedOpeningParenthesisError::Ctx::AfterWhile,
-                                             while_source_location);
+                                             while_token.source_location());
     std::unique_ptr<ast::Ast> condition = parse_expression();
     consume<ExpectedClosingParenthesisError>(
         Token::Type::rparen, ExpectedClosingParenthesisError::Ctx::ToCloseWhileCondition,
-        while_source_location);
+        while_token.source_location());
     std::unique_ptr<ast::Ast::Block> body = parse_block(while_token);
     return std::make_unique<ast::Ast::While>(std::move(condition), std::move(body));
   }
 
   if (token_is_identifier(token, "if")) {
     const Token if_token = token;
-    const SourceLocation if_source_location{if_token.begin, if_token.end};
     lexer_.skip();
     consume<ExpectedOpeningParenthesisError>(Token::Type::lparen,
                                              ExpectedOpeningParenthesisError::Ctx::AfterIf,
-                                             if_source_location);
+                                             if_token.source_location());
     std::unique_ptr<ast::Ast> condition = parse_expression();
     consume<ExpectedClosingParenthesisError>(
         Token::Type::rparen, ExpectedClosingParenthesisError::Ctx::ToCloseIfCondition,
-        if_source_location);
+        if_token.source_location());
 
     std::unique_ptr<ast::Ast::Block> body = parse_block(if_token);
     std::unique_ptr<ast::Ast::Block> else_body;
@@ -102,7 +100,7 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
     consume<ExpectedOpeningParenthesisError>(
         Token::Type::lparen,
         ExpectedOpeningParenthesisError::Ctx::AfterFunctionNameInDeclaration,
-        SourceLocation{function_name_token.begin, function_name_token.end});
+        function_name_token.source_location());
     std::vector<std::string> parameters;
     if (lexer_.peek().type != Token::Type::rparen) {
       while (true) {
@@ -140,7 +138,7 @@ void Parser::consume_statement_terminator() {
   }
 
   const Token &token = lexer_.peek();
-  error_reporter_.report<ExpectedSemicolonError>(SourceLocation{token.begin, token.end});
+  error_reporter_.report<ExpectedSemicolonError>(token.source_location());
   while (lexer_.peek().type != Token::Type::end_of_file &&
          lexer_.peek().type != Token::Type::rcurly &&
          lexer_.peek().type != Token::Type::semicolon) {
@@ -155,7 +153,7 @@ std::unique_ptr<ast::Ast::Block> Parser::parse_block(std::optional<Token> block_
   if (lexer_.peek().type != Token::Type::lcurly) {
     const Token &token = lexer_.peek();
     error_reporter_.report<ExpectedBlockError>(
-        SourceLocation{token.begin, token.end}, block_owner,
+        token.source_location(), block_owner,
         ExpectedBlockError::Boundary::OpeningBrace);
     return std::make_unique<ast::Ast::Block>();
   }
@@ -174,7 +172,7 @@ std::unique_ptr<ast::Ast::Block> Parser::parse_block(std::optional<Token> block_
 
   const Token &token = lexer_.peek();
   error_reporter_.report<ExpectedBlockError>(
-      SourceLocation{token.begin, token.end}, block_owner,
+      token.source_location(), block_owner,
       ExpectedBlockError::Boundary::ClosingBrace);
   return block;
 }
@@ -316,8 +314,7 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
     if (lexer_.peek().type == Token::Type::lparen) {
       if (expr->type != ast::Ast::Type::Variable) {
         const Token &token = lexer_.peek();
-        error_reporter_.report<ExpectedExpressionError>(
-            SourceLocation{token.begin, token.end});
+        error_reporter_.report<ExpectedExpressionError>(token.source_location());
         break;
       }
       const std::string callee_name =
@@ -362,8 +359,7 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
     if (lexer_.peek().type == Token::Type::plus_plus) {
       if (expr->type != ast::Ast::Type::Variable) {
         const Token &token = lexer_.peek();
-        error_reporter_.report<ExpectedExpressionError>(
-            SourceLocation{token.begin, token.end});
+        error_reporter_.report<ExpectedExpressionError>(token.source_location());
         lexer_.skip();
         continue;
       }
@@ -437,7 +433,7 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
         std::from_chars(source.data(), source.data() + source.size(), value);
     if (ec != std::errc() || ptr != source.data() + source.size()) {
       error_reporter_.report<ExpectedExpressionError>(
-          SourceLocation{token.begin, token.end});
+          token.source_location());
       lexer_.skip();
       return std::make_unique<ast::Ast::Literal>(0);
     }
@@ -463,7 +459,7 @@ std::unique_ptr<ast::Ast> Parser::parse_primary() {
     return parse_array_literal();
   }
 
-  error_reporter_.report<ExpectedExpressionError>(SourceLocation{token.begin, token.end});
+  error_reporter_.report<ExpectedExpressionError>(token.source_location());
   if (token.type != Token::Type::end_of_file) {
     lexer_.skip();
   }

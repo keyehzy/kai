@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include "source_location.h"
+
 namespace kai {
 struct Token {
   enum class Type {
@@ -44,6 +46,7 @@ struct Token {
   const char* end;
 
   std::string_view sv() const { return std::string_view(begin, end - begin); }
+  SourceLocation source_location() const { return SourceLocation{begin, end}; }
 
   Token() = default;
 };

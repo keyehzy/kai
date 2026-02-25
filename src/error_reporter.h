@@ -12,16 +12,6 @@
 
 namespace kai {
 
-// A half-open byte range [begin, end) into the original source string.
-struct SourceLocation {
-  const char* begin;
-  const char* end;
-
-  std::string_view text() const {
-    return {begin, static_cast<size_t>(end - begin)};
-  }
-};
-
 // Line and column numbers (both 1-based) for a position in source.
 struct LineColumn {
   int line;
