@@ -1,5 +1,5 @@
-#include "../catch.hpp"
-#include "../optimizer.h"
+#include "catch.hpp"
+#include "../src/optimizer.h"
 #include "test_bytecode_cases.h"
 
 #include <functional>

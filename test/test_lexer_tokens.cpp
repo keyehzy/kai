@@ -1,5 +1,5 @@
-#include "../catch.hpp"
-#include "../lexer.h"
+#include "catch.hpp"
+#include "../src/lexer.h"
 
 #include <cstddef>
 #include <utility>

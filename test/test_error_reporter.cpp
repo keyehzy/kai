@@ -1,6 +1,6 @@
-#include "../catch.hpp"
-#include "../error_reporter.h"
-#include "../lexer.h"
+#include "catch.hpp"
+#include "../src/error_reporter.h"
+#include "../src/lexer.h"
 
 using kai::Lexer;
 using kai::Token;

@@ -1,4 +1,4 @@
-#include "../catch.hpp"
+#include "catch.hpp"
 #include "test_bytecode_cases.h"
 
 using Type = kai::bytecode::Bytecode::Instruction::Type;

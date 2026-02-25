@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../ast.h"
-#include "../bytecode.h"
+#include "../src/ast.h"
+#include "../src/bytecode.h"
 
 #include <initializer_list>
 

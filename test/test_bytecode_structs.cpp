@@ -1,4 +1,4 @@
-#include "../catch.hpp"
+#include "catch.hpp"
 #include "test_bytecode_cases.h"
 
 TEST_CASE("test_bytecode_struct_field_access_minimal") {

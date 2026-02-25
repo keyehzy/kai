@@ -1,6 +1,6 @@
-#include "../ast.h"
-#include "../catch.hpp"
-#include "../parser.h"
+#include "../src/ast.h"
+#include "catch.hpp"
+#include "../src/parser.h"
 
 using namespace kai::ast;
 

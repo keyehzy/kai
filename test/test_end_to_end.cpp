@@ -1,8 +1,8 @@
-#include "../ast.h"
-#include "../bytecode.h"
-#include "../catch.hpp"
-#include "../optimizer.h"
-#include "../parser.h"
+#include "../src/ast.h"
+#include "../src/bytecode.h"
+#include "catch.hpp"
+#include "../src/optimizer.h"
+#include "../src/parser.h"
 
 TEST_CASE("test_parser_expression_end_to_end_literal_42") {
   kai::ErrorReporter reporter;

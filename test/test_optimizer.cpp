@@ -1,6 +1,6 @@
-#include "../catch.hpp"
-#include "../bytecode.h"
-#include "../optimizer.h"
+#include "catch.hpp"
+#include "../src/bytecode.h"
+#include "../src/optimizer.h"
 #include "test_bytecode_cases.h"
 
 using namespace kai::bytecode;
