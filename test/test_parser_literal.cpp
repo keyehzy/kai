@@ -403,6 +403,6 @@ TEST_CASE("test_parser_reports_expected_expression_for_standalone_semicolon") {
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected expression");
+  REQUIRE(reporter.errors()[0]->format_error() == "expected expression found ';'");
   REQUIRE(reporter.errors()[0]->location.text() == ";");
 }

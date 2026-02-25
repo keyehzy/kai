@@ -83,7 +83,18 @@ struct ExpectedExpressionError final : public Error {
   explicit ExpectedExpressionError(SourceLocation location)
       : Error(Type::ExpectedExpression, location) {}
 
-  std::string format_error() const override { return "expected expression"; }
+  std::string format_error() const override {
+    std::string msg = "expected expression";
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += " found end of input";
+      return msg;
+    }
+    msg += " found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
 };
 
 struct ExpectedSemicolonError final : public Error {

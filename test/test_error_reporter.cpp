@@ -113,7 +113,7 @@ TEST_CASE("test_error_reporter_expected_expression_error_type") {
   reporter.report<kai::ExpectedExpressionError>(
       kai::SourceLocation{src.data(), src.data() + 1});
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedExpression);
-  REQUIRE(reporter.errors()[0]->format_error() == "expected expression");
+  REQUIRE(reporter.errors()[0]->format_error() == "expected expression found ';'");
 }
 
 TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
