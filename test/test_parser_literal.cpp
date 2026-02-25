@@ -433,6 +433,20 @@ TEST_CASE("test_parser_reports_expected_variable_before_postfix_increment") {
           "expected variable before postfix '++', found '++'");
 }
 
+TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_index_expression") {
+  kai::ErrorReporter reporter;
+  kai::Parser parser("value[1", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Index);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ']' to close index expression, found end of input");
+}
+
 TEST_CASE("test_parser_reports_invalid_numeric_literal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("99999999999999999999999999999999999999", reporter);

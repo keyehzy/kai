@@ -42,6 +42,7 @@ struct Error {
     ExpectedSemicolon,
     ExpectedOpeningParenthesis,
     ExpectedClosingParenthesis,
+    ExpectedClosingSquareBracket,
     ExpectedBlock,
     UnexpectedChar,
   };
@@ -279,6 +280,36 @@ struct ExpectedClosingParenthesisError final : public Error {
         break;
       case Ctx::ToCloseGroupedExpression:
         msg += " to close grouped expression";
+        break;
+    }
+
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedClosingSquareBracketError final : public Error {
+  enum class Ctx {
+    ToCloseIndexExpression,
+  };
+
+  Ctx ctx;
+
+  ExpectedClosingSquareBracketError(SourceLocation location, Ctx ctx)
+      : Error(Type::ExpectedClosingSquareBracket, location), ctx(ctx) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected ']'";
+    switch (ctx) {
+      case Ctx::ToCloseIndexExpression:
+        msg += " to close index expression";
         break;
     }
 

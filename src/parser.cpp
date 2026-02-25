@@ -342,8 +342,9 @@ std::unique_ptr<ast::Ast> Parser::parse_postfix() {
     if (lexer_.peek().type == Token::Type::lsquare) {
       lexer_.skip();
       std::unique_ptr<ast::Ast> index = parse_expression();
-      assert(lexer_.peek().type == Token::Type::rsquare);
-      lexer_.skip();
+      consume<ExpectedClosingSquareBracketError>(
+          Token::Type::rsquare,
+          ExpectedClosingSquareBracketError::Ctx::ToCloseIndexExpression);
       expr = std::make_unique<ast::Ast::Index>(std::move(expr), std::move(index));
       continue;
     }

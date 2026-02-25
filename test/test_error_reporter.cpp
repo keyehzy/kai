@@ -147,6 +147,17 @@ TEST_CASE("test_error_reporter_expected_semicolon_error_type") {
           "expected ';' after statement, found '2'");
 }
 
+TEST_CASE("test_error_reporter_expected_closing_square_bracket_error_type") {
+  std::string_view src = ";";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedClosingSquareBracketError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedClosingSquareBracketError::Ctx::ToCloseIndexExpression);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected ']' to close index expression, found ';'");
+}
+
 // --- Lexer + ErrorReporter integration ---
 
 TEST_CASE("test_lexer_no_errors_for_valid_source") {
