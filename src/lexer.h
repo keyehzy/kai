@@ -234,22 +234,14 @@ private:
     // TODO: add minus_minus (--) to mirror plus_plus (++)
     // TODO: add ampersand_ampersand (&&) and pipe_pipe (||) for logical AND/OR
     default:
-      report_unexpected_char(input_[0]);
+      error_reporter_.report<UnexpectedCharError>(SourceLocation{input_, input_ + 1},
+                                                  input_[0]);
       last_token_.type = Token::Type::unknown;
       last_token_.begin = input_;
       ++input_;
       last_token_.end = input_;
       break;
     }
-  }
-
-
-  void report_unexpected_char(char ch) {
-    SourceLocation loc{input_, input_ + 1};
-    std::string msg = "unexpected character '";
-    msg += ch;
-    msg += "'";
-    error_reporter_.report(loc, std::move(msg));
   }
 
   Token last_token_;

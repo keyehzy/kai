@@ -1,7 +1,10 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace kai {
@@ -38,22 +41,63 @@ inline LineColumn line_column(std::string_view source, const char* pos) {
 }
 
 struct Error {
+  enum class Type {
+    Generic,
+    UnexpectedChar,
+  };
+
+  Type type;
   SourceLocation location;
+
+  Error(Type type, SourceLocation location) : type(type), location(location) {}
+
+  virtual ~Error() = default;
+
+  virtual std::string format_error() const = 0;
+};
+
+struct GenericError final : public Error {
   std::string message;
+
+  GenericError(SourceLocation location, std::string message)
+      : Error(Type::Generic, location), message(std::move(message)) {}
+
+  std::string format_error() const override { return message; }
+};
+
+struct UnexpectedCharError final : public Error {
+  char ch;
+
+  UnexpectedCharError(SourceLocation location, char ch)
+      : Error(Type::UnexpectedChar, location), ch(ch) {}
+
+  std::string format_error() const override {
+    std::string msg = "unexpected character '";
+    msg += ch;
+    msg += "'";
+    return msg;
+  }
 };
 
 class ErrorReporter {
  public:
+  template <typename ErrorT, typename... Args>
+  void report(Args&&... args) {
+    static_assert(std::is_base_of_v<Error, ErrorT>,
+                  "ErrorReporter::report requires an Error subtype");
+    errors_.push_back(std::make_unique<ErrorT>(std::forward<Args>(args)...));
+  }
+
   void report(SourceLocation location, std::string message) {
-    errors_.push_back({location, std::move(message)});
+    report<GenericError>(location, std::move(message));
   }
 
   bool has_errors() const { return !errors_.empty(); }
 
-  const std::vector<Error>& errors() const { return errors_; }
+  const std::vector<std::unique_ptr<Error>>& errors() const { return errors_; }
 
  private:
-  std::vector<Error> errors_;
+  std::vector<std::unique_ptr<Error>> errors_;
 };
 
 }  // namespace kai

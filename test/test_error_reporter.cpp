@@ -77,8 +77,8 @@ TEST_CASE("test_error_reporter_records_single_error") {
   reporter.report({src.data(), src.data() + 3}, "something went wrong");
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0].message == "something went wrong");
-  REQUIRE(reporter.errors()[0].location.text() == "abc");
+  REQUIRE(reporter.errors()[0]->format_error() == "something went wrong");
+  REQUIRE(reporter.errors()[0]->location.text() == "abc");
 }
 
 TEST_CASE("test_error_reporter_records_multiple_errors_in_order") {
@@ -87,10 +87,17 @@ TEST_CASE("test_error_reporter_records_multiple_errors_in_order") {
   reporter.report({src.data(), src.data() + 3}, "first error");
   reporter.report({src.data() + 4, src.data() + 7}, "second error");
   REQUIRE(reporter.errors().size() == 2);
-  REQUIRE(reporter.errors()[0].message == "first error");
-  REQUIRE(reporter.errors()[0].location.text() == "abc");
-  REQUIRE(reporter.errors()[1].message == "second error");
-  REQUIRE(reporter.errors()[1].location.text() == "def");
+  REQUIRE(reporter.errors()[0]->format_error() == "first error");
+  REQUIRE(reporter.errors()[0]->location.text() == "abc");
+  REQUIRE(reporter.errors()[1]->format_error() == "second error");
+  REQUIRE(reporter.errors()[1]->location.text() == "def");
+}
+
+TEST_CASE("test_error_reporter_generic_error_type") {
+  std::string_view src = "abc";
+  kai::ErrorReporter reporter;
+  reporter.report({src.data(), src.data() + 3}, "something went wrong");
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::Generic);
 }
 
 // --- Lexer + ErrorReporter integration ---
@@ -118,21 +125,32 @@ TEST_CASE("test_lexer_reports_unknown_character_message") {
   std::string src = "@";
   kai::ErrorReporter reporter;
   Lexer lexer(src, reporter);
-  REQUIRE(reporter.errors()[0].message == "unexpected character '@'");
+  REQUIRE(reporter.errors()[0]->format_error() == "unexpected character '@'");
+}
+
+TEST_CASE("test_lexer_reports_unexpected_char_error_type") {
+  std::string src = "@";
+  kai::ErrorReporter reporter;
+  Lexer lexer(src, reporter);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::UnexpectedChar);
+  const auto* unexpected =
+      dynamic_cast<const kai::UnexpectedCharError*>(reporter.errors()[0].get());
+  REQUIRE(unexpected != nullptr);
+  REQUIRE(unexpected->ch == '@');
 }
 
 TEST_CASE("test_lexer_reports_unknown_character_as_single_char_span") {
   std::string src = "@";
   kai::ErrorReporter reporter;
   Lexer lexer(src, reporter);
-  REQUIRE(reporter.errors()[0].location.text() == "@");
+  REQUIRE(reporter.errors()[0]->location.text() == "@");
 }
 
 TEST_CASE("test_lexer_reports_unknown_character_line_column") {
   std::string src = "@";
   kai::ErrorReporter reporter;
   Lexer lexer(src, reporter);
-  auto lc = kai::line_column(src, reporter.errors()[0].location.begin);
+  auto lc = kai::line_column(src, reporter.errors()[0]->location.begin);
   REQUIRE(lc.line == 1);
   REQUIRE(lc.column == 1);
 }
@@ -146,8 +164,8 @@ TEST_CASE("test_lexer_reports_unknown_character_mid_source") {
   lexer.skip();  // advance past "abc"; next token will be '@'
   REQUIRE(lexer.peek().type == Token::Type::unknown);
   REQUIRE(reporter.has_errors());
-  REQUIRE(reporter.errors()[0].location.text() == "@");
-  auto lc = kai::line_column(src, reporter.errors()[0].location.begin);
+  REQUIRE(reporter.errors()[0]->location.text() == "@");
+  auto lc = kai::line_column(src, reporter.errors()[0]->location.begin);
   REQUIRE(lc.line == 1);
   REQUIRE(lc.column == 5);
 }
@@ -177,8 +195,8 @@ TEST_CASE("test_lexer_reports_unknown_character_on_second_line") {
   }
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0].location.text() == "@");
-  auto lc = kai::line_column(src, reporter.errors()[0].location.begin);
+  REQUIRE(reporter.errors()[0]->location.text() == "@");
+  auto lc = kai::line_column(src, reporter.errors()[0]->location.begin);
   REQUIRE(lc.line == 2);
   REQUIRE(lc.column == 1);
 }
@@ -192,6 +210,6 @@ TEST_CASE("test_lexer_reports_multiple_unknown_characters") {
   lexer.skip();
   // '$' reported on skip
   REQUIRE(reporter.errors().size() == 2);
-  REQUIRE(reporter.errors()[0].location.text() == "@");
-  REQUIRE(reporter.errors()[1].location.text() == "$");
+  REQUIRE(reporter.errors()[0]->location.text() == "@");
+  REQUIRE(reporter.errors()[1]->location.text() == "$");
 }

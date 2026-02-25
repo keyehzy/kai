@@ -63,8 +63,9 @@ std::unique_ptr<kai::ast::Ast::Block> parse_program(const std::string &source) {
   kai::Parser parser(source, reporter);
   auto program = parser.parse_program();
   for (const auto &error : reporter.errors()) {
-    const auto lc = kai::line_column(source, error.location.begin);
-    std::cerr << lc.line << ":" << lc.column << ": error: " << error.message << "\n";
+    const auto lc = kai::line_column(source, error->location.begin);
+    std::cerr << lc.line << ":" << lc.column << ": error: " << error->format_error()
+              << "\n";
   }
   return program;
 }
