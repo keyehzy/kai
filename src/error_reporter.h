@@ -39,6 +39,7 @@ struct Error {
     ExpectedVariable,
     InvalidAssignmentTarget,
     ExpectedIdentifier,
+    ExpectedFunctionIdentifier,
     ExpectedLetVariableName,
     InvalidNumericLiteral,
     ExpectedPrimaryExpression,
@@ -150,6 +151,40 @@ struct ExpectedIdentifierError final : public Error {
     switch (ctx) {
       case Ctx::AfterDotInFieldAccess:
         msg += " after '.' in field access";
+        break;
+    }
+
+    const std::string_view found = location.text();
+    if (found.empty()) {
+      msg += ", found end of input";
+      return msg;
+    }
+    msg += ", found '";
+    msg += std::string(found);
+    msg += "'";
+    return msg;
+  }
+};
+
+struct ExpectedFunctionIdentifierError final : public Error {
+  enum class Ctx {
+    AfterFnKeyword,
+    InParameterList,
+  };
+
+  Ctx ctx;
+
+  ExpectedFunctionIdentifierError(SourceLocation location, Ctx ctx)
+      : Error(Type::ExpectedFunctionIdentifier, location), ctx(ctx) {}
+
+  std::string format_error() const override {
+    std::string msg = "expected ";
+    switch (ctx) {
+      case Ctx::AfterFnKeyword:
+        msg += "function name after 'fn'";
+        break;
+      case Ctx::InParameterList:
+        msg += "parameter name in function declaration";
         break;
     }
 

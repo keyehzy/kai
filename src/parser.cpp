@@ -108,19 +108,43 @@ std::unique_ptr<ast::Ast> Parser::parse_statement() {
   if (token_is_identifier(token, "fn")) {
     const Token fn_token = token;
     lexer_.skip();
-    assert(lexer_.peek().type == Token::Type::identifier);
-    const Token function_name_token = lexer_.peek();
-    const std::string name(lexer_.peek().sv());
-    lexer_.skip();
+    std::string name;
+    std::optional<SourceLocation> function_name_location;
+    if (lexer_.peek().type != Token::Type::identifier) {
+      const Token& missing_name_token = lexer_.peek();
+      error_reporter_.report<ExpectedFunctionIdentifierError>(
+          missing_name_token.source_location(),
+          ExpectedFunctionIdentifierError::Ctx::AfterFnKeyword);
+    } else {
+      const Token function_name_token = lexer_.peek();
+      function_name_location = function_name_token.source_location();
+      name = std::string(function_name_token.sv());
+      lexer_.skip();
+    }
 
     consume<ExpectedOpeningParenthesisError>(
         Token::Type::lparen,
         ExpectedOpeningParenthesisError::Ctx::AfterFunctionNameInDeclaration,
-        function_name_token.source_location());
+        function_name_location);
     std::vector<std::string> parameters;
     if (lexer_.peek().type != Token::Type::rparen) {
       while (true) {
-        assert(lexer_.peek().type == Token::Type::identifier);
+        if (lexer_.peek().type != Token::Type::identifier) {
+          const Token& token = lexer_.peek();
+          error_reporter_.report<ExpectedFunctionIdentifierError>(
+              token.source_location(),
+              ExpectedFunctionIdentifierError::Ctx::InParameterList);
+          while (lexer_.peek().type != Token::Type::end_of_file &&
+                 lexer_.peek().type != Token::Type::rparen &&
+                 lexer_.peek().type != Token::Type::comma) {
+            lexer_.skip();
+          }
+          if (lexer_.peek().type == Token::Type::comma) {
+            lexer_.skip();
+            continue;
+          }
+          break;
+        }
         parameters.emplace_back(lexer_.peek().sv());
         lexer_.skip();
         if (lexer_.peek().type != Token::Type::comma) {

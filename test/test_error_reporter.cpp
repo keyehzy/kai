@@ -148,6 +148,17 @@ TEST_CASE("test_error_reporter_expected_identifier_error_with_context") {
           "expected identifier after '.' in field access, found ';'");
 }
 
+TEST_CASE("test_error_reporter_expected_function_identifier_error_after_fn_keyword") {
+  std::string_view src = "(";
+  kai::ErrorReporter reporter;
+  reporter.report<kai::ExpectedFunctionIdentifierError>(
+      kai::SourceLocation{src.data(), src.data() + 1},
+      kai::ExpectedFunctionIdentifierError::Ctx::AfterFnKeyword);
+  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedFunctionIdentifier);
+  REQUIRE(reporter.errors()[0]->format_error() ==
+          "expected function name after 'fn', found '('");
+}
+
 TEST_CASE("test_error_reporter_invalid_numeric_literal_error_type") {
   std::string_view src = "99999999999999999999999999999999999999";
   kai::ErrorReporter reporter;
