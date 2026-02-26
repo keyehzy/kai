@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,10 +18,10 @@ public:
   void push_scope();
   void pop_scope();
   void bind_variable(const std::string& name, Shape* shape);
-  Shape** lookup_variable(const std::string& name);
+  std::optional<Shape*> lookup_variable(const std::string& name);
 
   void declare_function(const std::string& name, size_t arity);
-  size_t* lookup_function(const std::string& name);
+  std::optional<size_t> lookup_function(const std::string& name);
 
 private:
   std::vector<std::unordered_map<std::string, Shape*>> var_scopes_;

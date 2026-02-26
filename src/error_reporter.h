@@ -304,11 +304,17 @@ struct ExpectedBlockError final : public Error {
 
 // Type mismatch: the checker expected one type but found another.
 struct TypeMismatchError final : public Error {
+  enum class Ctx {
+    Assignment,  // RHS shape is incompatible with the declared variable shape.
+  };
+
+  Ctx ctx;
   std::string expected;
   std::string got;
 
-  TypeMismatchError(SourceLocation location, std::string expected, std::string got)
+  TypeMismatchError(SourceLocation location, Ctx ctx, std::string expected, std::string got)
       : Error(Type::TypeMismatch, location),
+        ctx(ctx),
         expected(std::move(expected)),
         got(std::move(got)) {}
 

@@ -5,6 +5,20 @@
 
 namespace kai {
 
+namespace {
+
+bool shapes_compatible(const Shape* a, const Shape* b) {
+  if (a->kind == Shape::Kind::Unknown || b->kind == Shape::Kind::Unknown) return true;
+  if (a->kind != b->kind) return false;
+  if (a->kind == Shape::Kind::Struct_Literal) {
+    return derived_cast<const Shape::Struct_Literal&>(*a).fields_ ==
+           derived_cast<const Shape::Struct_Literal&>(*b).fields_;
+  }
+  return true;
+}
+
+}  // namespace
+
 TypeChecker::TypeChecker(ErrorReporter& reporter) : reporter_(reporter) {
   env_.push_scope();
 }
@@ -33,23 +47,23 @@ void Env::bind_variable(const std::string& name, Shape* shape) {
   var_scopes_.back()[name] = shape;
 }
 
-Shape** Env::lookup_variable(const std::string& name) {
+std::optional<Shape*> Env::lookup_variable(const std::string& name) {
   for (auto it = var_scopes_.rbegin(); it != var_scopes_.rend(); ++it) {
     auto found = it->find(name);
     if (found != it->end()) {
-      return &found->second;
+      return found->second;
     }
   }
-  return nullptr;
+  return std::nullopt;
 }
 
 void Env::declare_function(const std::string& name, size_t arity) {
   functions_[name] = arity;
 }
 
-size_t* Env::lookup_function(const std::string& name) {
+std::optional<size_t> Env::lookup_function(const std::string& name) {
   auto it = functions_.find(name);
-  return it != functions_.end() ? &it->second : nullptr;
+  return it != functions_.end() ? std::make_optional(it->second) : std::nullopt;
 }
 
 void TypeChecker::visit_block(const Ast::Block& block) {
@@ -129,8 +143,9 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
       auto target = env_.lookup_variable(assignment.name);
       if (!target) {
         reporter_.report<UndefinedVariableError>(no_loc(), assignment.name);
-      } else {
-        *target = value;
+      } else if (!shapes_compatible(*target, value)) {
+        reporter_.report<TypeMismatchError>(
+            no_loc(), TypeMismatchError::Ctx::Assignment, (*target)->describe(), value->describe());
       }
       return value;
     }
@@ -141,7 +156,7 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
         static_cast<void>(visit_expression(arg.get()));
       }
 
-      size_t* arity = env_.lookup_function(call.name);
+      auto arity = env_.lookup_function(call.name);
       if (!arity) {
         reporter_.report<UndefinedFunctionError>(no_loc(), call.name);
         return make_shape<Shape::Unknown>();

@@ -257,12 +257,11 @@ std::string ExpectedBlockError::format_error() const {
 // ---------------------------------------------------------------------------
 
 std::string TypeMismatchError::format_error() const {
-  std::string msg = "type mismatch: expected '";
-  msg += expected;
-  msg += "', got '";
-  msg += got;
-  msg += "'";
-  return msg;
+  switch (ctx) {
+    case Ctx::Assignment:
+      return "type mismatch in assignment: cannot assign '" + got +
+             "' to variable declared as '" + expected + "'";
+  }
 }
 
 std::string UndefinedVariableError::format_error() const {
