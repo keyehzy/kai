@@ -14,7 +14,7 @@ TEST_CASE("tco_rewrites_call_followed_by_return") {
   blocks[1].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.tail_call_optimization(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
@@ -38,10 +38,9 @@ TEST_CASE("tco_does_not_rewrite_when_return_register_differs") {
   blocks[1].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.tail_call_optimization(blocks);
 
   REQUIRE(blocks[0].instructions[1]->type() == Type::Call);
   REQUIRE(blocks[0].instructions[2]->type() == Type::Return);
 }
-
 
