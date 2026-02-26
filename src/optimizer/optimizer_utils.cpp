@@ -78,6 +78,9 @@ std::optional<Register> get_dst_reg(const Bytecode::Instruction &instr) {
       return derived_cast<const Bytecode::Instruction::LogicalNot &>(instr).dst;
     case Type::Jump:
     case Type::JumpConditional:
+    case Type::JumpEqualImmediate:
+    case Type::JumpGreaterThanImmediate:
+    case Type::JumpLessThanOrEqual:
     case Type::TailCall:
     case Type::Return:
     case Type::ArrayStore:

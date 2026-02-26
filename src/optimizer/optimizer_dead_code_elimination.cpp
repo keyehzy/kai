@@ -85,6 +85,25 @@ void BytecodeOptimizer::dead_code_elimination(
           live.insert(jc.cond);
           break;
         }
+        case Type::JumpEqualImmediate: {
+          const auto &jump_equal_imm =
+              derived_cast<const Bytecode::Instruction::JumpEqualImmediate &>(instr);
+          live.insert(jump_equal_imm.src);
+          break;
+        }
+        case Type::JumpGreaterThanImmediate: {
+          const auto &jump_greater_than_imm =
+              derived_cast<const Bytecode::Instruction::JumpGreaterThanImmediate &>(instr);
+          live.insert(jump_greater_than_imm.lhs);
+          break;
+        }
+        case Type::JumpLessThanOrEqual: {
+          const auto &jump_less_than_or_equal =
+              derived_cast<const Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          live.insert(jump_less_than_or_equal.lhs);
+          live.insert(jump_less_than_or_equal.rhs);
+          break;
+        }
         case Type::Call: {
           const auto &c =
               derived_cast<const Bytecode::Instruction::Call &>(instr);
@@ -269,6 +288,9 @@ void BytecodeOptimizer::dead_code_elimination(
       switch (instr.type()) {
         case Type::Jump:
         case Type::JumpConditional:
+        case Type::JumpEqualImmediate:
+        case Type::JumpGreaterThanImmediate:
+        case Type::JumpLessThanOrEqual:
         case Type::Return:
         case Type::Call:
         case Type::TailCall:

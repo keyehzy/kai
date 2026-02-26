@@ -14,6 +14,9 @@ bool is_terminator_type(Type type) {
   switch (type) {
     case Type::Jump:
     case Type::JumpConditional:
+    case Type::JumpEqualImmediate:
+    case Type::JumpGreaterThanImmediate:
+    case Type::JumpLessThanOrEqual:
     case Type::Return:
     case Type::TailCall:
       return true;
@@ -79,6 +82,20 @@ void BytecodeOptimizer::cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks) {
         auto &jump_cond = derived_cast<Bytecode::Instruction::JumpConditional &>(instr);
         jump_cond.label1 = resolve_jump_target(jump_cond.label1);
         jump_cond.label2 = resolve_jump_target(jump_cond.label2);
+      } else if (instr.type() == Type::JumpEqualImmediate) {
+        auto &jump_equal_imm =
+            derived_cast<Bytecode::Instruction::JumpEqualImmediate &>(instr);
+        jump_equal_imm.label1 = resolve_jump_target(jump_equal_imm.label1);
+        jump_equal_imm.label2 = resolve_jump_target(jump_equal_imm.label2);
+      } else if (instr.type() == Type::JumpGreaterThanImmediate) {
+        auto &jump_greater_than_imm =
+            derived_cast<Bytecode::Instruction::JumpGreaterThanImmediate &>(instr);
+        jump_greater_than_imm.label1 = resolve_jump_target(jump_greater_than_imm.label1);
+        jump_greater_than_imm.label2 = resolve_jump_target(jump_greater_than_imm.label2);
+      } else if (instr.type() == Type::JumpLessThanOrEqual) {
+        auto &jump_lte = derived_cast<Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+        jump_lte.label1 = resolve_jump_target(jump_lte.label1);
+        jump_lte.label2 = resolve_jump_target(jump_lte.label2);
       }
     }
   }
@@ -112,6 +129,39 @@ void BytecodeOptimizer::cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks) {
           }
           if (jump_cond.label2 < blocks.size()) {
             worklist.push_back(jump_cond.label2);
+          }
+          break;
+        }
+        case Type::JumpEqualImmediate: {
+          const auto &jump_equal_imm =
+              derived_cast<const Bytecode::Instruction::JumpEqualImmediate &>(instr);
+          if (jump_equal_imm.label1 < blocks.size()) {
+            worklist.push_back(jump_equal_imm.label1);
+          }
+          if (jump_equal_imm.label2 < blocks.size()) {
+            worklist.push_back(jump_equal_imm.label2);
+          }
+          break;
+        }
+        case Type::JumpGreaterThanImmediate: {
+          const auto &jump_greater_than_imm =
+              derived_cast<const Bytecode::Instruction::JumpGreaterThanImmediate &>(instr);
+          if (jump_greater_than_imm.label1 < blocks.size()) {
+            worklist.push_back(jump_greater_than_imm.label1);
+          }
+          if (jump_greater_than_imm.label2 < blocks.size()) {
+            worklist.push_back(jump_greater_than_imm.label2);
+          }
+          break;
+        }
+        case Type::JumpLessThanOrEqual: {
+          const auto &jump_lte =
+              derived_cast<const Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          if (jump_lte.label1 < blocks.size()) {
+            worklist.push_back(jump_lte.label1);
+          }
+          if (jump_lte.label2 < blocks.size()) {
+            worklist.push_back(jump_lte.label2);
           }
           break;
         }
@@ -181,6 +231,26 @@ void BytecodeOptimizer::cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks) {
           auto &jump_cond = derived_cast<Bytecode::Instruction::JumpConditional &>(instr);
           jump_cond.label1 = remap_label(jump_cond.label1);
           jump_cond.label2 = remap_label(jump_cond.label2);
+          break;
+        }
+        case Type::JumpEqualImmediate: {
+          auto &jump_equal_imm =
+              derived_cast<Bytecode::Instruction::JumpEqualImmediate &>(instr);
+          jump_equal_imm.label1 = remap_label(jump_equal_imm.label1);
+          jump_equal_imm.label2 = remap_label(jump_equal_imm.label2);
+          break;
+        }
+        case Type::JumpGreaterThanImmediate: {
+          auto &jump_greater_than_imm =
+              derived_cast<Bytecode::Instruction::JumpGreaterThanImmediate &>(instr);
+          jump_greater_than_imm.label1 = remap_label(jump_greater_than_imm.label1);
+          jump_greater_than_imm.label2 = remap_label(jump_greater_than_imm.label2);
+          break;
+        }
+        case Type::JumpLessThanOrEqual: {
+          auto &jump_lte = derived_cast<Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          jump_lte.label1 = remap_label(jump_lte.label1);
+          jump_lte.label2 = remap_label(jump_lte.label2);
           break;
         }
         case Type::Call: {

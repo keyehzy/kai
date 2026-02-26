@@ -12,6 +12,9 @@ void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
   // Pass 1: within-block copy propagation.
   copy_propagation(blocks);
 
+  // Pass 1.25: fuse compare + branch pairs.
+  fuse_compare_branches(blocks);
+
   // Pass 1.5: aggregate literal folding.
   fold_aggregate_literals(blocks);
 

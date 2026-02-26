@@ -175,6 +175,33 @@ void BytecodeOptimizer::loop_invariant_code_motion(
       if (static_cast<size_t>(jc.label2) <= i) {
         loops.push_back({static_cast<size_t>(jc.label2), i});
       }
+    } else if (last.type() == Type::JumpEqualImmediate) {
+      const auto &jump_equal_imm =
+          derived_cast<const Bytecode::Instruction::JumpEqualImmediate &>(last);
+      if (static_cast<size_t>(jump_equal_imm.label1) <= i) {
+        loops.push_back({static_cast<size_t>(jump_equal_imm.label1), i});
+      }
+      if (static_cast<size_t>(jump_equal_imm.label2) <= i) {
+        loops.push_back({static_cast<size_t>(jump_equal_imm.label2), i});
+      }
+    } else if (last.type() == Type::JumpGreaterThanImmediate) {
+      const auto &jump_greater_than_imm =
+          derived_cast<const Bytecode::Instruction::JumpGreaterThanImmediate &>(last);
+      if (static_cast<size_t>(jump_greater_than_imm.label1) <= i) {
+        loops.push_back({static_cast<size_t>(jump_greater_than_imm.label1), i});
+      }
+      if (static_cast<size_t>(jump_greater_than_imm.label2) <= i) {
+        loops.push_back({static_cast<size_t>(jump_greater_than_imm.label2), i});
+      }
+    } else if (last.type() == Type::JumpLessThanOrEqual) {
+      const auto &jump_lte =
+          derived_cast<const Bytecode::Instruction::JumpLessThanOrEqual &>(last);
+      if (static_cast<size_t>(jump_lte.label1) <= i) {
+        loops.push_back({static_cast<size_t>(jump_lte.label1), i});
+      }
+      if (static_cast<size_t>(jump_lte.label2) <= i) {
+        loops.push_back({static_cast<size_t>(jump_lte.label2), i});
+      }
     }
   }
 
@@ -224,7 +251,10 @@ void BytecodeOptimizer::loop_invariant_code_motion(
           if (!pre_header.instructions.empty()) {
             const auto last_type = pre_header.instructions.back()->type();
             if (last_type == Type::Jump || last_type == Type::JumpConditional ||
-                last_type == Type::Return) {
+                last_type == Type::JumpEqualImmediate ||
+                last_type == Type::JumpGreaterThanImmediate ||
+                last_type == Type::JumpLessThanOrEqual || last_type == Type::Return ||
+                last_type == Type::TailCall) {
               --insert_it;
             }
           }

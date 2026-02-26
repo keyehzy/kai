@@ -91,6 +91,20 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
         case Type::JumpConditional:
           track(derived_cast<const Bytecode::Instruction::JumpConditional &>(instr).cond);
           break;
+        case Type::JumpEqualImmediate:
+          track(derived_cast<const Bytecode::Instruction::JumpEqualImmediate &>(instr).src);
+          break;
+        case Type::JumpGreaterThanImmediate:
+          track(
+              derived_cast<const Bytecode::Instruction::JumpGreaterThanImmediate &>(instr).lhs);
+          break;
+        case Type::JumpLessThanOrEqual: {
+          const auto &jump_lte =
+              derived_cast<const Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          track(jump_lte.lhs);
+          track(jump_lte.rhs);
+          break;
+        }
         case Type::Call: {
           const auto &c = derived_cast<const Bytecode::Instruction::Call &>(instr);
           track(c.dst);
@@ -384,6 +398,24 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
         case Type::JumpConditional: {
           auto &jc = derived_cast<Bytecode::Instruction::JumpConditional &>(instr);
           jc.cond = remap(jc.cond);
+          break;
+        }
+        case Type::JumpEqualImmediate: {
+          auto &jump_equal_imm =
+              derived_cast<Bytecode::Instruction::JumpEqualImmediate &>(instr);
+          jump_equal_imm.src = remap(jump_equal_imm.src);
+          break;
+        }
+        case Type::JumpGreaterThanImmediate: {
+          auto &jump_greater_than_imm =
+              derived_cast<Bytecode::Instruction::JumpGreaterThanImmediate &>(instr);
+          jump_greater_than_imm.lhs = remap(jump_greater_than_imm.lhs);
+          break;
+        }
+        case Type::JumpLessThanOrEqual: {
+          auto &jump_lte = derived_cast<Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          jump_lte.lhs = remap(jump_lte.lhs);
+          jump_lte.rhs = remap(jump_lte.rhs);
           break;
         }
         case Type::Call: {

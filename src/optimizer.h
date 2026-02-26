@@ -30,6 +30,13 @@ class BytecodeOptimizer {
   // trivial moves (dst == src after substitution).
   void copy_propagation(std::vector<Bytecode::BasicBlock> &blocks);
 
+  // Pass 1.25: compare+branch fusion.
+  // Rewrites:
+  //   <compare> r_tmp, ...
+  //   JumpConditional r_tmp, @T, @F
+  // into fused branch opcodes when r_tmp is only used by the branch.
+  void fuse_compare_branches(std::vector<Bytecode::BasicBlock> &blocks);
+
   // Pass 2: global dead instruction elimination.
   // Removes instructions whose dst register is never read anywhere in
   // any block (pure computation with no observable effect).

@@ -15,6 +15,9 @@ bool has_terminator(const Bytecode::BasicBlock &block) {
   const auto last_type = block.instructions.back()->type();
   return last_type == Bytecode::Instruction::Type::Jump ||
          last_type == Bytecode::Instruction::Type::JumpConditional ||
+         last_type == Bytecode::Instruction::Type::JumpEqualImmediate ||
+         last_type == Bytecode::Instruction::Type::JumpGreaterThanImmediate ||
+         last_type == Bytecode::Instruction::Type::JumpLessThanOrEqual ||
          last_type == Bytecode::Instruction::Type::TailCall ||
          last_type == Bytecode::Instruction::Type::Return;
 }
@@ -111,6 +114,25 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           const auto &jump_cond =
               derived_cast<const Bytecode::Instruction::JumpConditional &>(*instr);
           track(jump_cond.cond);
+          break;
+        }
+        case Bytecode::Instruction::Type::JumpEqualImmediate: {
+          const auto &jump_equal_imm =
+              derived_cast<const Bytecode::Instruction::JumpEqualImmediate &>(*instr);
+          track(jump_equal_imm.src);
+          break;
+        }
+        case Bytecode::Instruction::Type::JumpGreaterThanImmediate: {
+          const auto &jump_greater_than_imm =
+              derived_cast<const Bytecode::Instruction::JumpGreaterThanImmediate &>(*instr);
+          track(jump_greater_than_imm.lhs);
+          break;
+        }
+        case Bytecode::Instruction::Type::JumpLessThanOrEqual: {
+          const auto &jump_less_than_or_equal =
+              derived_cast<const Bytecode::Instruction::JumpLessThanOrEqual &>(*instr);
+          track(jump_less_than_or_equal.lhs);
+          track(jump_less_than_or_equal.rhs);
           break;
         }
         case Bytecode::Instruction::Type::Call: {
@@ -442,6 +464,44 @@ Bytecode::Instruction::JumpConditional::JumpConditional(Register cond, Label lab
 
 void Bytecode::Instruction::JumpConditional::dump() const {
   std::printf("JumpConditional r%llu, @%llu, @%llu", cond, label1, label2);
+}
+
+Bytecode::Instruction::JumpEqualImmediate::JumpEqualImmediate(Register src, Value value,
+                                                              Label label1, Label label2)
+    : Bytecode::Instruction(Type::JumpEqualImmediate),
+      src(src),
+      value(value),
+      label1(label1),
+      label2(label2) {}
+
+void Bytecode::Instruction::JumpEqualImmediate::dump() const {
+  std::printf("JumpEqualImmediate r%llu, %llu, @%llu, @%llu", src, value, label1, label2);
+}
+
+Bytecode::Instruction::JumpGreaterThanImmediate::JumpGreaterThanImmediate(Register lhs,
+                                                                          Value value,
+                                                                          Label label1,
+                                                                          Label label2)
+    : Bytecode::Instruction(Type::JumpGreaterThanImmediate),
+      lhs(lhs),
+      value(value),
+      label1(label1),
+      label2(label2) {}
+
+void Bytecode::Instruction::JumpGreaterThanImmediate::dump() const {
+  std::printf("JumpGreaterThanImmediate r%llu, %llu, @%llu, @%llu", lhs, value, label1, label2);
+}
+
+Bytecode::Instruction::JumpLessThanOrEqual::JumpLessThanOrEqual(Register lhs, Register rhs,
+                                                                Label label1, Label label2)
+    : Bytecode::Instruction(Type::JumpLessThanOrEqual),
+      lhs(lhs),
+      rhs(rhs),
+      label1(label1),
+      label2(label2) {}
+
+void Bytecode::Instruction::JumpLessThanOrEqual::dump() const {
+  std::printf("JumpLessThanOrEqual r%llu, r%llu, @%llu, @%llu", lhs, rhs, label1, label2);
 }
 
 Bytecode::Instruction::Call::Call(Register dst, Label label,
@@ -1364,6 +1424,18 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_jump_conditional(
             derived_cast<Bytecode::Instruction::JumpConditional const &>(*instr));
         break;
+      case Bytecode::Instruction::Type::JumpEqualImmediate:
+        interpret_jump_equal_immediate(
+            derived_cast<Bytecode::Instruction::JumpEqualImmediate const &>(*instr));
+        break;
+      case Bytecode::Instruction::Type::JumpGreaterThanImmediate:
+        interpret_jump_greater_than_immediate(
+            derived_cast<Bytecode::Instruction::JumpGreaterThanImmediate const &>(*instr));
+        break;
+      case Bytecode::Instruction::Type::JumpLessThanOrEqual:
+        interpret_jump_less_than_or_equal(
+            derived_cast<Bytecode::Instruction::JumpLessThanOrEqual const &>(*instr));
+        break;
       case Bytecode::Instruction::Type::Call:
         interpret_call(derived_cast<Bytecode::Instruction::Call const &>(*instr),
                        instr_index_ + 1);
@@ -1570,6 +1642,36 @@ void BytecodeInterpreter::interpret_jump_conditional(
     block_index = jump_cond.label1;
   } else {
     block_index = jump_cond.label2;
+  }
+  instr_index_ = 0;
+}
+
+void BytecodeInterpreter::interpret_jump_equal_immediate(
+    const Bytecode::Instruction::JumpEqualImmediate &jump_equal_imm) {
+  if (reg(jump_equal_imm.src) == jump_equal_imm.value) {
+    block_index = jump_equal_imm.label1;
+  } else {
+    block_index = jump_equal_imm.label2;
+  }
+  instr_index_ = 0;
+}
+
+void BytecodeInterpreter::interpret_jump_greater_than_immediate(
+    const Bytecode::Instruction::JumpGreaterThanImmediate &jump_greater_than_imm) {
+  if (reg(jump_greater_than_imm.lhs) > jump_greater_than_imm.value) {
+    block_index = jump_greater_than_imm.label1;
+  } else {
+    block_index = jump_greater_than_imm.label2;
+  }
+  instr_index_ = 0;
+}
+
+void BytecodeInterpreter::interpret_jump_less_than_or_equal(
+    const Bytecode::Instruction::JumpLessThanOrEqual &jump_less_than_or_equal) {
+  if (reg(jump_less_than_or_equal.lhs) <= reg(jump_less_than_or_equal.rhs)) {
+    block_index = jump_less_than_or_equal.label1;
+  } else {
+    block_index = jump_less_than_or_equal.label2;
   }
   instr_index_ = 0;
 }

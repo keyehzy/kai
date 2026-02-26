@@ -101,6 +101,25 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
           jc.cond = resolve(jc.cond);
           break;
         }
+        case Type::JumpEqualImmediate: {
+          auto &jump_equal_imm =
+              derived_cast<Bytecode::Instruction::JumpEqualImmediate &>(instr);
+          jump_equal_imm.src = resolve(jump_equal_imm.src);
+          break;
+        }
+        case Type::JumpGreaterThanImmediate: {
+          auto &jump_greater_than_imm =
+              derived_cast<Bytecode::Instruction::JumpGreaterThanImmediate &>(instr);
+          jump_greater_than_imm.lhs = resolve(jump_greater_than_imm.lhs);
+          break;
+        }
+        case Type::JumpLessThanOrEqual: {
+          auto &jump_less_than_or_equal =
+              derived_cast<Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          jump_less_than_or_equal.lhs = resolve(jump_less_than_or_equal.lhs);
+          jump_less_than_or_equal.rhs = resolve(jump_less_than_or_equal.rhs);
+          break;
+        }
         case Type::Call: {
           auto &c = derived_cast<Bytecode::Instruction::Call &>(instr);
           for (auto &arg : c.arg_registers) {

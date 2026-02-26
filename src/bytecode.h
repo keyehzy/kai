@@ -38,6 +38,9 @@ struct Bytecode::Instruction {
     GreaterThanOrEqualImmediate,
     Jump,
     JumpConditional,
+    JumpEqualImmediate,
+    JumpGreaterThanImmediate,
+    JumpLessThanOrEqual,
     Call,
     TailCall,
     Return,
@@ -81,6 +84,9 @@ struct Bytecode::Instruction {
   struct GreaterThanOrEqualImmediate;
   struct Jump;
   struct JumpConditional;
+  struct JumpEqualImmediate;
+  struct JumpGreaterThanImmediate;
+  struct JumpLessThanOrEqual;
   struct Call;
   struct TailCall;
   struct Return;
@@ -218,6 +224,36 @@ struct Bytecode::Instruction::JumpConditional final : Bytecode::Instruction {
   void dump() const override;
 
   Register cond;
+  Label label1;
+  Label label2;
+};
+
+struct Bytecode::Instruction::JumpEqualImmediate final : Bytecode::Instruction {
+  JumpEqualImmediate(Register src, Value value, Label label1, Label label2);
+  void dump() const override;
+
+  Register src;
+  Value value;
+  Label label1;
+  Label label2;
+};
+
+struct Bytecode::Instruction::JumpGreaterThanImmediate final : Bytecode::Instruction {
+  JumpGreaterThanImmediate(Register lhs, Value value, Label label1, Label label2);
+  void dump() const override;
+
+  Register lhs;
+  Value value;
+  Label label1;
+  Label label2;
+};
+
+struct Bytecode::Instruction::JumpLessThanOrEqual final : Bytecode::Instruction {
+  JumpLessThanOrEqual(Register lhs, Register rhs, Label label1, Label label2);
+  void dump() const override;
+
+  Register lhs;
+  Register rhs;
   Label label1;
   Label label2;
 };
@@ -556,6 +592,12 @@ class BytecodeInterpreter {
       const Bytecode::Instruction::GreaterThanOrEqualImmediate &greater_than_or_equal_imm);
   void interpret_jump(const Bytecode::Instruction::Jump &jump);
   void interpret_jump_conditional(const Bytecode::Instruction::JumpConditional &jump_cond);
+  void interpret_jump_equal_immediate(
+      const Bytecode::Instruction::JumpEqualImmediate &jump_equal_imm);
+  void interpret_jump_greater_than_immediate(
+      const Bytecode::Instruction::JumpGreaterThanImmediate &jump_greater_than_imm);
+  void interpret_jump_less_than_or_equal(
+      const Bytecode::Instruction::JumpLessThanOrEqual &jump_less_than_or_equal);
   void interpret_call(const Bytecode::Instruction::Call &call, size_t next_instr_index);
   void interpret_tail_call(const Bytecode::Instruction::TailCall &tail_call);
   void interpret_equal(const Bytecode::Instruction::Equal &equal);

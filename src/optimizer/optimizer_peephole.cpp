@@ -72,6 +72,20 @@ std::unordered_map<Register, size_t> compute_use_count(
         case Type::JumpConditional:
           use(derived_cast<const Bytecode::Instruction::JumpConditional &>(instr).cond);
           break;
+        case Type::JumpEqualImmediate:
+          use(derived_cast<const Bytecode::Instruction::JumpEqualImmediate &>(instr).src);
+          break;
+        case Type::JumpGreaterThanImmediate:
+          use(derived_cast<const Bytecode::Instruction::JumpGreaterThanImmediate &>(instr)
+                  .lhs);
+          break;
+        case Type::JumpLessThanOrEqual: {
+          const auto &jump_lte =
+              derived_cast<const Bytecode::Instruction::JumpLessThanOrEqual &>(instr);
+          use(jump_lte.lhs);
+          use(jump_lte.rhs);
+          break;
+        }
         case Type::Call: {
           const auto &c = derived_cast<const Bytecode::Instruction::Call &>(instr);
           for (auto r : c.arg_registers) use(r);
