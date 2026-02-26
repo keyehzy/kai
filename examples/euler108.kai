@@ -1,0 +1,43 @@
+fn divisor_count_of_square(n) {
+  let m = n;
+  let count = 1;
+  let p = 2;
+
+  while (p * p <= m) {
+    let exponent = 0;
+    while (m % p == 0) {
+      m = m / p;
+      exponent++;
+    }
+
+    if (exponent > 0) {
+      count = count * (2 * exponent + 1);
+    }
+
+    if (p == 2) {
+      p = 3;
+    } else {
+      p = p + 2;
+    }
+  }
+
+  if (m > 1) {
+    count = count * 3;
+  }
+
+  return count;
+}
+
+fn solve() {
+  let n = 1;
+  while (1) {
+    if (divisor_count_of_square(n) > 1999) {
+      return n;
+    }
+    n++;
+  }
+
+  return 0;
+}
+
+return solve();
