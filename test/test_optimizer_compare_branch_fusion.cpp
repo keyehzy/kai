@@ -18,7 +18,7 @@ TEST_CASE("compare_branch_fusion_rewrites_supported_patterns") {
   blocks[4].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fuse_compare_branches(blocks);
 
   REQUIRE(has_instruction_type(blocks, Type::JumpEqualImmediate));
   REQUIRE(has_instruction_type(blocks, Type::JumpGreaterThanImmediate));
@@ -41,7 +41,7 @@ TEST_CASE("compare_branch_fusion_skips_when_compare_result_is_reused") {
   blocks[2].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fuse_compare_branches(blocks);
 
   REQUIRE(has_instruction_type(blocks, Type::GreaterThanImmediate));
   REQUIRE(has_instruction_type(blocks, Type::JumpConditional));
@@ -62,7 +62,7 @@ TEST_CASE("jump_conditional_is_preserved_for_non_compare_boolean_conditions") {
   blocks[2].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fuse_compare_branches(blocks);
 
   REQUIRE(has_instruction_type(blocks, Type::JumpConditional));
   REQUIRE_FALSE(has_instruction_type(blocks, Type::JumpEqualImmediate));
