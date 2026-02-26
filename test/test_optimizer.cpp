@@ -328,14 +328,14 @@ TEST_CASE("optimizer_preserves_simple_arithmetic") {
   program.append(decl("b", lit(25)));
   program.append(ret(add(var("a"), var("b"))));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(program);
   gen.finalize();
 
   BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 42);
 }
 
@@ -347,14 +347,14 @@ TEST_CASE("optimizer_preserves_while_loop_correctness") {
   body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
   BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 10);
 }
 
@@ -374,14 +374,14 @@ TEST_CASE("optimizer_preserves_fibonacci") {
   body->append(while_loop(lt(var("i"), var("n")), std::move(while_body)));
   body->append(ret(var("t1")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
   BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 55);
 }
 
@@ -401,14 +401,14 @@ TEST_CASE("optimizer_reduces_instruction_count_for_while_loop") {
 
   // Unoptimized count.
   auto prog1 = make_program();
-  kai::BytecodeGenerator gen1;
+  BytecodeGenerator gen1;
   gen1.visit_block(prog1);
   gen1.finalize();
   const size_t before = total_instr_count(gen1.blocks());
 
   // Optimized count.
   auto prog2 = make_program();
-  kai::BytecodeGenerator gen2;
+  BytecodeGenerator gen2;
   gen2.visit_block(prog2);
   gen2.finalize();
   BytecodeOptimizer opt;
@@ -432,7 +432,7 @@ TEST_CASE("licm_uses_immediate_compare_for_loop_bound") {
   body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
@@ -480,14 +480,14 @@ TEST_CASE("licm_correctness_while_loop") {
   body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
   BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 10);
 }
 
@@ -530,7 +530,7 @@ TEST_CASE("licm_hoists_invariant_arithmetic") {
   REQUIRE_FALSE(multiply_in_loop);
 
   // Interpreter result must be 6 (2 * 3).
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(blocks) == 6);
 }
 
@@ -577,14 +577,14 @@ TEST_CASE("licm_no_crash_without_loop") {
   body->append(decl("b", lit(4)));
   body->append(ret(add(var("a"), var("b"))));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
   BytecodeOptimizer opt;
   REQUIRE_NOTHROW(opt.optimize(gen.blocks()));
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 7);
 }
 
@@ -603,7 +603,7 @@ TEST_CASE("licm_reduces_instruction_count_in_hot_blocks") {
 
   // Unoptimized count inside loop blocks (block 1 onward).
   auto prog1 = make_prog();
-  kai::BytecodeGenerator gen1;
+  BytecodeGenerator gen1;
   gen1.visit_block(prog1);
   gen1.finalize();
   size_t before = 0;
@@ -613,7 +613,7 @@ TEST_CASE("licm_reduces_instruction_count_in_hot_blocks") {
 
   // Optimized count.
   auto prog2 = make_prog();
-  kai::BytecodeGenerator gen2;
+  BytecodeGenerator gen2;
   gen2.visit_block(prog2);
   gen2.finalize();
   BytecodeOptimizer opt;
@@ -636,7 +636,7 @@ TEST_CASE("licm_is_idempotent") {
   body->append(while_loop(lt(var("i"), lit(7)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
@@ -709,7 +709,7 @@ TEST_CASE("tco_rewrites_call_followed_by_return") {
   REQUIRE(tail_call.arg_registers == std::vector<Bytecode::Register>{0});
   REQUIRE(tail_call.param_registers == std::vector<Bytecode::Register>{1});
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(blocks) == 8);
 }
 
@@ -877,7 +877,7 @@ TEST_CASE("peephole_increment_loop_body_is_single_add_plus_jump") {
   body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
@@ -908,14 +908,14 @@ TEST_CASE("peephole_correctness_increment_loop") {
   body->append(while_loop(lt(var("i"), lit(7)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
   BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 7);
 }
 
@@ -929,7 +929,7 @@ TEST_CASE("peephole_is_idempotent") {
   body->append(while_loop(lt(var("i"), lit(5)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
@@ -952,7 +952,7 @@ TEST_CASE("optimizer_is_idempotent") {
   body->append(while_loop(lt(var("i"), lit(3)), std::move(while_body)));
   body->append(ret(var("i")));
 
-  kai::BytecodeGenerator gen;
+  BytecodeGenerator gen;
   gen.visit_block(*body);
   gen.finalize();
 
@@ -1037,6 +1037,6 @@ TEST_CASE("register_compaction_renumbers_call_parameter_slots_consistently") {
   REQUIRE(entry_ret.reg == entry_add_imm.dst);
   REQUIRE(callee_ret.reg == add_imm.dst);
 
-  kai::BytecodeInterpreter interp;
+  BytecodeInterpreter interp;
   REQUIRE(interp.interpret(blocks) == 8);
 }

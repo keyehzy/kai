@@ -5,8 +5,8 @@
 using namespace kai;
 
 TEST_CASE("test_parser_parses_number_literal_42") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("42", reporter);
+  ErrorReporter reporter;
+  Parser parser("42", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -17,8 +17,8 @@ TEST_CASE("test_parser_parses_number_literal_42") {
 }
 
 TEST_CASE("test_parser_parses_identifier_variable") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("value", reporter);
+  ErrorReporter reporter;
+  Parser parser("value", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -29,8 +29,8 @@ TEST_CASE("test_parser_parses_identifier_variable") {
 }
 
 TEST_CASE("test_parser_parses_identifier_variable_with_underscore") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("_value_2", reporter);
+  ErrorReporter reporter;
+  Parser parser("_value_2", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -41,8 +41,8 @@ TEST_CASE("test_parser_parses_identifier_variable_with_underscore") {
 }
 
 TEST_CASE("test_parser_precedence_multiply_before_add") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 + 2 * 3", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 + 2 * 3", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -63,8 +63,8 @@ TEST_CASE("test_parser_precedence_multiply_before_add") {
 }
 
 TEST_CASE("test_parser_subtract_is_left_associative") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("8 - 3 - 1", reporter);
+  ErrorReporter reporter;
+  Parser parser("8 - 3 - 1", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -83,8 +83,8 @@ TEST_CASE("test_parser_subtract_is_left_associative") {
 }
 
 TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("a * b + c / d", reporter);
+  ErrorReporter reporter;
+  Parser parser("a * b + c / d", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -104,8 +104,8 @@ TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
 }
 
 TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("8 + 9 % 5", reporter);
+  ErrorReporter reporter;
+  Parser parser("8 + 9 % 5", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -123,8 +123,8 @@ TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
 }
 
 TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 + 2 == 3", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 + 2 == 3", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -141,8 +141,8 @@ TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
 }
 
 TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 + 2 != 4", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 + 2 != 4", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -159,8 +159,8 @@ TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
 }
 
 TEST_CASE("test_parser_parses_greater_than_expression") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 + 3 > 3", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 + 3 > 3", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -177,8 +177,8 @@ TEST_CASE("test_parser_parses_greater_than_expression") {
 }
 
 TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 + 3 <= 4", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 + 3 <= 4", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -190,8 +190,8 @@ TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
 }
 
 TEST_CASE("test_parser_parses_greater_than_or_equal_expression") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("5 >= 3 + 2", reporter);
+  ErrorReporter reporter;
+  Parser parser("5 >= 3 + 2", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -203,8 +203,8 @@ TEST_CASE("test_parser_parses_greater_than_or_equal_expression") {
 }
 
 TEST_CASE("test_parser_parses_while_with_greater_than_condition") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser(R"(
+  ErrorReporter reporter;
+  Parser parser(R"(
 let i = 10;
 while (i > 1) {
   i = i - 1;
@@ -223,8 +223,8 @@ return i;
 }
 
 TEST_CASE("test_parser_parses_function_call_with_arguments") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("sum(1, 2 + 3)", reporter);
+  ErrorReporter reporter;
+  Parser parser("sum(1, 2 + 3)", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -238,8 +238,8 @@ TEST_CASE("test_parser_parses_function_call_with_arguments") {
 }
 
 TEST_CASE("test_parser_parses_function_declaration_with_parameters") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser(R"(
+  ErrorReporter reporter;
+  Parser parser(R"(
 fn add(a, b) {
   return a + b;
 }
@@ -265,8 +265,8 @@ return add(1, 2);
 }
 
 TEST_CASE("test_parser_parses_recursive_fibonacci_if_else") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser(R"(
+  ErrorReporter reporter;
+  Parser parser(R"(
 fn fib(n) {
   if (n < 2) {
     return n;
@@ -295,8 +295,8 @@ return fib(5);
 }
 
 TEST_CASE("test_parser_parses_if_without_else") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser(R"(
+  ErrorReporter reporter;
+  Parser parser(R"(
 let x = 0;
 if (1 < 2) {
   x = 7;
@@ -316,8 +316,8 @@ return x;
 }
 
 TEST_CASE("test_parser_parses_if_without_else_before_if_else") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser(R"(
+  ErrorReporter reporter;
+  Parser parser(R"(
 let x = 0;
 if (1 < 2) {
   x = 1;
@@ -345,8 +345,8 @@ return x;
 }
 
 TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("struct { x: 40, y: 2 }.x", reporter);
+  ErrorReporter reporter;
+  Parser parser("struct { x: 40, y: 2 }.x", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -365,38 +365,38 @@ TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
 }
 
 TEST_CASE("test_parser_reports_missing_colon_in_struct_literal_field") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("struct { x 1 }", reporter);
+  ErrorReporter reporter;
+  Parser parser("struct { x 1 }", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::StructLiteral);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructFieldColon);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedStructFieldColon);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ':' after field name 'x' in struct literal, found '1'");
   REQUIRE(reporter.errors()[0]->location.text() == "1");
 }
 
 TEST_CASE("test_parser_reports_missing_field_name_in_struct_literal") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("struct { : 1 }", reporter);
+  ErrorReporter reporter;
+  Parser parser("struct { : 1 }", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::StructLiteral);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructFieldName);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedStructFieldName);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected field name in struct literal, found ':'");
   REQUIRE(reporter.errors()[0]->location.text() == ":");
 }
 
 TEST_CASE("test_parser_reports_missing_opening_brace_in_struct_literal") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("struct x: 1 }", reporter);
+  ErrorReporter reporter;
+  Parser parser("struct x: 1 }", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -405,14 +405,14 @@ TEST_CASE("test_parser_reports_missing_opening_brace_in_struct_literal") {
   REQUIRE(struct_literal.fields.empty());
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructLiteralBrace);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedStructLiteralBrace);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '{' to start struct literal, found 'x'");
 }
 
 TEST_CASE("test_parser_reports_missing_closing_brace_in_struct_literal") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("struct { x: 1", reporter);
+  ErrorReporter reporter;
+  Parser parser("struct { x: 1", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -421,14 +421,14 @@ TEST_CASE("test_parser_reports_missing_closing_brace_in_struct_literal") {
   REQUIRE(struct_literal.fields.size() == 1);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedStructLiteralBrace);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedStructLiteralBrace);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '}' to close struct literal, found end of input");
 }
 
 TEST_CASE("test_parser_expression_stops_at_trailing_tokens") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 2", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 2", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -438,8 +438,8 @@ TEST_CASE("test_parser_expression_stops_at_trailing_tokens") {
 }
 
 TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 2", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 2", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -447,15 +447,15 @@ TEST_CASE("test_parser_program_reports_missing_semicolon_after_statement") {
   REQUIRE(program->children[0]->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedSemicolon);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedSemicolon);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ';' after statement, found '2'");
   REQUIRE(reporter.errors()[0]->location.text() == "2");
 }
 
 TEST_CASE("test_parser_reports_missing_equals_in_let_declaration") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("let x 1;", reporter);
+  ErrorReporter reporter;
+  Parser parser("let x 1;", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -463,15 +463,15 @@ TEST_CASE("test_parser_reports_missing_equals_in_let_declaration") {
   REQUIRE(program->children[0]->type == Ast::Type::VariableDeclaration);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedEquals);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedEquals);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '=' after variable 'x' in 'let' declaration, found '1'");
   REQUIRE(reporter.errors()[0]->location.text() == "1");
 }
 
 TEST_CASE("test_parser_reports_missing_variable_name_in_let_declaration") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("let = 1;", reporter);
+  ErrorReporter reporter;
+  Parser parser("let = 1;", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
@@ -479,15 +479,15 @@ TEST_CASE("test_parser_reports_missing_variable_name_in_let_declaration") {
   REQUIRE(program->children[0]->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedLetVariableName);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedLetVariableName);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected variable name after 'let', found '='");
   REQUIRE(reporter.errors()[0]->location.text() == "=");
 }
 
 TEST_CASE("test_parser_reports_invalid_assignment_target") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1 = 2", reporter);
+  ErrorReporter reporter;
+  Parser parser("1 = 2", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -495,85 +495,85 @@ TEST_CASE("test_parser_reports_invalid_assignment_target") {
   REQUIRE(derived_cast<const Ast::Literal&>(*parsed).value == 1);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidAssignmentTarget);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::InvalidAssignmentTarget);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "invalid assignment target; expected variable or index expression before '=', found '='");
   REQUIRE(reporter.errors()[0]->location.text() == "=");
 }
 
 TEST_CASE("test_parser_reports_expected_primary_expression_for_standalone_semicolon") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser(";", reporter);
+  ErrorReporter reporter;
+  Parser parser(";", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedPrimaryExpression);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedPrimaryExpression);
   REQUIRE(reporter.errors()[0]->format_error() == "expected primary expression, found ';'");
   REQUIRE(reporter.errors()[0]->location.text() == ";");
 }
 
 TEST_CASE("test_parser_reports_expected_variable_for_function_call_target") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1()", reporter);
+  ErrorReporter reporter;
+  Parser parser("1()", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedVariable);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedVariable);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected variable as function call target, found '('");
 }
 
 TEST_CASE("test_parser_reports_expected_variable_before_postfix_increment") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("1++", reporter);
+  ErrorReporter reporter;
+  Parser parser("1++", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedVariable);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedVariable);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected variable before postfix '++', found '++'");
 }
 
 TEST_CASE("test_parser_reports_expected_identifier_after_dot_in_field_access") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("value.", reporter);
+  ErrorReporter reporter;
+  Parser parser("value.", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Variable);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedIdentifier);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedIdentifier);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected identifier after '.' in field access, found end of input");
 }
 
 TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_index_expression") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("value[1", reporter);
+  ErrorReporter reporter;
+  Parser parser("value[1", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Index);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedClosingSquareBracket);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ']' to close index expression, found end of input");
 }
 
 TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_array_literal") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("[1", reporter);
+  ErrorReporter reporter;
+  Parser parser("[1", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
@@ -582,111 +582,111 @@ TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_array_literal")
   REQUIRE(array_literal.elements.size() == 1);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingSquareBracket);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedClosingSquareBracket);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ']' to close array literal, found end of input");
 }
 
 TEST_CASE("test_parser_reports_invalid_numeric_literal") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("99999999999999999999999999999999999999", reporter);
+  ErrorReporter reporter;
+  Parser parser("99999999999999999999999999999999999999", reporter);
   std::unique_ptr<Ast> parsed = parser.parse_expression();
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidNumericLiteral);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::InvalidNumericLiteral);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "invalid numeric literal '99999999999999999999999999999999999999'");
 }
 
 TEST_CASE("test_parser_reports_missing_while_block_with_context") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("while (1) return 1;", reporter);
+  ErrorReporter reporter;
+  Parser parser("while (1) return 1;", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedBlock);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '{' to start while block, found 'return'");
 }
 
 TEST_CASE("test_parser_reports_missing_else_block_with_context") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("if (1) { return 1; } else return 2;", reporter);
+  ErrorReporter reporter;
+  Parser parser("if (1) { return 1; } else return 2;", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedBlock);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '{' to start else block, found 'return'");
 }
 
 TEST_CASE("test_parser_reports_unterminated_anonymous_block") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("{ return 1;", reporter);
+  ErrorReporter reporter;
+  Parser parser("{ return 1;", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedBlock);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedBlock);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '}' to close block, found end of input");
 }
 
 TEST_CASE("test_parser_reports_missing_closing_parenthesis_in_while_condition") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("while (1 { return 1; }", reporter);
+  ErrorReporter reporter;
+  Parser parser("while (1 { return 1; }", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedClosingParenthesis);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedClosingParenthesis);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected ')' to close 'while' condition, found '{'");
 }
 
 TEST_CASE("test_parser_reports_missing_opening_parenthesis_in_while_condition") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("while 1) { return 1; }", reporter);
+  ErrorReporter reporter;
+  Parser parser("while 1) { return 1; }", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedOpeningParenthesis);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedOpeningParenthesis);
   REQUIRE(reporter.errors()[0]->format_error() == "expected '(' after 'while', found '1'");
 }
 
 TEST_CASE("test_parser_reports_missing_function_name_after_fn_keyword") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("fn (a) { return a; }", reporter);
+  ErrorReporter reporter;
+  Parser parser("fn (a) { return a; }", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedFunctionIdentifier);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedFunctionIdentifier);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected function name after 'fn', found '('");
 }
 
 TEST_CASE("test_parser_reports_missing_opening_parenthesis_after_function_name") {
-  kai::ErrorReporter reporter;
-  kai::Parser parser("fn add a) { return a; }", reporter);
+  ErrorReporter reporter;
+  Parser parser("fn add a) { return a; }", reporter);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
-  REQUIRE(reporter.errors()[0]->type == kai::Error::Type::ExpectedOpeningParenthesis);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::ExpectedOpeningParenthesis);
   REQUIRE(reporter.errors()[0]->format_error() ==
           "expected '(' after function name 'add' in declaration, found 'a'");
 }
