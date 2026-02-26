@@ -7,7 +7,6 @@
 namespace kai {
 namespace bytecode {
 
-using namespace ast;
 
 namespace {
 bool has_terminator(const Bytecode::BasicBlock &block) {
@@ -35,20 +34,20 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
       switch (instr->type()) {
         case Bytecode::Instruction::Type::Move: {
           const auto &move =
-              ast::derived_cast<const Bytecode::Instruction::Move &>(*instr);
+              derived_cast<const Bytecode::Instruction::Move &>(*instr);
           track(move.dst);
           track(move.src);
           break;
         }
         case Bytecode::Instruction::Type::Load: {
           const auto &load =
-              ast::derived_cast<const Bytecode::Instruction::Load &>(*instr);
+              derived_cast<const Bytecode::Instruction::Load &>(*instr);
           track(load.dst);
           break;
         }
         case Bytecode::Instruction::Type::LessThan: {
           const auto &less_than =
-              ast::derived_cast<const Bytecode::Instruction::LessThan &>(*instr);
+              derived_cast<const Bytecode::Instruction::LessThan &>(*instr);
           track(less_than.dst);
           track(less_than.lhs);
           track(less_than.rhs);
@@ -56,14 +55,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::LessThanImmediate: {
           const auto &less_than_imm =
-              ast::derived_cast<const Bytecode::Instruction::LessThanImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::LessThanImmediate &>(*instr);
           track(less_than_imm.dst);
           track(less_than_imm.lhs);
           break;
         }
         case Bytecode::Instruction::Type::GreaterThan: {
           const auto &greater_than =
-              ast::derived_cast<const Bytecode::Instruction::GreaterThan &>(*instr);
+              derived_cast<const Bytecode::Instruction::GreaterThan &>(*instr);
           track(greater_than.dst);
           track(greater_than.lhs);
           track(greater_than.rhs);
@@ -71,14 +70,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::GreaterThanImmediate: {
           const auto &greater_than_imm =
-              ast::derived_cast<const Bytecode::Instruction::GreaterThanImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::GreaterThanImmediate &>(*instr);
           track(greater_than_imm.dst);
           track(greater_than_imm.lhs);
           break;
         }
         case Bytecode::Instruction::Type::LessThanOrEqual: {
           const auto &less_than_or_equal =
-              ast::derived_cast<const Bytecode::Instruction::LessThanOrEqual &>(*instr);
+              derived_cast<const Bytecode::Instruction::LessThanOrEqual &>(*instr);
           track(less_than_or_equal.dst);
           track(less_than_or_equal.lhs);
           track(less_than_or_equal.rhs);
@@ -86,13 +85,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::LessThanOrEqualImmediate: {
           const auto &less_than_or_equal_imm =
-              ast::derived_cast<const Bytecode::Instruction::LessThanOrEqualImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::LessThanOrEqualImmediate &>(*instr);
           track(less_than_or_equal_imm.dst);
           track(less_than_or_equal_imm.lhs);
           break;
         }
         case Bytecode::Instruction::Type::GreaterThanOrEqual: {
-          const auto &greater_than_or_equal = ast::derived_cast<
+          const auto &greater_than_or_equal = derived_cast<
               const Bytecode::Instruction::GreaterThanOrEqual &>(*instr);
           track(greater_than_or_equal.dst);
           track(greater_than_or_equal.lhs);
@@ -101,7 +100,7 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::GreaterThanOrEqualImmediate: {
           const auto &greater_than_or_equal_imm =
-              ast::derived_cast<const Bytecode::Instruction::GreaterThanOrEqualImmediate &>(
+              derived_cast<const Bytecode::Instruction::GreaterThanOrEqualImmediate &>(
                   *instr);
           track(greater_than_or_equal_imm.dst);
           track(greater_than_or_equal_imm.lhs);
@@ -111,13 +110,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           break;
         case Bytecode::Instruction::Type::JumpConditional: {
           const auto &jump_cond =
-              ast::derived_cast<const Bytecode::Instruction::JumpConditional &>(*instr);
+              derived_cast<const Bytecode::Instruction::JumpConditional &>(*instr);
           track(jump_cond.cond);
           break;
         }
         case Bytecode::Instruction::Type::Call: {
           const auto &call =
-              ast::derived_cast<const Bytecode::Instruction::Call &>(*instr);
+              derived_cast<const Bytecode::Instruction::Call &>(*instr);
           track(call.dst);
           for (const auto reg : call.arg_registers) {
             track(reg);
@@ -129,7 +128,7 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::TailCall: {
           const auto &tail_call =
-              ast::derived_cast<const Bytecode::Instruction::TailCall &>(*instr);
+              derived_cast<const Bytecode::Instruction::TailCall &>(*instr);
           for (const auto reg : tail_call.arg_registers) {
             track(reg);
           }
@@ -140,13 +139,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::Return: {
           const auto &ret =
-              ast::derived_cast<const Bytecode::Instruction::Return &>(*instr);
+              derived_cast<const Bytecode::Instruction::Return &>(*instr);
           track(ret.reg);
           break;
         }
         case Bytecode::Instruction::Type::Equal: {
           const auto &equal =
-              ast::derived_cast<const Bytecode::Instruction::Equal &>(*instr);
+              derived_cast<const Bytecode::Instruction::Equal &>(*instr);
           track(equal.dst);
           track(equal.src1);
           track(equal.src2);
@@ -154,14 +153,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::EqualImmediate: {
           const auto &equal_imm =
-              ast::derived_cast<const Bytecode::Instruction::EqualImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::EqualImmediate &>(*instr);
           track(equal_imm.dst);
           track(equal_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::NotEqual: {
           const auto &not_equal =
-              ast::derived_cast<const Bytecode::Instruction::NotEqual &>(*instr);
+              derived_cast<const Bytecode::Instruction::NotEqual &>(*instr);
           track(not_equal.dst);
           track(not_equal.src1);
           track(not_equal.src2);
@@ -169,14 +168,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::NotEqualImmediate: {
           const auto &not_equal_imm =
-              ast::derived_cast<const Bytecode::Instruction::NotEqualImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::NotEqualImmediate &>(*instr);
           track(not_equal_imm.dst);
           track(not_equal_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Add: {
           const auto &add =
-              ast::derived_cast<const Bytecode::Instruction::Add &>(*instr);
+              derived_cast<const Bytecode::Instruction::Add &>(*instr);
           track(add.dst);
           track(add.src1);
           track(add.src2);
@@ -184,14 +183,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::AddImmediate: {
           const auto &add_imm =
-              ast::derived_cast<const Bytecode::Instruction::AddImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::AddImmediate &>(*instr);
           track(add_imm.dst);
           track(add_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Subtract: {
           const auto &subtract =
-              ast::derived_cast<const Bytecode::Instruction::Subtract &>(*instr);
+              derived_cast<const Bytecode::Instruction::Subtract &>(*instr);
           track(subtract.dst);
           track(subtract.src1);
           track(subtract.src2);
@@ -199,14 +198,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::SubtractImmediate: {
           const auto &subtract_imm =
-              ast::derived_cast<const Bytecode::Instruction::SubtractImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::SubtractImmediate &>(*instr);
           track(subtract_imm.dst);
           track(subtract_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Multiply: {
           const auto &multiply =
-              ast::derived_cast<const Bytecode::Instruction::Multiply &>(*instr);
+              derived_cast<const Bytecode::Instruction::Multiply &>(*instr);
           track(multiply.dst);
           track(multiply.src1);
           track(multiply.src2);
@@ -214,14 +213,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::MultiplyImmediate: {
           const auto &multiply_imm =
-              ast::derived_cast<const Bytecode::Instruction::MultiplyImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::MultiplyImmediate &>(*instr);
           track(multiply_imm.dst);
           track(multiply_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Divide: {
           const auto &divide =
-              ast::derived_cast<const Bytecode::Instruction::Divide &>(*instr);
+              derived_cast<const Bytecode::Instruction::Divide &>(*instr);
           track(divide.dst);
           track(divide.src1);
           track(divide.src2);
@@ -229,14 +228,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::DivideImmediate: {
           const auto &divide_imm =
-              ast::derived_cast<const Bytecode::Instruction::DivideImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::DivideImmediate &>(*instr);
           track(divide_imm.dst);
           track(divide_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::Modulo: {
           const auto &modulo =
-              ast::derived_cast<const Bytecode::Instruction::Modulo &>(*instr);
+              derived_cast<const Bytecode::Instruction::Modulo &>(*instr);
           track(modulo.dst);
           track(modulo.src1);
           track(modulo.src2);
@@ -244,14 +243,14 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::ModuloImmediate: {
           const auto &modulo_imm =
-              ast::derived_cast<const Bytecode::Instruction::ModuloImmediate &>(*instr);
+              derived_cast<const Bytecode::Instruction::ModuloImmediate &>(*instr);
           track(modulo_imm.dst);
           track(modulo_imm.src);
           break;
         }
         case Bytecode::Instruction::Type::ArrayCreate: {
           const auto &array_create =
-              ast::derived_cast<const Bytecode::Instruction::ArrayCreate &>(*instr);
+              derived_cast<const Bytecode::Instruction::ArrayCreate &>(*instr);
           track(array_create.dst);
           for (const auto reg : array_create.elements) {
             track(reg);
@@ -260,7 +259,7 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::ArrayLoad: {
           const auto &array_load =
-              ast::derived_cast<const Bytecode::Instruction::ArrayLoad &>(*instr);
+              derived_cast<const Bytecode::Instruction::ArrayLoad &>(*instr);
           track(array_load.dst);
           track(array_load.array);
           track(array_load.index);
@@ -268,7 +267,7 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::ArrayStore: {
           const auto &array_store =
-              ast::derived_cast<const Bytecode::Instruction::ArrayStore &>(*instr);
+              derived_cast<const Bytecode::Instruction::ArrayStore &>(*instr);
           track(array_store.array);
           track(array_store.index);
           track(array_store.value);
@@ -276,7 +275,7 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::StructCreate: {
           const auto &struct_create =
-              ast::derived_cast<const Bytecode::Instruction::StructCreate &>(*instr);
+              derived_cast<const Bytecode::Instruction::StructCreate &>(*instr);
           track(struct_create.dst);
           for (const auto &field : struct_create.fields) {
             track(field.second);
@@ -285,21 +284,21 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
         }
         case Bytecode::Instruction::Type::StructLoad: {
           const auto &struct_load =
-              ast::derived_cast<const Bytecode::Instruction::StructLoad &>(*instr);
+              derived_cast<const Bytecode::Instruction::StructLoad &>(*instr);
           track(struct_load.dst);
           track(struct_load.object);
           break;
         }
         case Bytecode::Instruction::Type::Negate: {
           const auto &negate =
-              ast::derived_cast<const Bytecode::Instruction::Negate &>(*instr);
+              derived_cast<const Bytecode::Instruction::Negate &>(*instr);
           track(negate.dst);
           track(negate.src);
           break;
         }
         case Bytecode::Instruction::Type::LogicalNot: {
           const auto &logical_not =
-              ast::derived_cast<const Bytecode::Instruction::LogicalNot &>(*instr);
+              derived_cast<const Bytecode::Instruction::LogicalNot &>(*instr);
           track(logical_not.dst);
           track(logical_not.src);
           break;
@@ -317,7 +316,7 @@ std::optional<Bytecode::Value> literal_value(const Ast &ast) {
   if (ast.type != Ast::Type::Literal) {
     return std::nullopt;
   }
-  return ast_cast<const Ast::Literal &>(ast).value;
+  return derived_cast<const Ast::Literal &>(ast).value;
 }
 }  // namespace
 
@@ -661,94 +660,94 @@ Bytecode::Register Bytecode::RegisterAllocator::current() { return register_coun
 void BytecodeGenerator::visit(const Ast &ast) {
   switch (ast.type) {
     case Ast::Type::FunctionDeclaration:
-      visit_function_declaration(ast_cast<Ast::FunctionDeclaration const &>(ast));
+      visit_function_declaration(derived_cast<Ast::FunctionDeclaration const &>(ast));
       break;
     case Ast::Type::Variable:
-      visit_variable(ast_cast<Ast::Variable const &>(ast));
+      visit_variable(derived_cast<Ast::Variable const &>(ast));
       break;
     case Ast::Type::Literal:
-      visit_literal(ast_cast<Ast::Literal const &>(ast));
+      visit_literal(derived_cast<Ast::Literal const &>(ast));
       break;
     case Ast::Type::VariableDeclaration:
-      visit_variable_declaration(ast_cast<Ast::VariableDeclaration const &>(ast));
+      visit_variable_declaration(derived_cast<Ast::VariableDeclaration const &>(ast));
       break;
     case Ast::Type::LessThan:
-      visit_less_than(ast_cast<Ast::LessThan const &>(ast));
+      visit_less_than(derived_cast<Ast::LessThan const &>(ast));
       break;
     case Ast::Type::GreaterThan:
-      visit_greater_than(ast_cast<Ast::GreaterThan const &>(ast));
+      visit_greater_than(derived_cast<Ast::GreaterThan const &>(ast));
       break;
     case Ast::Type::LessThanOrEqual:
-      visit_less_than_or_equal(ast_cast<Ast::LessThanOrEqual const &>(ast));
+      visit_less_than_or_equal(derived_cast<Ast::LessThanOrEqual const &>(ast));
       break;
     case Ast::Type::GreaterThanOrEqual:
-      visit_greater_than_or_equal(ast_cast<Ast::GreaterThanOrEqual const &>(ast));
+      visit_greater_than_or_equal(derived_cast<Ast::GreaterThanOrEqual const &>(ast));
       break;
     case Ast::Type::Increment:
-      visit_increment(ast_cast<Ast::Increment const &>(ast));
+      visit_increment(derived_cast<Ast::Increment const &>(ast));
       break;
     case Ast::Type::Block:
-      visit_block(ast_cast<Ast::Block const &>(ast));
+      visit_block(derived_cast<Ast::Block const &>(ast));
       break;
     case Ast::Type::IfElse:
-      visit_if_else(ast_cast<Ast::IfElse const &>(ast));
+      visit_if_else(derived_cast<Ast::IfElse const &>(ast));
       break;
     case Ast::Type::While:
-      visit_while(ast_cast<Ast::While const &>(ast));
+      visit_while(derived_cast<Ast::While const &>(ast));
       break;
     case Ast::Type::FunctionCall:
-      visit_function_call(ast_cast<Ast::FunctionCall const &>(ast));
+      visit_function_call(derived_cast<Ast::FunctionCall const &>(ast));
       break;
     case Ast::Type::Return:
-      visit_return(ast_cast<Ast::Return const &>(ast));
+      visit_return(derived_cast<Ast::Return const &>(ast));
       break;
     case Ast::Type::Equal:
-      visit_equal(ast_cast<Ast::Equal const &>(ast));
+      visit_equal(derived_cast<Ast::Equal const &>(ast));
       break;
     case Ast::Type::NotEqual:
-      visit_not_equal(ast_cast<Ast::NotEqual const &>(ast));
+      visit_not_equal(derived_cast<Ast::NotEqual const &>(ast));
       break;
     case Ast::Type::Add:
-      visit_add(ast_cast<Ast::Add const &>(ast));
+      visit_add(derived_cast<Ast::Add const &>(ast));
       break;
     case Ast::Type::Subtract:
-      visit_subtract(ast_cast<Ast::Subtract const &>(ast));
+      visit_subtract(derived_cast<Ast::Subtract const &>(ast));
       break;
     case Ast::Type::Multiply:
-      visit_multiply(ast_cast<Ast::Multiply const &>(ast));
+      visit_multiply(derived_cast<Ast::Multiply const &>(ast));
       break;
     case Ast::Type::Divide:
-      visit_divide(ast_cast<Ast::Divide const &>(ast));
+      visit_divide(derived_cast<Ast::Divide const &>(ast));
       break;
     case Ast::Type::Modulo:
-      visit_modulo(ast_cast<Ast::Modulo const &>(ast));
+      visit_modulo(derived_cast<Ast::Modulo const &>(ast));
       break;
     case Ast::Type::ArrayLiteral:
-      visit_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
+      visit_array_literal(derived_cast<Ast::ArrayLiteral const &>(ast));
       break;
     case Ast::Type::Index:
-      visit_index(ast_cast<Ast::Index const &>(ast));
+      visit_index(derived_cast<Ast::Index const &>(ast));
       break;
     case Ast::Type::IndexAssignment:
-      visit_index_assignment(ast_cast<Ast::IndexAssignment const &>(ast));
+      visit_index_assignment(derived_cast<Ast::IndexAssignment const &>(ast));
       break;
     case Ast::Type::StructLiteral:
-      visit_struct_literal(ast_cast<Ast::StructLiteral const &>(ast));
+      visit_struct_literal(derived_cast<Ast::StructLiteral const &>(ast));
       break;
     case Ast::Type::FieldAccess:
-      visit_field_access(ast_cast<Ast::FieldAccess const &>(ast));
+      visit_field_access(derived_cast<Ast::FieldAccess const &>(ast));
       break;
     case Ast::Type::Assignment:
-      visit_assignment(ast_cast<Ast::Assignment const &>(ast));
+      visit_assignment(derived_cast<Ast::Assignment const &>(ast));
       break;
     case Ast::Type::Negate:
-      visit_negate(ast_cast<Ast::Negate const &>(ast));
+      visit_negate(derived_cast<Ast::Negate const &>(ast));
       break;
     case Ast::Type::UnaryPlus:
-      visit_unary_plus(ast_cast<Ast::UnaryPlus const &>(ast));
+      visit_unary_plus(derived_cast<Ast::UnaryPlus const &>(ast));
       break;
     case Ast::Type::LogicalNot:
-      visit_logical_not(ast_cast<Ast::LogicalNot const &>(ast));
+      visit_logical_not(derived_cast<Ast::LogicalNot const &>(ast));
       break;
     default:
       assert(false);
@@ -1184,69 +1183,69 @@ Bytecode::Value BytecodeInterpreter::interpret(
     const auto &instr = block.instructions[instr_index_];
     switch (instr->type()) {
       case Bytecode::Instruction::Type::Move:
-        interpret_move(ast::derived_cast<Bytecode::Instruction::Move const &>(*instr));
+        interpret_move(derived_cast<Bytecode::Instruction::Move const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Load:
-        interpret_load(ast::derived_cast<Bytecode::Instruction::Load const &>(*instr));
+        interpret_load(derived_cast<Bytecode::Instruction::Load const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::LessThan:
-        interpret_less_than(ast::derived_cast<Bytecode::Instruction::LessThan const &>(*instr));
+        interpret_less_than(derived_cast<Bytecode::Instruction::LessThan const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::LessThanImmediate:
         interpret_less_than_immediate(
-            ast::derived_cast<Bytecode::Instruction::LessThanImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::LessThanImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::GreaterThan:
         interpret_greater_than(
-            ast::derived_cast<Bytecode::Instruction::GreaterThan const &>(*instr));
+            derived_cast<Bytecode::Instruction::GreaterThan const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::GreaterThanImmediate:
         interpret_greater_than_immediate(
-            ast::derived_cast<Bytecode::Instruction::GreaterThanImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::GreaterThanImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::LessThanOrEqual:
         interpret_less_than_or_equal(
-            ast::derived_cast<Bytecode::Instruction::LessThanOrEqual const &>(*instr));
+            derived_cast<Bytecode::Instruction::LessThanOrEqual const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::LessThanOrEqualImmediate:
         interpret_less_than_or_equal_immediate(
-            ast::derived_cast<Bytecode::Instruction::LessThanOrEqualImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::LessThanOrEqualImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::GreaterThanOrEqual:
         interpret_greater_than_or_equal(
-            ast::derived_cast<Bytecode::Instruction::GreaterThanOrEqual const &>(*instr));
+            derived_cast<Bytecode::Instruction::GreaterThanOrEqual const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::GreaterThanOrEqualImmediate:
-        interpret_greater_than_or_equal_immediate(ast::derived_cast<
+        interpret_greater_than_or_equal_immediate(derived_cast<
             Bytecode::Instruction::GreaterThanOrEqualImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Jump:
-        interpret_jump(ast::derived_cast<Bytecode::Instruction::Jump const &>(*instr));
+        interpret_jump(derived_cast<Bytecode::Instruction::Jump const &>(*instr));
         break;
       case Bytecode::Instruction::Type::JumpConditional:
         interpret_jump_conditional(
-            ast::derived_cast<Bytecode::Instruction::JumpConditional const &>(*instr));
+            derived_cast<Bytecode::Instruction::JumpConditional const &>(*instr));
         break;
       case Bytecode::Instruction::Type::Call:
-        interpret_call(ast::derived_cast<Bytecode::Instruction::Call const &>(*instr),
+        interpret_call(derived_cast<Bytecode::Instruction::Call const &>(*instr),
                        instr_index_ + 1);
         break;
       case Bytecode::Instruction::Type::TailCall:
         interpret_tail_call(
-            ast::derived_cast<Bytecode::Instruction::TailCall const &>(*instr));
+            derived_cast<Bytecode::Instruction::TailCall const &>(*instr));
         break;
       case Bytecode::Instruction::Type::Return: {
-        const auto ret_reg = ast::derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
+        const auto ret_reg = derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
         const auto value = register_stack_[frame_base_ + ret_reg];
         if (call_stack_.empty()) {
           return value;
@@ -1260,100 +1259,100 @@ Bytecode::Value BytecodeInterpreter::interpret(
         break;
       }
       case Bytecode::Instruction::Type::Equal:
-        interpret_equal(ast::derived_cast<Bytecode::Instruction::Equal const &>(*instr));
+        interpret_equal(derived_cast<Bytecode::Instruction::Equal const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::EqualImmediate:
         interpret_equal_immediate(
-            ast::derived_cast<Bytecode::Instruction::EqualImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::EqualImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::NotEqual:
         interpret_not_equal(
-            ast::derived_cast<Bytecode::Instruction::NotEqual const &>(*instr));
+            derived_cast<Bytecode::Instruction::NotEqual const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::NotEqualImmediate:
         interpret_not_equal_immediate(
-            ast::derived_cast<Bytecode::Instruction::NotEqualImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::NotEqualImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Add:
-        interpret_add(ast::derived_cast<Bytecode::Instruction::Add const &>(*instr));
+        interpret_add(derived_cast<Bytecode::Instruction::Add const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::AddImmediate:
         interpret_add_immediate(
-            ast::derived_cast<Bytecode::Instruction::AddImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::AddImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Subtract:
-        interpret_subtract(ast::derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
+        interpret_subtract(derived_cast<Bytecode::Instruction::Subtract const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::SubtractImmediate:
         interpret_subtract_immediate(
-            ast::derived_cast<Bytecode::Instruction::SubtractImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::SubtractImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Multiply:
-        interpret_multiply(ast::derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
+        interpret_multiply(derived_cast<Bytecode::Instruction::Multiply const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::MultiplyImmediate:
         interpret_multiply_immediate(
-            ast::derived_cast<Bytecode::Instruction::MultiplyImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::MultiplyImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Divide:
-        interpret_divide(ast::derived_cast<Bytecode::Instruction::Divide const &>(*instr));
+        interpret_divide(derived_cast<Bytecode::Instruction::Divide const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::DivideImmediate:
         interpret_divide_immediate(
-            ast::derived_cast<Bytecode::Instruction::DivideImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::DivideImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Modulo:
-        interpret_modulo(ast::derived_cast<Bytecode::Instruction::Modulo const &>(*instr));
+        interpret_modulo(derived_cast<Bytecode::Instruction::Modulo const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::ModuloImmediate:
         interpret_modulo_immediate(
-            ast::derived_cast<Bytecode::Instruction::ModuloImmediate const &>(*instr));
+            derived_cast<Bytecode::Instruction::ModuloImmediate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::ArrayCreate:
         interpret_array_create(
-            ast::derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
+            derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::ArrayLoad:
-        interpret_array_load(ast::derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
+        interpret_array_load(derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::ArrayStore:
         interpret_array_store(
-            ast::derived_cast<Bytecode::Instruction::ArrayStore const &>(*instr));
+            derived_cast<Bytecode::Instruction::ArrayStore const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::StructCreate:
         interpret_struct_create(
-            ast::derived_cast<Bytecode::Instruction::StructCreate const &>(*instr));
+            derived_cast<Bytecode::Instruction::StructCreate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::StructLoad:
         interpret_struct_load(
-            ast::derived_cast<Bytecode::Instruction::StructLoad const &>(*instr));
+            derived_cast<Bytecode::Instruction::StructLoad const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Negate:
-        interpret_negate(ast::derived_cast<Bytecode::Instruction::Negate const &>(*instr));
+        interpret_negate(derived_cast<Bytecode::Instruction::Negate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::LogicalNot:
         interpret_logical_not(
-            ast::derived_cast<Bytecode::Instruction::LogicalNot const &>(*instr));
+            derived_cast<Bytecode::Instruction::LogicalNot const &>(*instr));
         ++instr_index_;
         break;
       default:

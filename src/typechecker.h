@@ -31,7 +31,7 @@ class TypeChecker {
  public:
   explicit TypeChecker(ErrorReporter& reporter);
 
-  void visit_program(const ast::Ast::Block& program);
+  void visit_program(const Ast::Block& program);
 
  private:
   ErrorReporter& reporter_;
@@ -48,9 +48,9 @@ class TypeChecker {
 
   static SourceLocation no_loc();
 
-  void visit_statement(const ast::Ast* node);
-  void visit_block(const ast::Ast::Block& block);
-  Shape* visit_expression(const ast::Ast* node);
+  void visit_statement(const Ast* node);
+  void visit_block(const Ast::Block& block);
+  Shape* visit_expression(const Ast* node);
 };
 
 }  // namespace kai

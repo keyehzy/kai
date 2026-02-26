@@ -46,22 +46,22 @@ std::string read_file(const std::string &path) {
   return buffer.str();
 }
 
-void ensure_bytecode_program_returns_value(kai::ast::Ast::Block &program) {
+void ensure_bytecode_program_returns_value(kai::Ast::Block &program) {
   if (program.children.empty()) {
     return;
   }
 
-  if (program.children.back()->type == kai::ast::Ast::Type::Return) {
+  if (program.children.back()->type == kai::Ast::Type::Return) {
     return;
   }
 
   auto last_statement = std::move(program.children.back());
   program.children.back() =
-      std::make_unique<kai::ast::Ast::Return>(std::move(last_statement));
+      std::make_unique<kai::Ast::Return>(std::move(last_statement));
 }
 
 struct ParseResult {
-  std::unique_ptr<kai::ast::Ast::Block> program;
+  std::unique_ptr<kai::Ast::Block> program;
   bool has_errors;
 };
 
@@ -83,7 +83,7 @@ ParseResult parse_program(const std::string &source) {
   return {std::move(program), reporter.has_errors()};
 }
 
-bool typecheck_program(const std::string &source, const kai::ast::Ast::Block &program) {
+bool typecheck_program(const std::string &source, const kai::Ast::Block &program) {
   kai::ErrorReporter reporter;
   kai::TypeChecker checker(reporter);
   checker.visit_program(program);
@@ -91,7 +91,7 @@ bool typecheck_program(const std::string &source, const kai::ast::Ast::Block &pr
   return !reporter.has_errors();
 }
 
-std::optional<kai::ast::Value> run_source(const std::string &source, Backend backend) {
+std::optional<kai::Value> run_source(const std::string &source, Backend backend) {
   auto parse_result = parse_program(source);
   if (parse_result.has_errors) {
     return std::nullopt;
@@ -102,7 +102,7 @@ std::optional<kai::ast::Value> run_source(const std::string &source, Backend bac
   }
 
   if (backend == Backend::Ast) {
-    kai::ast::AstInterpreter interpreter;
+    kai::AstInterpreter interpreter;
     return interpreter.interpret(program);
   }
 

@@ -9,7 +9,7 @@ TypeChecker::TypeChecker(ErrorReporter& reporter) : reporter_(reporter) {
   env_.push_scope();
 }
 
-void TypeChecker::visit_program(const ast::Ast::Block& program) {
+void TypeChecker::visit_program(const Ast::Block& program) {
   for (const auto& child : program.children) {
     visit_statement(child.get());
   }
@@ -52,7 +52,7 @@ size_t* Env::lookup_function(const std::string& name) {
   return it != functions_.end() ? &it->second : nullptr;
 }
 
-void TypeChecker::visit_block(const ast::Ast::Block& block) {
+void TypeChecker::visit_block(const Ast::Block& block) {
   env_.push_scope();
   for (const auto& child : block.children) {
     visit_statement(child.get());
@@ -60,12 +60,12 @@ void TypeChecker::visit_block(const ast::Ast::Block& block) {
   env_.pop_scope();
 }
 
-void TypeChecker::visit_statement(const ast::Ast* node) {
-  using T = ast::Ast::Type;
+void TypeChecker::visit_statement(const Ast* node) {
+  using T = Ast::Type;
 
   switch (node->type) {
     case T::VariableDeclaration: {
-      const auto& decl = ast_cast<const ast::Ast::VariableDeclaration&>(*node);
+      const auto& decl = derived_cast<const Ast::VariableDeclaration&>(*node);
       env_.bind_variable(decl.name, visit_expression(decl.initializer.get()));
       break;
     }
@@ -79,7 +79,7 @@ void TypeChecker::visit_statement(const ast::Ast* node) {
       static_cast<void>(visit_expression(node));
       break;
     case T::FunctionDeclaration: {
-      const auto& fn = ast_cast<const ast::Ast::FunctionDeclaration&>(*node);
+      const auto& fn = derived_cast<const Ast::FunctionDeclaration&>(*node);
       env_.declare_function(fn.name, fn.parameters.size());
 
       env_.push_scope();
@@ -91,7 +91,7 @@ void TypeChecker::visit_statement(const ast::Ast* node) {
       break;
     }
     case T::Block:
-      visit_block(ast_cast<const ast::Ast::Block&>(*node));
+      visit_block(derived_cast<const Ast::Block&>(*node));
       break;
     default:
       static_cast<void>(visit_expression(node));
@@ -99,15 +99,15 @@ void TypeChecker::visit_statement(const ast::Ast* node) {
   }
 }
 
-Shape* TypeChecker::visit_expression(const ast::Ast* node) {
-  using T = ast::Ast::Type;
+Shape* TypeChecker::visit_expression(const Ast* node) {
+  using T = Ast::Type;
 
   switch (node->type) {
     case T::Literal:
       return make_shape<Shape::Non_Struct>();
 
     case T::Variable: {
-      const auto& var = ast_cast<const ast::Ast::Variable&>(*node);
+      const auto& var = derived_cast<const Ast::Variable&>(*node);
       Shape** value = env_.lookup_variable(var.name);
       if (!value) {
         reporter_.report<UndefinedVariableError>(no_loc(), var.name);
@@ -117,14 +117,14 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::VariableDeclaration: {
-      const auto& decl = ast_cast<const ast::Ast::VariableDeclaration&>(*node);
+      const auto& decl = derived_cast<const Ast::VariableDeclaration&>(*node);
       Shape* value = visit_expression(decl.initializer.get());
       env_.bind_variable(decl.name, value);
       return value;
     }
 
     case T::Assignment: {
-      const auto& assignment = ast_cast<const ast::Ast::Assignment&>(*node);
+      const auto& assignment = derived_cast<const Ast::Assignment&>(*node);
       Shape* value = visit_expression(assignment.value.get());
       Shape** target = env_.lookup_variable(assignment.name);
       if (!target) {
@@ -136,7 +136,7 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::FunctionCall: {
-      const auto& call = ast_cast<const ast::Ast::FunctionCall&>(*node);
+      const auto& call = derived_cast<const Ast::FunctionCall&>(*node);
       for (const auto& arg : call.arguments) {
         static_cast<void>(visit_expression(arg.get()));
       }
@@ -155,7 +155,7 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::Increment: {
-      const auto& inc = ast_cast<const ast::Ast::Increment&>(*node);
+      const auto& inc = derived_cast<const Ast::Increment&>(*node);
       if (!env_.lookup_variable(inc.variable->name)) {
         reporter_.report<UndefinedVariableError>(no_loc(), inc.variable->name);
       }
@@ -163,7 +163,7 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::ArrayLiteral: {
-      const auto& array = ast_cast<const ast::Ast::ArrayLiteral&>(*node);
+      const auto& array = derived_cast<const Ast::ArrayLiteral&>(*node);
       for (const auto& element : array.elements) {
         static_cast<void>(visit_expression(element.get()));
       }
@@ -171,21 +171,21 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::Index: {
-      const auto& index = ast_cast<const ast::Ast::Index&>(*node);
+      const auto& index = derived_cast<const Ast::Index&>(*node);
       static_cast<void>(visit_expression(index.array.get()));
       static_cast<void>(visit_expression(index.index.get()));
       return make_shape<Shape::Unknown>();
     }
 
     case T::IndexAssignment: {
-      const auto& assign = ast_cast<const ast::Ast::IndexAssignment&>(*node);
+      const auto& assign = derived_cast<const Ast::IndexAssignment&>(*node);
       static_cast<void>(visit_expression(assign.array.get()));
       static_cast<void>(visit_expression(assign.index.get()));
       return visit_expression(assign.value.get());
     }
 
     case T::StructLiteral: {
-      const auto& literal = ast_cast<const ast::Ast::StructLiteral&>(*node);
+      const auto& literal = derived_cast<const Ast::StructLiteral&>(*node);
       std::unordered_set<std::string> fields;
       fields.reserve(literal.fields.size());
       for (const auto& [name, value] : literal.fields) {
@@ -196,7 +196,7 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::FieldAccess: {
-      const auto& access = ast_cast<const ast::Ast::FieldAccess&>(*node);
+      const auto& access = derived_cast<const Ast::FieldAccess&>(*node);
       Shape* object = visit_expression(access.object.get());
       if (object->kind != Shape::Kind::Struct_Literal) {
         reporter_.report<NotAStructError>(no_loc(), object->describe());
@@ -216,17 +216,17 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::Block: {
-      visit_block(ast_cast<const ast::Ast::Block&>(*node));
+      visit_block(derived_cast<const Ast::Block&>(*node));
       return make_shape<Shape::Unknown>();
     }
 
     case T::Return: {
-      const auto& ret = ast_cast<const ast::Ast::Return&>(*node);
+      const auto& ret = derived_cast<const Ast::Return&>(*node);
       return visit_expression(ret.value.get());
     }
 
     case T::IfElse: {
-      const auto& if_else = ast_cast<const ast::Ast::IfElse&>(*node);
+      const auto& if_else = derived_cast<const Ast::IfElse&>(*node);
       static_cast<void>(visit_expression(if_else.condition.get()));
       visit_block(*if_else.body);
       visit_block(*if_else.else_body);
@@ -234,91 +234,91 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
     }
 
     case T::While: {
-      const auto& while_loop = ast_cast<const ast::Ast::While&>(*node);
+      const auto& while_loop = derived_cast<const Ast::While&>(*node);
       static_cast<void>(visit_expression(while_loop.condition.get()));
       visit_block(*while_loop.body);
       return make_shape<Shape::Unknown>();
     }
 
     case T::Add: {
-      const auto& n = ast_cast<const ast::Ast::Add&>(*node);
+      const auto& n = derived_cast<const Ast::Add&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::Subtract: {
-      const auto& n = ast_cast<const ast::Ast::Subtract&>(*node);
+      const auto& n = derived_cast<const Ast::Subtract&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::Multiply: {
-      const auto& n = ast_cast<const ast::Ast::Multiply&>(*node);
+      const auto& n = derived_cast<const Ast::Multiply&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::Divide: {
-      const auto& n = ast_cast<const ast::Ast::Divide&>(*node);
+      const auto& n = derived_cast<const Ast::Divide&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::Modulo: {
-      const auto& n = ast_cast<const ast::Ast::Modulo&>(*node);
+      const auto& n = derived_cast<const Ast::Modulo&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::LessThan: {
-      const auto& n = ast_cast<const ast::Ast::LessThan&>(*node);
+      const auto& n = derived_cast<const Ast::LessThan&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::GreaterThan: {
-      const auto& n = ast_cast<const ast::Ast::GreaterThan&>(*node);
+      const auto& n = derived_cast<const Ast::GreaterThan&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::LessThanOrEqual: {
-      const auto& n = ast_cast<const ast::Ast::LessThanOrEqual&>(*node);
+      const auto& n = derived_cast<const Ast::LessThanOrEqual&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::GreaterThanOrEqual: {
-      const auto& n = ast_cast<const ast::Ast::GreaterThanOrEqual&>(*node);
+      const auto& n = derived_cast<const Ast::GreaterThanOrEqual&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::Equal: {
-      const auto& n = ast_cast<const ast::Ast::Equal&>(*node);
+      const auto& n = derived_cast<const Ast::Equal&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::NotEqual: {
-      const auto& n = ast_cast<const ast::Ast::NotEqual&>(*node);
+      const auto& n = derived_cast<const Ast::NotEqual&>(*node);
       static_cast<void>(visit_expression(n.left.get()));
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
 
     case T::Negate: {
-      const auto& n = ast_cast<const ast::Ast::Negate&>(*node);
+      const auto& n = derived_cast<const Ast::Negate&>(*node);
       static_cast<void>(visit_expression(n.operand.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::UnaryPlus: {
-      const auto& n = ast_cast<const ast::Ast::UnaryPlus&>(*node);
+      const auto& n = derived_cast<const Ast::UnaryPlus&>(*node);
       static_cast<void>(visit_expression(n.operand.get()));
       return make_shape<Shape::Non_Struct>();
     }
     case T::LogicalNot: {
-      const auto& n = ast_cast<const ast::Ast::LogicalNot&>(*node);
+      const auto& n = derived_cast<const Ast::LogicalNot&>(*node);
       static_cast<void>(visit_expression(n.operand.get()));
       return make_shape<Shape::Non_Struct>();
     }

@@ -452,8 +452,8 @@ struct Bytecode::RegisterAllocator {
 
 class BytecodeGenerator {
  public:
-  void visit(const ast::Ast &ast);
-  void visit_block(const ast::Ast::Block &block);
+  void visit(const Ast &ast);
+  void visit_block(const Ast::Block &block);
   void finalize();
   void dump() const;
   const std::vector<Bytecode::BasicBlock> &blocks() const;
@@ -463,36 +463,36 @@ class BytecodeGenerator {
   Bytecode::BasicBlock &current_block();
   Bytecode::Label current_label();
 
-  void visit_variable(const ast::Ast::Variable &var);
-  void visit_literal(const ast::Ast::Literal &literal);
-  void visit_function_declaration(const ast::Ast::FunctionDeclaration &func_decl);
-  void visit_variable_declaration(const ast::Ast::VariableDeclaration &var_decl);
-  void visit_less_than(const ast::Ast::LessThan &less_than);
-  void visit_greater_than(const ast::Ast::GreaterThan &greater_than);
-  void visit_less_than_or_equal(const ast::Ast::LessThanOrEqual &less_than_or_equal);
+  void visit_variable(const Ast::Variable &var);
+  void visit_literal(const Ast::Literal &literal);
+  void visit_function_declaration(const Ast::FunctionDeclaration &func_decl);
+  void visit_variable_declaration(const Ast::VariableDeclaration &var_decl);
+  void visit_less_than(const Ast::LessThan &less_than);
+  void visit_greater_than(const Ast::GreaterThan &greater_than);
+  void visit_less_than_or_equal(const Ast::LessThanOrEqual &less_than_or_equal);
   void visit_greater_than_or_equal(
-      const ast::Ast::GreaterThanOrEqual &greater_than_or_equal);
-  void visit_increment(const ast::Ast::Increment &increment);
-  void visit_if_else(const ast::Ast::IfElse &ifelse);
-  void visit_while(const ast::Ast::While &while_);
-  void visit_function_call(const ast::Ast::FunctionCall &function_call);
-  void visit_return(const ast::Ast::Return &return_);
-  void visit_equal(const ast::Ast::Equal &equal);
-  void visit_not_equal(const ast::Ast::NotEqual &not_equal);
-  void visit_add(const ast::Ast::Add &add);
-  void visit_subtract(const ast::Ast::Subtract &subtract);
-  void visit_multiply(const ast::Ast::Multiply &multiply);
-  void visit_divide(const ast::Ast::Divide &divide);
-  void visit_modulo(const ast::Ast::Modulo &modulo);
-  void visit_array_literal(const ast::Ast::ArrayLiteral &array_literal);
-  void visit_index(const ast::Ast::Index &index);
-  void visit_index_assignment(const ast::Ast::IndexAssignment &index_assignment);
-  void visit_struct_literal(const ast::Ast::StructLiteral &struct_literal);
-  void visit_field_access(const ast::Ast::FieldAccess &field_access);
-  void visit_assignment(const ast::Ast::Assignment &assignment);
-  void visit_negate(const ast::Ast::Negate &negate);
-  void visit_unary_plus(const ast::Ast::UnaryPlus &unary_plus);
-  void visit_logical_not(const ast::Ast::LogicalNot &logical_not);
+      const Ast::GreaterThanOrEqual &greater_than_or_equal);
+  void visit_increment(const Ast::Increment &increment);
+  void visit_if_else(const Ast::IfElse &ifelse);
+  void visit_while(const Ast::While &while_);
+  void visit_function_call(const Ast::FunctionCall &function_call);
+  void visit_return(const Ast::Return &return_);
+  void visit_equal(const Ast::Equal &equal);
+  void visit_not_equal(const Ast::NotEqual &not_equal);
+  void visit_add(const Ast::Add &add);
+  void visit_subtract(const Ast::Subtract &subtract);
+  void visit_multiply(const Ast::Multiply &multiply);
+  void visit_divide(const Ast::Divide &divide);
+  void visit_modulo(const Ast::Modulo &modulo);
+  void visit_array_literal(const Ast::ArrayLiteral &array_literal);
+  void visit_index(const Ast::Index &index);
+  void visit_index_assignment(const Ast::IndexAssignment &index_assignment);
+  void visit_struct_literal(const Ast::StructLiteral &struct_literal);
+  void visit_field_access(const Ast::FieldAccess &field_access);
+  void visit_assignment(const Ast::Assignment &assignment);
+  void visit_negate(const Ast::Negate &negate);
+  void visit_unary_plus(const Ast::UnaryPlus &unary_plus);
+  void visit_logical_not(const Ast::LogicalNot &logical_not);
 
   std::unordered_map<std::string, Bytecode::Register> vars_;
   std::unordered_map<std::string, Bytecode::Label> functions_;

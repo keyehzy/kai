@@ -11,9 +11,6 @@
 #include <vector>
 
 namespace kai {
-namespace ast {
-
-using kai::derived_cast;
 
 struct Ast {
   enum class Type {
@@ -93,16 +90,6 @@ struct Ast {
   explicit Ast(Type type) : type(type) {}
 };
 
-
-template <typename Derived>
-Derived ast_cast(Ast &ast) {
-  return derived_cast<Derived>(ast);
-}
-
-template <typename Derived>
-Derived ast_cast(const Ast &ast) {
-  return derived_cast<Derived>(ast);
-}
 
 struct Ast::Block final : public Ast {
   std::vector<std::unique_ptr<Ast>> children;
@@ -678,66 +665,66 @@ struct AstInterpreter {
   Value interpret(const Ast &ast) {
     switch (ast.type) {
       case Ast::Type::Variable:
-        return interpret_variable(ast_cast<Ast::Variable const &>(ast));
+        return interpret_variable(derived_cast<Ast::Variable const &>(ast));
       case Ast::Type::Literal:
-        return interpret_literal(ast_cast<Ast::Literal const &>(ast));
+        return interpret_literal(derived_cast<Ast::Literal const &>(ast));
       case Ast::Type::LessThan:
-        return interpret_less_than(ast_cast<Ast::LessThan const &>(ast));
+        return interpret_less_than(derived_cast<Ast::LessThan const &>(ast));
       case Ast::Type::GreaterThan:
-        return interpret_greater_than(ast_cast<Ast::GreaterThan const &>(ast));
+        return interpret_greater_than(derived_cast<Ast::GreaterThan const &>(ast));
       case Ast::Type::LessThanOrEqual:
-        return interpret_less_than_or_equal(ast_cast<Ast::LessThanOrEqual const &>(ast));
+        return interpret_less_than_or_equal(derived_cast<Ast::LessThanOrEqual const &>(ast));
       case Ast::Type::GreaterThanOrEqual:
         return interpret_greater_than_or_equal(
-            ast_cast<Ast::GreaterThanOrEqual const &>(ast));
+            derived_cast<Ast::GreaterThanOrEqual const &>(ast));
       case Ast::Type::VariableDeclaration:
-        return interpret_variable_declaration(ast_cast<Ast::VariableDeclaration const &>(ast));
+        return interpret_variable_declaration(derived_cast<Ast::VariableDeclaration const &>(ast));
       case Ast::Type::Increment:
-        return interpret_increment(ast_cast<Ast::Increment const &>(ast));
+        return interpret_increment(derived_cast<Ast::Increment const &>(ast));
       case Ast::Type::While:
-        return interpret_while(ast_cast<Ast::While const &>(ast));
+        return interpret_while(derived_cast<Ast::While const &>(ast));
       case Ast::Type::Block:
-        return interpret_block(ast_cast<Ast::Block const &>(ast));
+        return interpret_block(derived_cast<Ast::Block const &>(ast));
       case Ast::Type::FunctionDeclaration:
-        return interpret_function_declaration(ast_cast<Ast::FunctionDeclaration const &>(ast));
+        return interpret_function_declaration(derived_cast<Ast::FunctionDeclaration const &>(ast));
       case Ast::Type::FunctionCall:
-        return interpret_function_call(ast_cast<Ast::FunctionCall const &>(ast));
+        return interpret_function_call(derived_cast<Ast::FunctionCall const &>(ast));
       case Ast::Type::Assignment:
-        return interpret_assignment(ast_cast<Ast::Assignment const &>(ast));
+        return interpret_assignment(derived_cast<Ast::Assignment const &>(ast));
       case Ast::Type::Return:
-        return interpret_return(ast_cast<Ast::Return const &>(ast));
+        return interpret_return(derived_cast<Ast::Return const &>(ast));
       case Ast::Type::IfElse:
-        return interpret_if_else(ast_cast<Ast::IfElse const &>(ast));
+        return interpret_if_else(derived_cast<Ast::IfElse const &>(ast));
       case Ast::Type::Equal:
-        return interpret_equal(ast_cast<Ast::Equal const &>(ast));
+        return interpret_equal(derived_cast<Ast::Equal const &>(ast));
       case Ast::Type::NotEqual:
-        return interpret_not_equal(ast_cast<Ast::NotEqual const &>(ast));
+        return interpret_not_equal(derived_cast<Ast::NotEqual const &>(ast));
       case Ast::Type::Add:
-        return interpret_add(ast_cast<Ast::Add const &>(ast));
+        return interpret_add(derived_cast<Ast::Add const &>(ast));
       case Ast::Type::Subtract:
-        return interpret_subtract(ast_cast<Ast::Subtract const &>(ast));
+        return interpret_subtract(derived_cast<Ast::Subtract const &>(ast));
       case Ast::Type::Multiply:
-        return interpret_multiply(ast_cast<Ast::Multiply const &>(ast));
+        return interpret_multiply(derived_cast<Ast::Multiply const &>(ast));
       case Ast::Type::Divide:
-        return interpret_divide(ast_cast<Ast::Divide const &>(ast));
+        return interpret_divide(derived_cast<Ast::Divide const &>(ast));
       case Ast::Type::Modulo:
-        return interpret_modulo(ast_cast<Ast::Modulo const &>(ast));
+        return interpret_modulo(derived_cast<Ast::Modulo const &>(ast));
       case Ast::Type::ArrayLiteral:
-        return interpret_array_literal(ast_cast<Ast::ArrayLiteral const &>(ast));
+        return interpret_array_literal(derived_cast<Ast::ArrayLiteral const &>(ast));
       case Ast::Type::Index:
-        return interpret_index(ast_cast<Ast::Index const &>(ast));
+        return interpret_index(derived_cast<Ast::Index const &>(ast));
       case Ast::Type::IndexAssignment:
-        return interpret_index_assignment(ast_cast<Ast::IndexAssignment const &>(ast));
+        return interpret_index_assignment(derived_cast<Ast::IndexAssignment const &>(ast));
       case Ast::Type::StructLiteral:
-        return interpret_struct_literal(ast_cast<Ast::StructLiteral const &>(ast));
+        return interpret_struct_literal(derived_cast<Ast::StructLiteral const &>(ast));
       case Ast::Type::FieldAccess:
-        return interpret_field_access(ast_cast<Ast::FieldAccess const &>(ast));
+        return interpret_field_access(derived_cast<Ast::FieldAccess const &>(ast));
       case Ast::Type::Negate:
-        return interpret_negate(ast_cast<Ast::Negate const &>(ast));
+        return interpret_negate(derived_cast<Ast::Negate const &>(ast));
       case Ast::Type::UnaryPlus:
-        return interpret_unary_plus(ast_cast<Ast::UnaryPlus const &>(ast));
+        return interpret_unary_plus(derived_cast<Ast::UnaryPlus const &>(ast));
       case Ast::Type::LogicalNot:
-        return interpret_logical_not(ast_cast<Ast::LogicalNot const &>(ast));
+        return interpret_logical_not(derived_cast<Ast::LogicalNot const &>(ast));
     }
     assert(false);
   }
@@ -772,5 +759,4 @@ struct AstInterpreter {
   bool return_active_ = false;
   Value return_value_ = 0;
 };
-} // namespace ast
 } // namespace kai
