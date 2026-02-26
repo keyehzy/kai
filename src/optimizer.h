@@ -19,6 +19,12 @@ class BytecodeOptimizer {
   // any block (pure computation with no observable effect).
   void dead_code_elimination(std::vector<Bytecode::BasicBlock> &blocks);
 
+  // Pass 1.5: aggregate literal folding.
+  // Rewrites ArrayCreate/StructCreate with register operands into
+  // ArrayLiteralCreate/StructLiteralCreate when every operand register is
+  // proven to come from a constant Load at that point in the block.
+  void fold_aggregate_literals(std::vector<Bytecode::BasicBlock> &blocks);
+
   // Pass 3: tail-call optimization.
   // Rewrites:
   //   Call r_tmp, @f, args

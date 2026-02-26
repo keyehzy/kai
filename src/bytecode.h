@@ -56,9 +56,11 @@ struct Bytecode::Instruction {
     Modulo,
     ModuloImmediate,
     ArrayCreate,
+    ArrayLiteralCreate,
     ArrayLoad,
     ArrayStore,
     StructCreate,
+    StructLiteralCreate,
     StructLoad,
     Negate,
     LogicalNot,
@@ -96,9 +98,11 @@ struct Bytecode::Instruction {
   struct Modulo;
   struct ModuloImmediate;
   struct ArrayCreate;
+  struct ArrayLiteralCreate;
   struct ArrayLoad;
   struct ArrayStore;
   struct StructCreate;
+  struct StructLiteralCreate;
   struct StructLoad;
   struct Negate;
   struct LogicalNot;
@@ -378,6 +382,14 @@ struct Bytecode::Instruction::ArrayCreate final : Bytecode::Instruction {
   std::vector<Register> elements;
 };
 
+struct Bytecode::Instruction::ArrayLiteralCreate final : Bytecode::Instruction {
+  ArrayLiteralCreate(Register dst, std::vector<Value> elements);
+  void dump() const override;
+
+  Register dst;
+  std::vector<Value> elements;
+};
+
 struct Bytecode::Instruction::ArrayLoad final : Bytecode::Instruction {
   ArrayLoad(Register dst, Register array, Register index);
   void dump() const override;
@@ -402,6 +414,14 @@ struct Bytecode::Instruction::StructCreate final : Bytecode::Instruction {
 
   Register dst;
   std::vector<std::pair<std::string, Register>> fields;
+};
+
+struct Bytecode::Instruction::StructLiteralCreate final : Bytecode::Instruction {
+  StructLiteralCreate(Register dst, std::vector<std::pair<std::string, Value>> fields);
+  void dump() const override;
+
+  Register dst;
+  std::vector<std::pair<std::string, Value>> fields;
 };
 
 struct Bytecode::Instruction::StructLoad final : Bytecode::Instruction {
@@ -545,9 +565,13 @@ class BytecodeInterpreter {
   void interpret_modulo(const Bytecode::Instruction::Modulo &modulo);
   void interpret_modulo_immediate(const Bytecode::Instruction::ModuloImmediate &modulo_imm);
   void interpret_array_create(const Bytecode::Instruction::ArrayCreate &array_create);
+  void interpret_array_literal_create(
+      const Bytecode::Instruction::ArrayLiteralCreate &array_literal_create);
   void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
   void interpret_array_store(const Bytecode::Instruction::ArrayStore &array_store);
   void interpret_struct_create(const Bytecode::Instruction::StructCreate &struct_create);
+  void interpret_struct_literal_create(
+      const Bytecode::Instruction::StructLiteralCreate &struct_literal_create);
   void interpret_struct_load(const Bytecode::Instruction::StructLoad &struct_load);
   void interpret_negate(const Bytecode::Instruction::Negate &negate);
   void interpret_logical_not(const Bytecode::Instruction::LogicalNot &logical_not);

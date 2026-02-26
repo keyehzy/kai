@@ -256,6 +256,12 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           }
           break;
         }
+        case Bytecode::Instruction::Type::ArrayLiteralCreate: {
+          const auto &array_literal_create =
+              derived_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(*instr);
+          track(array_literal_create.dst);
+          break;
+        }
         case Bytecode::Instruction::Type::ArrayLoad: {
           const auto &array_load =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(*instr);
@@ -279,6 +285,12 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           for (const auto &field : struct_create.fields) {
             track(field.second);
           }
+          break;
+        }
+        case Bytecode::Instruction::Type::StructLiteralCreate: {
+          const auto &struct_literal_create =
+              derived_cast<const Bytecode::Instruction::StructLiteralCreate &>(*instr);
+          track(struct_literal_create.dst);
           break;
         }
         case Bytecode::Instruction::Type::StructLoad: {
@@ -585,6 +597,21 @@ void Bytecode::Instruction::ArrayCreate::dump() const {
   std::printf("]");
 }
 
+Bytecode::Instruction::ArrayLiteralCreate::ArrayLiteralCreate(
+    Register dst, std::vector<Value> elements)
+    : Bytecode::Instruction(Type::ArrayLiteralCreate), dst(dst), elements(std::move(elements)) {}
+
+void Bytecode::Instruction::ArrayLiteralCreate::dump() const {
+  std::printf("ArrayLiteralCreate r%llu, [", dst);
+  for (size_t i = 0; i < elements.size(); ++i) {
+    if (i != 0) {
+      std::printf(", ");
+    }
+    std::printf("%llu", elements[i]);
+  }
+  std::printf("]");
+}
+
 Bytecode::Instruction::ArrayLoad::ArrayLoad(Register dst, Register array, Register index)
     : Bytecode::Instruction(Type::ArrayLoad), dst(dst), array(array), index(index) {}
 
@@ -613,6 +640,21 @@ void Bytecode::Instruction::StructCreate::dump() const {
       std::printf(", ");
     }
     std::printf("%s: r%llu", fields[i].first.c_str(), fields[i].second);
+  }
+  std::printf("}");
+}
+
+Bytecode::Instruction::StructLiteralCreate::StructLiteralCreate(
+    Register dst, std::vector<std::pair<std::string, Value>> fields)
+    : Bytecode::Instruction(Type::StructLiteralCreate), dst(dst), fields(std::move(fields)) {}
+
+void Bytecode::Instruction::StructLiteralCreate::dump() const {
+  std::printf("StructLiteralCreate r%llu, {", dst);
+  for (size_t i = 0; i < fields.size(); ++i) {
+    if (i != 0) {
+      std::printf(", ");
+    }
+    std::printf("%s: %llu", fields[i].first.c_str(), fields[i].second);
   }
   std::printf("}");
 }
@@ -1091,6 +1133,22 @@ void BytecodeGenerator::visit_modulo(const Ast::Modulo &modulo) {
 }
 
 void BytecodeGenerator::visit_array_literal(const Ast::ArrayLiteral &array_literal) {
+  bool all_ast_literals = true;
+  std::vector<Bytecode::Value> literal_elements;
+  literal_elements.reserve(array_literal.elements.size());
+  for (const auto &element : array_literal.elements) {
+    if (element->type != Ast::Type::Literal) {
+      all_ast_literals = false;
+      break;
+    }
+    literal_elements.push_back(derived_cast<const Ast::Literal &>(*element).value);
+  }
+  if (all_ast_literals) {
+    current_block().append<Bytecode::Instruction::ArrayLiteralCreate>(
+        reg_alloc_.allocate(), std::move(literal_elements));
+    return;
+  }
+
   std::vector<Bytecode::Register> element_regs;
   element_regs.reserve(array_literal.elements.size());
   for (const auto &element : array_literal.elements) {
@@ -1122,6 +1180,23 @@ void BytecodeGenerator::visit_index_assignment(
 }
 
 void BytecodeGenerator::visit_struct_literal(const Ast::StructLiteral &struct_literal) {
+  bool all_ast_literals = true;
+  std::vector<std::pair<std::string, Bytecode::Value>> literal_fields;
+  literal_fields.reserve(struct_literal.fields.size());
+  for (const auto &field : struct_literal.fields) {
+    if (field.second->type != Ast::Type::Literal) {
+      all_ast_literals = false;
+      break;
+    }
+    literal_fields.emplace_back(
+        field.first, derived_cast<const Ast::Literal &>(*field.second).value);
+  }
+  if (all_ast_literals) {
+    current_block().append<Bytecode::Instruction::StructLiteralCreate>(
+        reg_alloc_.allocate(), std::move(literal_fields));
+    return;
+  }
+
   std::vector<std::pair<std::string, Bytecode::Register>> fields;
   fields.reserve(struct_literal.fields.size());
   for (const auto &field : struct_literal.fields) {
@@ -1326,6 +1401,11 @@ Bytecode::Value BytecodeInterpreter::interpret(
             derived_cast<Bytecode::Instruction::ArrayCreate const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::ArrayLiteralCreate:
+        interpret_array_literal_create(
+            derived_cast<Bytecode::Instruction::ArrayLiteralCreate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::ArrayLoad:
         interpret_array_load(derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
         ++instr_index_;
@@ -1338,6 +1418,11 @@ Bytecode::Value BytecodeInterpreter::interpret(
       case Bytecode::Instruction::Type::StructCreate:
         interpret_struct_create(
             derived_cast<Bytecode::Instruction::StructCreate const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::StructLiteralCreate:
+        interpret_struct_literal_create(
+            derived_cast<Bytecode::Instruction::StructLiteralCreate const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::StructLoad:
@@ -1543,6 +1628,14 @@ void BytecodeInterpreter::interpret_array_create(
   reg(array_create.dst) = array_id;
 }
 
+void BytecodeInterpreter::interpret_array_literal_create(
+    const Bytecode::Instruction::ArrayLiteralCreate &array_literal_create) {
+  auto array_id = next_heap_id_++;
+  auto &array = arrays_[array_id];
+  array = array_literal_create.elements;
+  reg(array_literal_create.dst) = array_id;
+}
+
 void BytecodeInterpreter::interpret_array_load(
     const Bytecode::Instruction::ArrayLoad &array_load) {
   auto array_id = reg(array_load.array);
@@ -1572,6 +1665,16 @@ void BytecodeInterpreter::interpret_struct_create(
     fields[field.first] = reg(field.second);
   }
   reg(struct_create.dst) = struct_id;
+}
+
+void BytecodeInterpreter::interpret_struct_literal_create(
+    const Bytecode::Instruction::StructLiteralCreate &struct_literal_create) {
+  auto struct_id = next_heap_id_++;
+  auto &fields = structs_[struct_id];
+  for (const auto &field : struct_literal_create.fields) {
+    fields[field.first] = field.second;
+  }
+  reg(struct_literal_create.dst) = struct_id;
 }
 
 void BytecodeInterpreter::interpret_struct_load(

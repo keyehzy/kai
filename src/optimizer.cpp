@@ -67,10 +67,14 @@ static std::optional<Register> get_dst_reg(const Bytecode::Instruction &instr) {
       return derived_cast<const Bytecode::Instruction::Call &>(instr).dst;
     case Type::ArrayCreate:
       return derived_cast<const Bytecode::Instruction::ArrayCreate &>(instr).dst;
+    case Type::ArrayLiteralCreate:
+      return derived_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(instr).dst;
     case Type::ArrayLoad:
       return derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr).dst;
     case Type::StructCreate:
       return derived_cast<const Bytecode::Instruction::StructCreate &>(instr).dst;
+    case Type::StructLiteralCreate:
+      return derived_cast<const Bytecode::Instruction::StructLiteralCreate &>(instr).dst;
     case Type::StructLoad:
       return derived_cast<const Bytecode::Instruction::StructLoad &>(instr).dst;
     case Type::Negate:
@@ -369,6 +373,8 @@ static std::unordered_map<Register, size_t> compute_use_count(
           for (auto r : ac.elements) use(r);
           break;
         }
+        case Type::ArrayLiteralCreate:
+          break;
         case Type::ArrayLoad: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
@@ -390,6 +396,8 @@ static std::unordered_map<Register, size_t> compute_use_count(
           for (const auto &[name, r] : sc.fields) use(r);
           break;
         }
+        case Type::StructLiteralCreate:
+          break;
         case Type::StructLoad:
           use(derived_cast<const Bytecode::Instruction::StructLoad &>(instr).object);
           break;
@@ -410,6 +418,7 @@ static std::unordered_map<Register, size_t> compute_use_count(
 void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
   loop_invariant_code_motion(blocks);
   copy_propagation(blocks);
+  fold_aggregate_literals(blocks);
   dead_code_elimination(blocks);
   tail_call_optimization(blocks);
   peephole(blocks);
@@ -628,6 +637,11 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
           invalidate(ac.dst);
           break;
         }
+        case Type::ArrayLiteralCreate: {
+          auto &alc = derived_cast<Bytecode::Instruction::ArrayLiteralCreate &>(instr);
+          invalidate(alc.dst);
+          break;
+        }
         case Type::ArrayLoad: {
           auto &al = derived_cast<Bytecode::Instruction::ArrayLoad &>(instr);
           al.array = resolve(al.array);
@@ -648,6 +662,11 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
             reg = resolve(reg);
           }
           invalidate(sc.dst);
+          break;
+        }
+        case Type::StructLiteralCreate: {
+          auto &slc = derived_cast<Bytecode::Instruction::StructLiteralCreate &>(instr);
+          invalidate(slc.dst);
           break;
         }
         case Type::StructLoad: {
@@ -680,6 +699,67 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
           derived_cast<const Bytecode::Instruction::Move &>(*instr_ptr);
       return m.dst == m.src;
     });
+  }
+}
+
+void BytecodeOptimizer::fold_aggregate_literals(
+    std::vector<Bytecode::BasicBlock> &blocks) {
+  for (auto &block : blocks) {
+    std::unordered_map<Register, Bytecode::Value> constant_loads;
+    for (auto &instr_ptr : block.instructions) {
+      auto &instr = *instr_ptr;
+      if (instr.type() == Type::Load) {
+        const auto &load = derived_cast<const Bytecode::Instruction::Load &>(instr);
+        constant_loads[load.dst] = load.value;
+        continue;
+      }
+
+      if (instr.type() == Type::ArrayCreate) {
+        const auto &array_create =
+            derived_cast<const Bytecode::Instruction::ArrayCreate &>(instr);
+        std::vector<Bytecode::Value> elements;
+        elements.reserve(array_create.elements.size());
+        bool all_constant_loads = true;
+        for (const auto element_reg : array_create.elements) {
+          const auto it = constant_loads.find(element_reg);
+          if (it == constant_loads.end()) {
+            all_constant_loads = false;
+            break;
+          }
+          elements.push_back(it->second);
+        }
+        if (all_constant_loads) {
+          instr_ptr = std::make_unique<Bytecode::Instruction::ArrayLiteralCreate>(
+              array_create.dst, std::move(elements));
+          constant_loads.erase(array_create.dst);
+          continue;
+        }
+      } else if (instr.type() == Type::StructCreate) {
+        const auto &struct_create =
+            derived_cast<const Bytecode::Instruction::StructCreate &>(instr);
+        std::vector<std::pair<std::string, Bytecode::Value>> fields;
+        fields.reserve(struct_create.fields.size());
+        bool all_constant_loads = true;
+        for (const auto &[field_name, field_reg] : struct_create.fields) {
+          const auto it = constant_loads.find(field_reg);
+          if (it == constant_loads.end()) {
+            all_constant_loads = false;
+            break;
+          }
+          fields.emplace_back(field_name, it->second);
+        }
+        if (all_constant_loads) {
+          instr_ptr = std::make_unique<Bytecode::Instruction::StructLiteralCreate>(
+              struct_create.dst, std::move(fields));
+          constant_loads.erase(struct_create.dst);
+          continue;
+        }
+      }
+
+      if (const auto dst_opt = get_dst_reg(instr); dst_opt) {
+        constant_loads.erase(*dst_opt);
+      }
+    }
   }
 }
 
@@ -881,6 +961,8 @@ void BytecodeOptimizer::dead_code_elimination(
           }
           break;
         }
+        case Type::ArrayLiteralCreate:
+          break;
         case Type::ArrayLoad: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
@@ -904,6 +986,8 @@ void BytecodeOptimizer::dead_code_elimination(
           }
           break;
         }
+        case Type::StructLiteralCreate:
+          break;
         case Type::StructLoad: {
           const auto &sl =
               derived_cast<const Bytecode::Instruction::StructLoad &>(instr);
@@ -1069,6 +1153,11 @@ void BytecodeOptimizer::dead_code_elimination(
               derived_cast<const Bytecode::Instruction::ArrayCreate &>(instr);
           return live.find(ac.dst) == live.end();
         }
+        case Type::ArrayLiteralCreate: {
+          const auto &alc =
+              derived_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(instr);
+          return live.find(alc.dst) == live.end();
+        }
         case Type::ArrayLoad: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
@@ -1078,6 +1167,11 @@ void BytecodeOptimizer::dead_code_elimination(
           const auto &sc =
               derived_cast<const Bytecode::Instruction::StructCreate &>(instr);
           return live.find(sc.dst) == live.end();
+        }
+        case Type::StructLiteralCreate: {
+          const auto &slc =
+              derived_cast<const Bytecode::Instruction::StructLiteralCreate &>(instr);
+          return live.find(slc.dst) == live.end();
         }
         case Type::StructLoad: {
           const auto &sl =
@@ -1527,6 +1621,12 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           for (auto elem : ac.elements) track(elem);
           break;
         }
+        case Type::ArrayLiteralCreate: {
+          const auto &alc =
+              derived_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(instr);
+          track(alc.dst);
+          break;
+        }
         case Type::ArrayLoad: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
@@ -1547,6 +1647,12 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
               derived_cast<const Bytecode::Instruction::StructCreate &>(instr);
           track(sc.dst);
           for (const auto &[name, reg] : sc.fields) track(reg);
+          break;
+        }
+        case Type::StructLiteralCreate: {
+          const auto &slc =
+              derived_cast<const Bytecode::Instruction::StructLiteralCreate &>(instr);
+          track(slc.dst);
           break;
         }
         case Type::StructLoad: {
@@ -1804,6 +1910,11 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           }
           break;
         }
+        case Type::ArrayLiteralCreate: {
+          auto &alc = derived_cast<Bytecode::Instruction::ArrayLiteralCreate &>(instr);
+          alc.dst = remap(alc.dst);
+          break;
+        }
         case Type::ArrayLoad: {
           auto &al = derived_cast<Bytecode::Instruction::ArrayLoad &>(instr);
           al.dst = remap(al.dst);
@@ -1824,6 +1935,11 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           for (auto &[name, reg] : sc.fields) {
             reg = remap(reg);
           }
+          break;
+        }
+        case Type::StructLiteralCreate: {
+          auto &slc = derived_cast<Bytecode::Instruction::StructLiteralCreate &>(instr);
+          slc.dst = remap(slc.dst);
           break;
         }
         case Type::StructLoad: {
