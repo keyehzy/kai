@@ -1,5 +1,7 @@
 #pragma once
 
+#include "derived_cast.h"
+
 #include <cassert>
 #include <iostream>
 #include <memory>
@@ -10,6 +12,8 @@
 
 namespace kai {
 namespace ast {
+
+using kai::derived_cast;
 
 struct Ast {
   enum class Type {
@@ -89,13 +93,6 @@ struct Ast {
   explicit Ast(Type type) : type(type) {}
 };
 
-template <typename Derived_Reference, typename Base>
-Derived_Reference derived_cast(Base &base) {
-  using Derived = std::remove_reference_t<Derived_Reference>;
-  static_assert(std::is_base_of_v<Base, Derived>);
-  static_assert(!std::is_base_of_v<Derived, Base>);
-  return static_cast<Derived_Reference>(base);
-}
 
 template <typename Derived>
 Derived ast_cast(Ast &ast) {

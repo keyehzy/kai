@@ -202,7 +202,7 @@ Shape* TypeChecker::visit_expression(const ast::Ast* node) {
         reporter_.report<NotAStructError>(no_loc(), object->describe());
         return make_shape<Shape::Unknown>();
       }
-      auto& struct_shape = derived_cast<Shape::Struct_Literal>(*object);
+      auto& struct_shape = derived_cast<Shape::Struct_Literal&>(*object);
       if (!struct_shape.fields_.contains(access.field)) {
         reporter_.report<UndefinedFieldError>(no_loc(), access.field);
         return make_shape<Shape::Unknown>();

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <cassert>
+#include "derived_cast.h"
+
 #include <string>
 #include <unordered_set>
 
@@ -41,11 +42,5 @@ struct Shape::Struct_Literal final : public Shape {
   std::string describe() const override { return "Struct_Literal"; }
   std::unordered_set<std::string> fields_;
 };
-
-template <typename T>
-T& derived_cast(Shape& shape) {
-  assert(dynamic_cast<T*>(&shape) != nullptr);
-  return static_cast<T&>(shape);
-}
 
 }  // namespace kai
