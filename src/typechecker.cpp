@@ -95,6 +95,7 @@ void TypeChecker::visit_statement(const Ast* node) {
     case T::FunctionDeclaration: {
       const auto& fn = derived_cast<const Ast::FunctionDeclaration&>(*node);
       env_.declare_function(fn.name, fn.parameters.size());
+      env_.bind_variable(fn.name, make_shape<Shape::Function>());
 
       env_.push_scope();
       for (const auto& param : fn.parameters) {
@@ -158,7 +159,13 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
 
       auto arity = env_.lookup_function(call.name);
       if (!arity) {
-        reporter_.report<UndefinedFunctionError>(no_loc(), call.name);
+        auto var = env_.lookup_variable(call.name);
+        if (var && (*var)->kind != Shape::Kind::Unknown &&
+            (*var)->kind != Shape::Kind::Function) {
+          reporter_.report<NotCallableError>(no_loc(), (*var)->kind);
+        } else {
+          reporter_.report<UndefinedFunctionError>(no_loc(), call.name);
+        }
         return make_shape<Shape::Unknown>();
       }
 
@@ -182,20 +189,28 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
       for (const auto& element : array.elements) {
         static_cast<void>(visit_expression(element.get()));
       }
-      return make_shape<Shape::Non_Struct>();
+      return make_shape<Shape::Array>();
     }
 
     case T::Index: {
       const auto& index = derived_cast<const Ast::Index&>(*node);
-      static_cast<void>(visit_expression(index.array.get()));
+      auto array_shape = visit_expression(index.array.get());
       static_cast<void>(visit_expression(index.index.get()));
+      if (array_shape->kind != Shape::Kind::Unknown &&
+          array_shape->kind != Shape::Kind::Array) {
+        reporter_.report<NotIndexableError>(no_loc(), array_shape->kind);
+      }
       return make_shape<Shape::Unknown>();
     }
 
     case T::IndexAssignment: {
       const auto& assign = derived_cast<const Ast::IndexAssignment&>(*node);
-      static_cast<void>(visit_expression(assign.array.get()));
+      auto array_shape = visit_expression(assign.array.get());
       static_cast<void>(visit_expression(assign.index.get()));
+      if (array_shape->kind != Shape::Kind::Unknown &&
+          array_shape->kind != Shape::Kind::Array) {
+        reporter_.report<NotIndexableError>(no_loc(), array_shape->kind);
+      }
       return visit_expression(assign.value.get());
     }
 

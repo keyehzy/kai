@@ -12,11 +12,15 @@ struct Shape {
     Unknown,
     Non_Struct,
     Struct_Literal,
+    Array,
+    Function,
   };
 
   struct Unknown;
   struct Non_Struct;
   struct Struct_Literal;
+  struct Array;
+  struct Function;
 
   explicit Shape(Kind kind) : kind(kind) {}
   virtual ~Shape() = default;
@@ -42,5 +46,25 @@ struct Shape::Struct_Literal final : public Shape {
   std::string describe() const override { return "Struct_Literal"; }
   std::unordered_set<std::string> fields_;
 };
+
+struct Shape::Array final : public Shape {
+  Array() : Shape(Kind::Array) {}
+  std::string describe() const override { return "Array"; }
+};
+
+struct Shape::Function final : public Shape {
+  Function() : Shape(Kind::Function) {}
+  std::string describe() const override { return "Function"; }
+};
+
+inline std::string_view describe(Shape::Kind kind) {
+  switch (kind) {
+    case Shape::Kind::Unknown:        return "Unknown";
+    case Shape::Kind::Non_Struct:     return "Non_Struct";
+    case Shape::Kind::Struct_Literal: return "Struct_Literal";
+    case Shape::Kind::Array:          return "Array";
+    case Shape::Kind::Function:       return "Function";
+  }
+}
 
 }  // namespace kai

@@ -295,4 +295,28 @@ std::string UndefinedFieldError::format_error() const {
   return "struct has no field '" + field + "'";
 }
 
+std::string NotCallableError::format_error() const {
+  std::string msg = "cannot call value of type '";
+  msg += describe(kind);
+  msg += "': ";
+  switch (kind) {
+    case Shape::Kind::Struct_Literal: msg += "struct literals are not callable"; break;
+    case Shape::Kind::Array:          msg += "arrays are not callable"; break;
+    default:                          msg += "only declared functions are callable"; break;
+  }
+  return msg;
+}
+
+std::string NotIndexableError::format_error() const {
+  std::string msg = "cannot index value of type '";
+  msg += describe(kind);
+  msg += "': ";
+  switch (kind) {
+    case Shape::Kind::Struct_Literal: msg += "struct literals are not arrays"; break;
+    case Shape::Kind::Function:       msg += "functions are not arrays"; break;
+    default:                          msg += "only arrays support indexing"; break;
+  }
+  return msg;
+}
+
 }  // namespace kai

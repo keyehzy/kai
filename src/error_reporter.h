@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "shape.h"
 #include "token.h"
 
 namespace kai {
@@ -61,6 +62,8 @@ struct Error {
     WrongArgCount,
     NotAStruct,
     UndefinedField,
+    NotCallable,
+    NotIndexable,
   };
 
   Type type;
@@ -373,6 +376,26 @@ struct UndefinedFieldError final : public Error {
 
   UndefinedFieldError(SourceLocation location, std::string field)
       : Error(Type::UndefinedField, location), field(std::move(field)) {}
+
+  std::string format_error() const override;
+};
+
+// A call was attempted on a value that is not a function.
+struct NotCallableError final : public Error {
+  Shape::Kind kind;
+
+  NotCallableError(SourceLocation location, Shape::Kind kind)
+      : Error(Type::NotCallable, location), kind(kind) {}
+
+  std::string format_error() const override;
+};
+
+// An index operation was attempted on a value that is not an array.
+struct NotIndexableError final : public Error {
+  Shape::Kind kind;
+
+  NotIndexableError(SourceLocation location, Shape::Kind kind)
+      : Error(Type::NotIndexable, location), kind(kind) {}
 
   std::string format_error() const override;
 };
