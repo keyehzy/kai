@@ -19,21 +19,21 @@ SourceLocation TypeChecker::no_loc() {
   return {nullptr, nullptr};
 }
 
-void TypeChecker::Env::push_scope() {
+void Env::push_scope() {
   var_scopes_.emplace_back();
 }
 
-void TypeChecker::Env::pop_scope() {
+void Env::pop_scope() {
   assert(!var_scopes_.empty());
   var_scopes_.pop_back();
 }
 
-void TypeChecker::Env::bind_variable(const std::string& name, Shape shape) {
+void Env::bind_variable(const std::string& name, Shape shape) {
   assert(!var_scopes_.empty());
   var_scopes_.back()[name] = std::move(shape);
 }
 
-TypeChecker::Shape* TypeChecker::Env::lookup_variable(const std::string& name) {
+Shape* Env::lookup_variable(const std::string& name) {
   for (auto it = var_scopes_.rbegin(); it != var_scopes_.rend(); ++it) {
     auto found = it->find(name);
     if (found != it->end()) {
@@ -43,11 +43,11 @@ TypeChecker::Shape* TypeChecker::Env::lookup_variable(const std::string& name) {
   return nullptr;
 }
 
-void TypeChecker::Env::declare_function(const std::string& name, size_t arity) {
+void Env::declare_function(const std::string& name, size_t arity) {
   functions_[name] = arity;
 }
 
-size_t* TypeChecker::Env::lookup_function(const std::string& name) {
+size_t* Env::lookup_function(const std::string& name) {
   auto it = functions_.find(name);
   return it != functions_.end() ? &it->second : nullptr;
 }
@@ -99,7 +99,7 @@ void TypeChecker::visit_statement(const ast::Ast* node) {
   }
 }
 
-TypeChecker::Shape TypeChecker::visit_expression(const ast::Ast* node) {
+Shape TypeChecker::visit_expression(const ast::Ast* node) {
   using T = ast::Ast::Type;
 
   switch (node->type) {
@@ -326,24 +326,24 @@ TypeChecker::Shape TypeChecker::visit_expression(const ast::Ast* node) {
   return Shape::unknown();
 }
 
-TypeChecker::Shape TypeChecker::Shape::unknown() {
+Shape Shape::unknown() {
   return Shape{};
 }
 
-TypeChecker::Shape TypeChecker::Shape::non_struct() {
+Shape Shape::non_struct() {
   Shape shape;
   shape.kind = Kind::NonStruct;
   return shape;
 }
 
-TypeChecker::Shape TypeChecker::Shape::struct_shape(std::unordered_set<std::string> fields) {
+Shape Shape::struct_shape(std::unordered_set<std::string> fields) {
   Shape shape;
   shape.kind = Kind::Struct;
   shape.fields = std::move(fields);
   return shape;
 }
 
-std::string TypeChecker::Shape::describe() const {
+std::string Shape::describe() const {
   switch (kind) {
     case Kind::Struct:
       return "struct";

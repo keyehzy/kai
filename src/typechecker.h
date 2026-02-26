@@ -11,8 +11,38 @@
 
 namespace kai {
 
-// Minimal semantic checker. This pass validates names and struct field access
-// without attempting full type inference.
+struct Shape {
+  enum class Kind {
+    Unknown,
+    NonStruct,
+    Struct,
+  };
+
+  Kind kind = Kind::Unknown;
+  std::unordered_set<std::string> fields;
+
+  static Shape unknown();
+  static Shape non_struct();
+  static Shape struct_shape(std::unordered_set<std::string> fields);
+  std::string describe() const;
+};
+
+
+class Env {
+public:
+  void push_scope();
+  void pop_scope();
+  void bind_variable(const std::string& name, Shape shape);
+  Shape* lookup_variable(const std::string& name);
+
+  void declare_function(const std::string& name, size_t arity);
+  size_t* lookup_function(const std::string& name);
+
+private:
+  std::vector<std::unordered_map<std::string, Shape>> var_scopes_;
+  std::unordered_map<std::string, size_t> functions_;
+};
+
 class TypeChecker {
  public:
   explicit TypeChecker(ErrorReporter& reporter);
@@ -20,37 +50,6 @@ class TypeChecker {
   void visit_program(const ast::Ast::Block& program);
 
  private:
-  struct Shape {
-    enum class Kind {
-      Unknown,
-      NonStruct,
-      Struct,
-    };
-
-    Kind kind = Kind::Unknown;
-    std::unordered_set<std::string> fields;
-
-    static Shape unknown();
-    static Shape non_struct();
-    static Shape struct_shape(std::unordered_set<std::string> fields);
-    std::string describe() const;
-  };
-
-  class Env {
-   public:
-    void push_scope();
-    void pop_scope();
-    void bind_variable(const std::string& name, Shape shape);
-    Shape* lookup_variable(const std::string& name);
-
-    void declare_function(const std::string& name, size_t arity);
-    size_t* lookup_function(const std::string& name);
-
-   private:
-    std::vector<std::unordered_map<std::string, Shape>> var_scopes_;
-    std::unordered_map<std::string, size_t> functions_;
-  };
-
   ErrorReporter& reporter_;
   Env env_;
 
