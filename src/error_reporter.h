@@ -315,7 +315,7 @@ struct TypeMismatchError final : public Error {
   std::string expected;
   std::string got;
 
-  TypeMismatchError(SourceLocation location, Ctx ctx, std::string expected, std::string got)
+  TypeMismatchError(SourceLocation location, Ctx ctx, std::string_view expected, std::string_view got)
       : Error(Type::TypeMismatch, location),
         ctx(ctx),
         expected(std::move(expected)),
@@ -364,7 +364,7 @@ struct WrongArgCountError final : public Error {
 struct NotAStructError final : public Error {
   std::string actual_type;
 
-  NotAStructError(SourceLocation location, std::string actual_type)
+  NotAStructError(SourceLocation location, std::string_view actual_type)
       : Error(Type::NotAStruct, location), actual_type(std::move(actual_type)) {}
 
   std::string format_error() const override;

@@ -2,7 +2,7 @@ CXX      ?= clang++
 CC       ?= clang
 CXXFLAGS ?= -O0 -g3 -Wall -Wextra -std=c++20
 
-COMMON_SRCS = src/ast.cpp src/bytecode.cpp src/error_reporter.cpp src/optimizer.cpp src/parser.cpp src/typechecker.cpp
+COMMON_SRCS = src/ast.cpp src/bytecode.cpp src/error_reporter.cpp src/optimizer.cpp src/parser.cpp src/shape.cpp src/typechecker.cpp
 
 CLI_SRCS  = src/cli.cpp $(COMMON_SRCS)
 CLI_BIN   = cli

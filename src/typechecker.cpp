@@ -146,7 +146,7 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
         reporter_.report<UndefinedVariableError>(no_loc(), assignment.name);
       } else if (!shapes_compatible(*target, value)) {
         reporter_.report<TypeMismatchError>(
-            no_loc(), TypeMismatchError::Ctx::Assignment, (*target)->describe(), value->describe());
+            no_loc(), TypeMismatchError::Ctx::Assignment, describe((*target)->kind), describe(value->kind));
       }
       return value;
     }
@@ -229,7 +229,7 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
       const auto& access = derived_cast<const Ast::FieldAccess&>(*node);
       auto object = visit_expression(access.object.get());
       if (object->kind != Shape::Kind::Struct_Literal) {
-        reporter_.report<NotAStructError>(no_loc(), object->describe());
+        reporter_.report<NotAStructError>(no_loc(), describe(object->kind));
         return make_shape<Shape::Unknown>();
       }
       auto& struct_shape = derived_cast<Shape::Struct_Literal&>(*object);
