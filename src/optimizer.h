@@ -9,6 +9,16 @@ class BytecodeOptimizer {
   void optimize(std::vector<Bytecode::BasicBlock> &blocks);
 
  private:
+  // Pass -1: constant-condition simplification.
+  // Tracks block-local register constants and rewrites:
+  //   JumpConditional rC, @T, @F
+  // to:
+  //   Jump @T  when rC is provably non-zero
+  //   Jump @F  when rC is provably zero
+  // Constants are inferred from Load and optionally through Move when the
+  // source register is known constant.
+  void simplify_constant_conditions(std::vector<Bytecode::BasicBlock> &blocks);
+
   // Pass 0: loop-invariant code motion.
   // Detects natural loops via back edges, then hoists pure instructions
   // whose operands are not modified anywhere in the loop to a pre-header

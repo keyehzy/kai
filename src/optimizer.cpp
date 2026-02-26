@@ -3,6 +3,9 @@
 namespace kai {
 
 void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
+  // Pass -1: constant-condition simplification.
+  simplify_constant_conditions(blocks);
+
   // Pass 0: loop-invariant code motion.
   loop_invariant_code_motion(blocks);
 

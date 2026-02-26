@@ -49,6 +49,7 @@ TEST_CASE("cfg_cleanup_rewires_and_removes_jump_only_chain") {
 TEST_CASE("cfg_cleanup_rewrites_jump_conditional_targets_through_trampolines") {
   std::vector<Bytecode::BasicBlock> blocks(5);
   blocks[0].append<Bytecode::Instruction::Load>(0, 1);
+  blocks[0].append<Bytecode::Instruction::AddImmediate>(0, 0, 0);
   blocks[0].append<Bytecode::Instruction::JumpConditional>(0, 1, 2);
 
   blocks[1].append<Bytecode::Instruction::Jump>(3);  // trampoline
@@ -64,9 +65,9 @@ TEST_CASE("cfg_cleanup_rewrites_jump_conditional_targets_through_trampolines") {
   opt.optimize(blocks);
 
   REQUIRE(blocks.size() == 3);
-  REQUIRE(blocks[0].instructions[1]->type() == Type::JumpConditional);
+  REQUIRE(blocks[0].instructions.back()->type() == Type::JumpConditional);
   const auto &jump_cond = static_cast<const Bytecode::Instruction::JumpConditional &>(
-      *blocks[0].instructions[1]);
+      *blocks[0].instructions.back());
   REQUIRE(jump_cond.label1 == 1);
   REQUIRE(jump_cond.label2 == 2);
   const bool target1_is_jump_only =
@@ -81,5 +82,3 @@ TEST_CASE("cfg_cleanup_rewrites_jump_conditional_targets_through_trampolines") {
   BytecodeInterpreter interp;
   REQUIRE(interp.interpret(blocks) == 11);
 }
-
-

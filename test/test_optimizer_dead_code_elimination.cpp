@@ -90,6 +90,7 @@ TEST_CASE("dce_jump_never_removed") {
 TEST_CASE("dce_jump_conditional_never_removed") {
   std::vector<Bytecode::BasicBlock> blocks(3);
   blocks[0].append<Bytecode::Instruction::Load>(0, 1);
+  blocks[0].append<Bytecode::Instruction::AddImmediate>(0, 0, 0);
   blocks[0].append<Bytecode::Instruction::JumpConditional>(0, 1, 2);
   blocks[1].append<Bytecode::Instruction::Load>(1, 10);
   blocks[1].append<Bytecode::Instruction::Return>(1);
@@ -99,7 +100,7 @@ TEST_CASE("dce_jump_conditional_never_removed") {
   BytecodeOptimizer opt;
   opt.optimize(blocks);
 
-  REQUIRE(blocks[0].instructions[1]->type() == Type::JumpConditional);
+  REQUIRE(blocks[0].instructions.back()->type() == Type::JumpConditional);
 }
 
 // Return is a terminator; it is never removed.
@@ -148,5 +149,4 @@ TEST_CASE("dce_cross_block_liveness_respected") {
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
 }
-
 

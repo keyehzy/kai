@@ -119,6 +119,7 @@ TEST_CASE("copy_prop_copy_invalidated_when_source_overwritten") {
 TEST_CASE("copy_prop_resolves_jump_conditional_cond") {
   std::vector<Bytecode::BasicBlock> blocks(3);
   blocks[0].append<Bytecode::Instruction::Load>(0, 1);
+  blocks[0].append<Bytecode::Instruction::AddImmediate>(0, 0, 0);
   blocks[0].append<Bytecode::Instruction::Move>(1, 0);               // r1 = r0
   blocks[0].append<Bytecode::Instruction::JumpConditional>(1, 1, 2); // cond = r1
 
@@ -132,10 +133,10 @@ TEST_CASE("copy_prop_resolves_jump_conditional_cond") {
   opt.optimize(blocks);
 
   // JumpConditional cond should be r0 after substitution; Move r1 then dead.
-  REQUIRE(blocks[0].instructions.size() == 2);
-  REQUIRE(blocks[0].instructions[1]->type() == Type::JumpConditional);
+  REQUIRE(blocks[0].instructions.size() == 3);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::JumpConditional);
   const auto &jc = static_cast<const Bytecode::Instruction::JumpConditional &>(
-      *blocks[0].instructions[1]);
+      *blocks[0].instructions[2]);
   REQUIRE(jc.cond == 0);
 }
 
@@ -155,5 +156,4 @@ TEST_CASE("copy_prop_resolves_return_register") {
       static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[1]);
   REQUIRE(ret.reg == 0);
 }
-
 
