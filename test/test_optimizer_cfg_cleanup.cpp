@@ -14,7 +14,7 @@ TEST_CASE("cfg_cleanup_removes_instructions_after_return") {
   blocks[1].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.cfg_cleanup(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
@@ -31,7 +31,7 @@ TEST_CASE("cfg_cleanup_rewires_and_removes_jump_only_chain") {
   blocks[3].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.cfg_cleanup(blocks);
 
   REQUIRE(blocks.size() == 2);
   REQUIRE(blocks[0].instructions.size() == 2);
@@ -62,7 +62,7 @@ TEST_CASE("cfg_cleanup_rewrites_jump_conditional_targets_through_trampolines") {
   blocks[4].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.cfg_cleanup(blocks);
 
   REQUIRE(blocks.size() == 3);
   REQUIRE(blocks[0].instructions.back()->type() == Type::JumpConditional);
@@ -94,7 +94,7 @@ TEST_CASE("cfg_cleanup_removes_unreachable_non_jump_block_after_infinite_loop") 
   blocks[2].append<Bytecode::Instruction::Return>(22);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.cfg_cleanup(blocks);
 
   REQUIRE(blocks.size() == 2);
   REQUIRE(blocks[0].instructions.size() == 1);
@@ -119,7 +119,7 @@ TEST_CASE("cfg_cleanup_keeps_call_reachable_blocks_and_remaps_labels") {
   blocks[2].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.cfg_cleanup(blocks);
 
   REQUIRE(blocks.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Call);
@@ -142,7 +142,7 @@ TEST_CASE("cfg_cleanup_keeps_tail_call_reachable_blocks_and_remaps_labels") {
   blocks[2].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.cfg_cleanup(blocks);
 
   REQUIRE(blocks.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::TailCall);
