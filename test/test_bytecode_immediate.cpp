@@ -109,3 +109,60 @@ TEST_CASE("bytecode_uses_subtract_immediate_for_repeated_n_minus_constants") {
   kai::BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 13);
 }
+
+TEST_CASE("bytecode_canonicalizes_lhs_literal_for_commutative_immediates") {
+  struct Case {
+    const char *name;
+    std::function<std::unique_ptr<Ast>()> expr;
+    Type immediate_type;
+    Type non_immediate_type;
+    kai::Value immediate_value;
+    kai::Value expected_value;
+  };
+
+  const std::vector<Case> cases = {
+      {"add lhs literal",
+       [] { return add(lit(17), var("x")); },
+       Type::AddImmediate,
+       Type::Add,
+       17,
+       20},
+      {"multiply lhs literal",
+       [] { return mul(lit(17), var("x")); },
+       Type::MultiplyImmediate,
+       Type::Multiply,
+       17,
+       51},
+      {"equal lhs literal",
+       [] { return std::make_unique<Ast::Equal>(lit(42), var("x")); },
+       Type::EqualImmediate,
+       Type::Equal,
+       42,
+       0},
+      {"not-equal lhs literal",
+       [] { return std::make_unique<Ast::NotEqual>(lit(42), var("x")); },
+       Type::NotEqualImmediate,
+       Type::NotEqual,
+       42,
+       1},
+  };
+
+  for (const auto &tc : cases) {
+    SECTION(tc.name) {
+      Ast::Block program;
+      program.append(decl("x", lit(3)));
+      program.append(ret(tc.expr()));
+
+      kai::BytecodeGenerator gen;
+      gen.visit_block(program);
+      gen.finalize();
+
+      REQUIRE(count_type(gen.blocks(), tc.immediate_type) == 1);
+      REQUIRE(count_type(gen.blocks(), tc.non_immediate_type) == 0);
+      REQUIRE(!has_load_immediate(gen.blocks(), tc.immediate_value));
+
+      kai::BytecodeInterpreter interp;
+      REQUIRE(interp.interpret(gen.blocks()) == tc.expected_value);
+    }
+  }
+}

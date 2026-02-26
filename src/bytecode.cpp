@@ -1054,6 +1054,15 @@ void BytecodeGenerator::visit_return(const Ast::Return &return_) {
 }
 
 void BytecodeGenerator::visit_equal(const Ast::Equal &equal) {
+  if (const auto left_imm = literal_value(*equal.left);
+      left_imm && !literal_value(*equal.right)) {
+    visit(*equal.right);
+    const auto reg_right = reg_alloc_.current();
+    current_block().append<Bytecode::Instruction::EqualImmediate>(reg_alloc_.allocate(),
+                                                                  reg_right, *left_imm);
+    return;
+  }
+
   visit(*equal.left);
   const auto reg_left = reg_alloc_.current();
   if (const auto imm = literal_value(*equal.right)) {
@@ -1068,6 +1077,15 @@ void BytecodeGenerator::visit_equal(const Ast::Equal &equal) {
 }
 
 void BytecodeGenerator::visit_not_equal(const Ast::NotEqual &not_equal) {
+  if (const auto left_imm = literal_value(*not_equal.left);
+      left_imm && !literal_value(*not_equal.right)) {
+    visit(*not_equal.right);
+    const auto reg_right = reg_alloc_.current();
+    current_block().append<Bytecode::Instruction::NotEqualImmediate>(reg_alloc_.allocate(),
+                                                                     reg_right, *left_imm);
+    return;
+  }
+
   visit(*not_equal.left);
   const auto reg_left = reg_alloc_.current();
   if (const auto imm = literal_value(*not_equal.right)) {
@@ -1082,6 +1100,15 @@ void BytecodeGenerator::visit_not_equal(const Ast::NotEqual &not_equal) {
 }
 
 void BytecodeGenerator::visit_add(const Ast::Add &add) {
+  if (const auto left_imm = literal_value(*add.left);
+      left_imm && !literal_value(*add.right)) {
+    visit(*add.right);
+    const auto reg_right = reg_alloc_.current();
+    current_block().append<Bytecode::Instruction::AddImmediate>(reg_alloc_.allocate(), reg_right,
+                                                                *left_imm);
+    return;
+  }
+
   visit(*add.left);
   const auto reg_left = reg_alloc_.current();
   if (const auto imm = literal_value(*add.right)) {
@@ -1109,6 +1136,15 @@ void BytecodeGenerator::visit_subtract(const Ast::Subtract &subtract) {
 }
 
 void BytecodeGenerator::visit_multiply(const Ast::Multiply &multiply) {
+  if (const auto left_imm = literal_value(*multiply.left);
+      left_imm && !literal_value(*multiply.right)) {
+    visit(*multiply.right);
+    const auto reg_right = reg_alloc_.current();
+    current_block().append<Bytecode::Instruction::MultiplyImmediate>(reg_alloc_.allocate(),
+                                                                     reg_right, *left_imm);
+    return;
+  }
+
   visit(*multiply.left);
   const auto reg_left = reg_alloc_.current();
   if (const auto imm = literal_value(*multiply.right)) {
