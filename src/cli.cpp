@@ -60,11 +60,6 @@ void ensure_bytecode_program_returns_value(kai::Ast::Block &program) {
       std::make_unique<kai::Ast::Return>(std::move(last_statement));
 }
 
-struct ParseResult {
-  std::unique_ptr<kai::Ast::Block> program;
-  bool has_errors;
-};
-
 void print_errors(const std::string &source, const kai::ErrorReporter &reporter) {
   for (const auto &error : reporter.errors()) {
     if (error->location.begin != nullptr) {
@@ -75,40 +70,32 @@ void print_errors(const std::string &source, const kai::ErrorReporter &reporter)
   }
 }
 
-ParseResult parse_program(const std::string &source) {
+std::optional<kai::Value> run_source(const std::string &source, Backend backend) {
   kai::ErrorReporter reporter;
   kai::Parser parser(source, reporter);
   auto program = parser.parse_program();
-  print_errors(source, reporter);
-  return {std::move(program), reporter.has_errors()};
-}
 
-bool typecheck_program(const std::string &source, const kai::Ast::Block &program) {
-  kai::ErrorReporter reporter;
-  kai::TypeChecker checker(reporter);
-  checker.visit_program(program);
-  print_errors(source, reporter);
-  return !reporter.has_errors();
-}
-
-std::optional<kai::Value> run_source(const std::string &source, Backend backend) {
-  auto parse_result = parse_program(source);
-  if (parse_result.has_errors) {
+  if (reporter.has_errors()) {
+    print_errors(source, reporter);
     return std::nullopt;
   }
-  auto &program = *parse_result.program;
-  if (!typecheck_program(source, program)) {
+
+  kai::TypeChecker checker(reporter);
+  checker.visit_program(*program);
+
+  if (reporter.has_errors()) {
+    print_errors(source, reporter);
     return std::nullopt;
   }
 
   if (backend == Backend::Ast) {
     kai::AstInterpreter interpreter;
-    return interpreter.interpret(program);
+    return interpreter.interpret(*program);
   }
 
-  ensure_bytecode_program_returns_value(program);
+  ensure_bytecode_program_returns_value(*program);
   kai::bytecode::BytecodeGenerator generator;
-  generator.visit_block(program);
+  generator.visit_block(*program);
   generator.finalize();
 
   kai::bytecode::BytecodeOptimizer optimizer;
@@ -119,22 +106,31 @@ std::optional<kai::Value> run_source(const std::string &source, Backend backend)
 }
 
 bool dump_source(const std::string &source, Backend backend) {
-  auto parse_result = parse_program(source);
-  if (parse_result.has_errors) {
+  kai::ErrorReporter reporter;
+  kai::Parser parser(source, reporter);
+  auto program = parser.parse_program();
+
+  if (reporter.has_errors()) {
+    print_errors(source, reporter);
     return false;
   }
-  auto &program = *parse_result.program;
-  if (!typecheck_program(source, program)) {
+
+  kai::TypeChecker checker(reporter);
+  checker.visit_program(*program);
+
+  if (reporter.has_errors()) {
+    print_errors(source, reporter);
     return false;
   }
+
   if (backend == Backend::Ast) {
-    program.dump(std::cout);
+    program->dump(std::cout);
     std::cout << "\n";
     return true;
   }
 
   kai::bytecode::BytecodeGenerator generator;
-  generator.visit_block(program);
+  generator.visit_block(*program);
   generator.finalize();
 
   kai::bytecode::BytecodeOptimizer optimizer;
