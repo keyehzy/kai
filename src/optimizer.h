@@ -47,6 +47,12 @@ class BytecodeOptimizer {
   //   Load r_tmp, K                  + Move r_var, r_tmp -> Load r_var, K
   void peephole(std::vector<Bytecode::BasicBlock> &blocks);
 
+  // CFG cleanup:
+  // - trims instructions after the first block terminator
+  // - rewrites branch targets through jump-only trampoline chains
+  // - removes unreferenced jump-only trampoline blocks
+  void cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks);
+
   // Pass 5: register compaction.
   // Renumbers all referenced registers to a dense 0..N-1 range to eliminate
   // gaps left by earlier optimizations.
