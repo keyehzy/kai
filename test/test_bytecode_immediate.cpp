@@ -53,7 +53,7 @@ TEST_CASE("bytecode_emits_immediate_binary_and_comparison_variants") {
     const char *name;
     std::function<std::unique_ptr<Ast>()> expr;
     Type immediate_type;
-    kai::ast::Value expected_value;
+    kai::Value expected_value;
   };
 
   const std::vector<Case> cases = {

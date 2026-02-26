@@ -5,7 +5,7 @@
 
 #include <initializer_list>
 
-using namespace kai::ast;
+using namespace kai;
 
 inline std::unique_ptr<Ast> lit(int v) { return std::make_unique<Ast::Literal>(v); }
 

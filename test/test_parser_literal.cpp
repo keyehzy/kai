@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "../src/parser.h"
 
-using namespace kai::ast;
+using namespace kai;
 
 TEST_CASE("test_parser_parses_number_literal_42") {
   kai::ErrorReporter reporter;
@@ -12,7 +12,7 @@ TEST_CASE("test_parser_parses_number_literal_42") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
 
-  const auto &literal = ast_cast<const Ast::Literal &>(*parsed);
+  const auto &literal = derived_cast<const Ast::Literal &>(*parsed);
   REQUIRE(literal.value == 42);
 }
 
@@ -24,7 +24,7 @@ TEST_CASE("test_parser_parses_identifier_variable") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Variable);
 
-  const auto &variable = ast_cast<const Ast::Variable &>(*parsed);
+  const auto &variable = derived_cast<const Ast::Variable &>(*parsed);
   REQUIRE(variable.name == "value");
 }
 
@@ -36,7 +36,7 @@ TEST_CASE("test_parser_parses_identifier_variable_with_underscore") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Variable);
 
-  const auto &variable = ast_cast<const Ast::Variable &>(*parsed);
+  const auto &variable = derived_cast<const Ast::Variable &>(*parsed);
   REQUIRE(variable.name == "_value_2");
 }
 
@@ -48,18 +48,18 @@ TEST_CASE("test_parser_precedence_multiply_before_add") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Add);
 
-  const auto &add = ast_cast<const Ast::Add &>(*parsed);
+  const auto &add = derived_cast<const Ast::Add &>(*parsed);
   REQUIRE(add.left->type == Ast::Type::Literal);
   REQUIRE(add.right->type == Ast::Type::Multiply);
 
-  const auto &left_literal = ast_cast<const Ast::Literal &>(*add.left);
+  const auto &left_literal = derived_cast<const Ast::Literal &>(*add.left);
   REQUIRE(left_literal.value == 1);
 
-  const auto &multiply = ast_cast<const Ast::Multiply &>(*add.right);
+  const auto &multiply = derived_cast<const Ast::Multiply &>(*add.right);
   REQUIRE(multiply.left->type == Ast::Type::Literal);
   REQUIRE(multiply.right->type == Ast::Type::Literal);
-  REQUIRE(ast_cast<const Ast::Literal &>(*multiply.left).value == 2);
-  REQUIRE(ast_cast<const Ast::Literal &>(*multiply.right).value == 3);
+  REQUIRE(derived_cast<const Ast::Literal &>(*multiply.left).value == 2);
+  REQUIRE(derived_cast<const Ast::Literal &>(*multiply.right).value == 3);
 }
 
 TEST_CASE("test_parser_subtract_is_left_associative") {
@@ -70,16 +70,16 @@ TEST_CASE("test_parser_subtract_is_left_associative") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Subtract);
 
-  const auto &outer_subtract = ast_cast<const Ast::Subtract &>(*parsed);
+  const auto &outer_subtract = derived_cast<const Ast::Subtract &>(*parsed);
   REQUIRE(outer_subtract.left->type == Ast::Type::Subtract);
   REQUIRE(outer_subtract.right->type == Ast::Type::Literal);
 
-  const auto &inner_subtract = ast_cast<const Ast::Subtract &>(*outer_subtract.left);
+  const auto &inner_subtract = derived_cast<const Ast::Subtract &>(*outer_subtract.left);
   REQUIRE(inner_subtract.left->type == Ast::Type::Literal);
   REQUIRE(inner_subtract.right->type == Ast::Type::Literal);
-  REQUIRE(ast_cast<const Ast::Literal &>(*inner_subtract.left).value == 8);
-  REQUIRE(ast_cast<const Ast::Literal &>(*inner_subtract.right).value == 3);
-  REQUIRE(ast_cast<const Ast::Literal &>(*outer_subtract.right).value == 1);
+  REQUIRE(derived_cast<const Ast::Literal &>(*inner_subtract.left).value == 8);
+  REQUIRE(derived_cast<const Ast::Literal &>(*inner_subtract.right).value == 3);
+  REQUIRE(derived_cast<const Ast::Literal &>(*outer_subtract.right).value == 1);
 }
 
 TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
@@ -90,17 +90,17 @@ TEST_CASE("test_parser_mixed_identifier_operators_with_precedence") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Add);
 
-  const auto &add = ast_cast<const Ast::Add &>(*parsed);
+  const auto &add = derived_cast<const Ast::Add &>(*parsed);
   REQUIRE(add.left->type == Ast::Type::Multiply);
   REQUIRE(add.right->type == Ast::Type::Divide);
 
-  const auto &left = ast_cast<const Ast::Multiply &>(*add.left);
-  REQUIRE(ast_cast<const Ast::Variable &>(*left.left).name == "a");
-  REQUIRE(ast_cast<const Ast::Variable &>(*left.right).name == "b");
+  const auto &left = derived_cast<const Ast::Multiply &>(*add.left);
+  REQUIRE(derived_cast<const Ast::Variable &>(*left.left).name == "a");
+  REQUIRE(derived_cast<const Ast::Variable &>(*left.right).name == "b");
 
-  const auto &right = ast_cast<const Ast::Divide &>(*add.right);
-  REQUIRE(ast_cast<const Ast::Variable &>(*right.left).name == "c");
-  REQUIRE(ast_cast<const Ast::Variable &>(*right.right).name == "d");
+  const auto &right = derived_cast<const Ast::Divide &>(*add.right);
+  REQUIRE(derived_cast<const Ast::Variable &>(*right.left).name == "c");
+  REQUIRE(derived_cast<const Ast::Variable &>(*right.right).name == "d");
 }
 
 TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
@@ -111,15 +111,15 @@ TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Add);
 
-  const auto &add = ast_cast<const Ast::Add &>(*parsed);
+  const auto &add = derived_cast<const Ast::Add &>(*parsed);
   REQUIRE(add.left->type == Ast::Type::Literal);
   REQUIRE(add.right->type == Ast::Type::Modulo);
 
-  const auto &modulo = ast_cast<const Ast::Modulo &>(*add.right);
+  const auto &modulo = derived_cast<const Ast::Modulo &>(*add.right);
   REQUIRE(modulo.left->type == Ast::Type::Literal);
   REQUIRE(modulo.right->type == Ast::Type::Literal);
-  REQUIRE(ast_cast<const Ast::Literal &>(*modulo.left).value == 9);
-  REQUIRE(ast_cast<const Ast::Literal &>(*modulo.right).value == 5);
+  REQUIRE(derived_cast<const Ast::Literal &>(*modulo.left).value == 9);
+  REQUIRE(derived_cast<const Ast::Literal &>(*modulo.right).value == 5);
 }
 
 TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
@@ -130,14 +130,14 @@ TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Equal);
 
-  const auto &equal = ast_cast<const Ast::Equal &>(*parsed);
+  const auto &equal = derived_cast<const Ast::Equal &>(*parsed);
   REQUIRE(equal.left->type == Ast::Type::Add);
   REQUIRE(equal.right->type == Ast::Type::Literal);
 
-  const auto &add = ast_cast<const Ast::Add &>(*equal.left);
-  REQUIRE(ast_cast<const Ast::Literal &>(*add.left).value == 1);
-  REQUIRE(ast_cast<const Ast::Literal &>(*add.right).value == 2);
-  REQUIRE(ast_cast<const Ast::Literal &>(*equal.right).value == 3);
+  const auto &add = derived_cast<const Ast::Add &>(*equal.left);
+  REQUIRE(derived_cast<const Ast::Literal &>(*add.left).value == 1);
+  REQUIRE(derived_cast<const Ast::Literal &>(*add.right).value == 2);
+  REQUIRE(derived_cast<const Ast::Literal &>(*equal.right).value == 3);
 }
 
 TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
@@ -148,14 +148,14 @@ TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::NotEqual);
 
-  const auto &not_equal = ast_cast<const Ast::NotEqual &>(*parsed);
+  const auto &not_equal = derived_cast<const Ast::NotEqual &>(*parsed);
   REQUIRE(not_equal.left->type == Ast::Type::Add);
   REQUIRE(not_equal.right->type == Ast::Type::Literal);
 
-  const auto &add = ast_cast<const Ast::Add &>(*not_equal.left);
-  REQUIRE(ast_cast<const Ast::Literal &>(*add.left).value == 1);
-  REQUIRE(ast_cast<const Ast::Literal &>(*add.right).value == 2);
-  REQUIRE(ast_cast<const Ast::Literal &>(*not_equal.right).value == 4);
+  const auto &add = derived_cast<const Ast::Add &>(*not_equal.left);
+  REQUIRE(derived_cast<const Ast::Literal &>(*add.left).value == 1);
+  REQUIRE(derived_cast<const Ast::Literal &>(*add.right).value == 2);
+  REQUIRE(derived_cast<const Ast::Literal &>(*not_equal.right).value == 4);
 }
 
 TEST_CASE("test_parser_parses_greater_than_expression") {
@@ -166,14 +166,14 @@ TEST_CASE("test_parser_parses_greater_than_expression") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::GreaterThan);
 
-  const auto &greater_than = ast_cast<const Ast::GreaterThan &>(*parsed);
+  const auto &greater_than = derived_cast<const Ast::GreaterThan &>(*parsed);
   REQUIRE(greater_than.left->type == Ast::Type::Add);
   REQUIRE(greater_than.right->type == Ast::Type::Literal);
 
-  const auto &add = ast_cast<const Ast::Add &>(*greater_than.left);
-  REQUIRE(ast_cast<const Ast::Literal &>(*add.left).value == 1);
-  REQUIRE(ast_cast<const Ast::Literal &>(*add.right).value == 3);
-  REQUIRE(ast_cast<const Ast::Literal &>(*greater_than.right).value == 3);
+  const auto &add = derived_cast<const Ast::Add &>(*greater_than.left);
+  REQUIRE(derived_cast<const Ast::Literal &>(*add.left).value == 1);
+  REQUIRE(derived_cast<const Ast::Literal &>(*add.right).value == 3);
+  REQUIRE(derived_cast<const Ast::Literal &>(*greater_than.right).value == 3);
 }
 
 TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
@@ -184,7 +184,7 @@ TEST_CASE("test_parser_parses_less_than_or_equal_expression") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::LessThanOrEqual);
 
-  const auto &less_than_or_equal = ast_cast<const Ast::LessThanOrEqual &>(*parsed);
+  const auto &less_than_or_equal = derived_cast<const Ast::LessThanOrEqual &>(*parsed);
   REQUIRE(less_than_or_equal.left->type == Ast::Type::Add);
   REQUIRE(less_than_or_equal.right->type == Ast::Type::Literal);
 }
@@ -197,7 +197,7 @@ TEST_CASE("test_parser_parses_greater_than_or_equal_expression") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::GreaterThanOrEqual);
 
-  const auto &greater_than_or_equal = ast_cast<const Ast::GreaterThanOrEqual &>(*parsed);
+  const auto &greater_than_or_equal = derived_cast<const Ast::GreaterThanOrEqual &>(*parsed);
   REQUIRE(greater_than_or_equal.left->type == Ast::Type::Literal);
   REQUIRE(greater_than_or_equal.right->type == Ast::Type::Add);
 }
@@ -217,7 +217,7 @@ return i;
   REQUIRE(program->children.size() == 3);
   REQUIRE(program->children[1]->type == Ast::Type::While);
 
-  const auto &while_loop = ast_cast<const Ast::While &>(*program->children[1]);
+  const auto &while_loop = derived_cast<const Ast::While &>(*program->children[1]);
   REQUIRE(while_loop.condition != nullptr);
   REQUIRE(while_loop.condition->type == Ast::Type::GreaterThan);
 }
@@ -230,7 +230,7 @@ TEST_CASE("test_parser_parses_function_call_with_arguments") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::FunctionCall);
 
-  const auto &function_call = ast_cast<const Ast::FunctionCall &>(*parsed);
+  const auto &function_call = derived_cast<const Ast::FunctionCall &>(*parsed);
   REQUIRE(function_call.name == "sum");
   REQUIRE(function_call.arguments.size() == 2);
   REQUIRE(function_call.arguments[0]->type == Ast::Type::Literal);
@@ -253,13 +253,13 @@ return add(1, 2);
   REQUIRE(program->children[1]->type == Ast::Type::Return);
 
   const auto &function_declaration =
-      ast_cast<const Ast::FunctionDeclaration &>(*program->children[0]);
+      derived_cast<const Ast::FunctionDeclaration &>(*program->children[0]);
   REQUIRE(function_declaration.name == "add");
   REQUIRE(function_declaration.parameters == std::vector<std::string>{"a", "b"});
 
-  const auto &return_statement = ast_cast<const Ast::Return &>(*program->children[1]);
+  const auto &return_statement = derived_cast<const Ast::Return &>(*program->children[1]);
   REQUIRE(return_statement.value->type == Ast::Type::FunctionCall);
-  const auto &function_call = ast_cast<const Ast::FunctionCall &>(*return_statement.value);
+  const auto &function_call = derived_cast<const Ast::FunctionCall &>(*return_statement.value);
   REQUIRE(function_call.name == "add");
   REQUIRE(function_call.arguments.size() == 2);
 }
@@ -282,13 +282,13 @@ return fib(5);
   REQUIRE(program->children.size() == 2);
   REQUIRE(program->children[0]->type == Ast::Type::FunctionDeclaration);
 
-  const auto &fib_decl = ast_cast<const Ast::FunctionDeclaration &>(*program->children[0]);
+  const auto &fib_decl = derived_cast<const Ast::FunctionDeclaration &>(*program->children[0]);
   REQUIRE(fib_decl.name == "fib");
   REQUIRE(fib_decl.parameters == std::vector<std::string>{"n"});
   REQUIRE(fib_decl.body->children.size() == 1);
   REQUIRE(fib_decl.body->children[0]->type == Ast::Type::IfElse);
 
-  const auto &if_else = ast_cast<const Ast::IfElse &>(*fib_decl.body->children[0]);
+  const auto &if_else = derived_cast<const Ast::IfElse &>(*fib_decl.body->children[0]);
   REQUIRE(if_else.condition->type == Ast::Type::LessThan);
   REQUIRE(if_else.body->children.size() == 1);
   REQUIRE(if_else.else_body->children.size() == 1);
@@ -309,7 +309,7 @@ return x;
   REQUIRE(program->children.size() == 3);
   REQUIRE(program->children[1]->type == Ast::Type::IfElse);
 
-  const auto &if_else = ast_cast<const Ast::IfElse &>(*program->children[1]);
+  const auto &if_else = derived_cast<const Ast::IfElse &>(*program->children[1]);
   REQUIRE(if_else.condition->type == Ast::Type::LessThan);
   REQUIRE(if_else.body->children.size() == 1);
   REQUIRE(if_else.else_body->children.empty());
@@ -336,10 +336,10 @@ return x;
   REQUIRE(program->children[1]->type == Ast::Type::IfElse);
   REQUIRE(program->children[2]->type == Ast::Type::IfElse);
 
-  const auto &if_without_else = ast_cast<const Ast::IfElse &>(*program->children[1]);
+  const auto &if_without_else = derived_cast<const Ast::IfElse &>(*program->children[1]);
   REQUIRE(if_without_else.else_body->children.empty());
 
-  const auto &if_with_else = ast_cast<const Ast::IfElse &>(*program->children[2]);
+  const auto &if_with_else = derived_cast<const Ast::IfElse &>(*program->children[2]);
   REQUIRE(if_with_else.body->children.size() == 1);
   REQUIRE(if_with_else.else_body->children.size() == 1);
 }
@@ -352,11 +352,11 @@ TEST_CASE("test_parser_parses_struct_literal_field_access_expression") {
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::FieldAccess);
 
-  const auto &field_access = ast_cast<const Ast::FieldAccess &>(*parsed);
+  const auto &field_access = derived_cast<const Ast::FieldAccess &>(*parsed);
   REQUIRE(field_access.field == "x");
   REQUIRE(field_access.object->type == Ast::Type::StructLiteral);
 
-  const auto &struct_literal = ast_cast<const Ast::StructLiteral &>(*field_access.object);
+  const auto &struct_literal = derived_cast<const Ast::StructLiteral &>(*field_access.object);
   REQUIRE(struct_literal.fields.size() == 2);
   REQUIRE(struct_literal.fields[0].first == "x");
   REQUIRE(struct_literal.fields[1].first == "y");
@@ -401,7 +401,7 @@ TEST_CASE("test_parser_reports_missing_opening_brace_in_struct_literal") {
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::StructLiteral);
-  const auto& struct_literal = ast_cast<const Ast::StructLiteral&>(*parsed);
+  const auto& struct_literal = derived_cast<const Ast::StructLiteral&>(*parsed);
   REQUIRE(struct_literal.fields.empty());
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
@@ -417,7 +417,7 @@ TEST_CASE("test_parser_reports_missing_closing_brace_in_struct_literal") {
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::StructLiteral);
-  const auto& struct_literal = ast_cast<const Ast::StructLiteral&>(*parsed);
+  const auto& struct_literal = derived_cast<const Ast::StructLiteral&>(*parsed);
   REQUIRE(struct_literal.fields.size() == 1);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
@@ -433,7 +433,7 @@ TEST_CASE("test_parser_expression_stops_at_trailing_tokens") {
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
-  REQUIRE(ast_cast<const Ast::Literal&>(*parsed).value == 1);
+  REQUIRE(derived_cast<const Ast::Literal&>(*parsed).value == 1);
   REQUIRE_FALSE(reporter.has_errors());
 }
 
@@ -492,7 +492,7 @@ TEST_CASE("test_parser_reports_invalid_assignment_target") {
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::Literal);
-  REQUIRE(ast_cast<const Ast::Literal&>(*parsed).value == 1);
+  REQUIRE(derived_cast<const Ast::Literal&>(*parsed).value == 1);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);
   REQUIRE(reporter.errors()[0]->type == kai::Error::Type::InvalidAssignmentTarget);
@@ -578,7 +578,7 @@ TEST_CASE("test_parser_reports_missing_closing_square_bracket_in_array_literal")
 
   REQUIRE(parsed != nullptr);
   REQUIRE(parsed->type == Ast::Type::ArrayLiteral);
-  const auto& array_literal = ast_cast<const Ast::ArrayLiteral&>(*parsed);
+  const auto& array_literal = derived_cast<const Ast::ArrayLiteral&>(*parsed);
   REQUIRE(array_literal.elements.size() == 1);
   REQUIRE(reporter.has_errors());
   REQUIRE(reporter.errors().size() == 1);

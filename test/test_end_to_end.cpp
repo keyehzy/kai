@@ -4,18 +4,20 @@
 #include "../src/optimizer.h"
 #include "../src/parser.h"
 
+using namespace kai;
+
 TEST_CASE("test_parser_expression_end_to_end_literal_42") {
   kai::ErrorReporter reporter;
   kai::Parser parser("42", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 42);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -28,15 +30,15 @@ TEST_CASE("test_parser_expression_end_to_end_literal_42") {
 TEST_CASE("test_parser_expression_end_to_end_modulo_minimal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("20 % 6 + 1", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 3);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -49,15 +51,15 @@ TEST_CASE("test_parser_expression_end_to_end_modulo_minimal") {
 TEST_CASE("test_parser_expression_end_to_end_equality_minimal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("20 % 6 == 2", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -70,15 +72,15 @@ TEST_CASE("test_parser_expression_end_to_end_equality_minimal") {
 TEST_CASE("test_parser_expression_end_to_end_not_equal_minimal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("20 % 6 != 3", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -91,15 +93,15 @@ TEST_CASE("test_parser_expression_end_to_end_not_equal_minimal") {
 TEST_CASE("test_parser_expression_end_to_end_less_than") {
   kai::ErrorReporter reporter;
   kai::Parser parser("1 < 2", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -112,15 +114,15 @@ TEST_CASE("test_parser_expression_end_to_end_less_than") {
 TEST_CASE("test_parser_expression_end_to_end_greater_than") {
   kai::ErrorReporter reporter;
   kai::Parser parser("3 > 2", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -133,15 +135,15 @@ TEST_CASE("test_parser_expression_end_to_end_greater_than") {
 TEST_CASE("test_parser_expression_end_to_end_equal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("17+3 == 20", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -154,15 +156,15 @@ TEST_CASE("test_parser_expression_end_to_end_equal") {
 TEST_CASE("test_parser_expression_end_to_end_array_index_assignment") {
   kai::ErrorReporter reporter;
   kai::Parser parser("[7, 8, 9][1]", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 8);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -175,15 +177,15 @@ TEST_CASE("test_parser_expression_end_to_end_array_index_assignment") {
 TEST_CASE("test_parser_expression_end_to_end_less_than_or_equal_minimal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("2 <= 2", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -202,11 +204,11 @@ while (i < 10) {
 }
 return i;
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 10);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -226,11 +228,11 @@ while (i > 1) {
 }
 return i;
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 1);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -253,11 +255,11 @@ if (1 < 2) {
 }
 return x;
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 42);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -275,11 +277,11 @@ let x = 7;
 return x;
 x = 99;
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 7);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -300,11 +302,11 @@ fn early() {
 }
 return early();
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 1);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -330,11 +332,11 @@ fn find_three() {
 }
 return find_three();
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 3);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -353,11 +355,11 @@ fn add(a, b) {
 }
 return add(40, 2);
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 42);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -380,11 +382,11 @@ fn fib(n) {
 }
 return fib(10);
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 55);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -407,10 +409,10 @@ fn fib(n) {
 }
 return fib(2);
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 1);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -433,7 +435,7 @@ fn sum_down(n, acc) {
 }
 return sum_down(10000, 0);
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
   REQUIRE(program != nullptr);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -498,11 +500,11 @@ quicksort(values, 0, 4);
 return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
        values[4];
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 12345);
 
   kai::bytecode::BytecodeGenerator generator;
@@ -516,15 +518,15 @@ return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
 TEST_CASE("test_parser_expression_end_to_end_logical_not_zero") {
   kai::ErrorReporter reporter;
   kai::Parser parser("!0", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 1);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -537,15 +539,15 @@ TEST_CASE("test_parser_expression_end_to_end_logical_not_zero") {
 TEST_CASE("test_parser_expression_end_to_end_logical_not_nonzero") {
   kai::ErrorReporter reporter;
   kai::Parser parser("!1", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 0);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -558,15 +560,15 @@ TEST_CASE("test_parser_expression_end_to_end_logical_not_nonzero") {
 TEST_CASE("test_parser_expression_end_to_end_negate_minimal") {
   kai::ErrorReporter reporter;
   kai::Parser parser("-5 + 10", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 5);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -579,15 +581,15 @@ TEST_CASE("test_parser_expression_end_to_end_negate_minimal") {
 TEST_CASE("test_parser_expression_end_to_end_unary_plus") {
   kai::ErrorReporter reporter;
   kai::Parser parser("+5", reporter);
-  std::unique_ptr<kai::ast::Ast> parsed_expression = parser.parse_expression();
+  std::unique_ptr<Ast> parsed_expression = parser.parse_expression();
 
   REQUIRE(parsed_expression != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*parsed_expression) == 5);
 
-  kai::ast::Ast::Block program;
-  program.append(std::make_unique<kai::ast::Ast::Return>(std::move(parsed_expression)));
+  Ast::Block program;
+  program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
   kai::bytecode::BytecodeGenerator generator;
   generator.visit_block(program);
@@ -603,11 +605,11 @@ TEST_CASE("test_program_end_to_end_structs_minimal") {
 let point = struct { x: 40, y: 2 };
 return point.x + point.y;
 )", reporter);
-  std::unique_ptr<kai::ast::Ast::Block> program = parser.parse_program();
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
 
   REQUIRE(program != nullptr);
 
-  kai::ast::AstInterpreter ast_interpreter;
+  AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 42);
 
   kai::bytecode::BytecodeGenerator generator;
