@@ -145,3 +145,84 @@ TEST_CASE("copy_prop_resolves_return_register") {
       static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[2]);
   REQUIRE(ret.reg == 0);
 }
+
+// ============================================================
+// Pass 1 + Pass 2: Copy Propagation + DCE Synergy
+// ============================================================
+
+// Copy propagation rewrites uses to the canonical source; then DCE removes
+// alias moves whose destinations are no longer read.
+TEST_CASE("copy_prop_and_dce_remove_obsolete_move_chain") {
+  std::vector<Bytecode::BasicBlock> blocks(1);
+  blocks[0].append<Bytecode::Instruction::Load>(0, 42);
+  blocks[0].append<Bytecode::Instruction::Move>(1, 0);
+  blocks[0].append<Bytecode::Instruction::Move>(2, 1);
+  blocks[0].append<Bytecode::Instruction::Return>(2);
+
+  BytecodeOptimizer opt;
+  opt.copy_propagation(blocks);
+  opt.dead_code_elimination(blocks);
+
+  REQUIRE(blocks[0].instructions.size() == 2);
+  REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
+  REQUIRE(blocks[0].instructions[1]->type() == Type::Return);
+  const auto &ret =
+      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[1]);
+  REQUIRE(ret.reg == 0);
+  REQUIRE_FALSE(has_instruction_type(blocks, Type::Move));
+}
+
+// After source substitution in Add, the copy-only Move becomes dead and is
+// removed by DCE.
+TEST_CASE("copy_prop_and_dce_remove_dead_alias_after_rewrite") {
+  std::vector<Bytecode::BasicBlock> blocks(1);
+  blocks[0].append<Bytecode::Instruction::Load>(0, 40);
+  blocks[0].append<Bytecode::Instruction::Load>(1, 2);
+  blocks[0].append<Bytecode::Instruction::Move>(2, 0);   // alias only
+  blocks[0].append<Bytecode::Instruction::Add>(3, 2, 1); // src1 rewritten to r0
+  blocks[0].append<Bytecode::Instruction::Return>(3);
+
+  BytecodeOptimizer opt;
+  opt.copy_propagation(blocks);
+  opt.dead_code_elimination(blocks);
+
+  REQUIRE(blocks[0].instructions.size() == 4);
+  REQUIRE_FALSE(has_instruction_type(blocks, Type::Move));
+  REQUIRE(blocks[0].instructions[2]->type() == Type::Add);
+  const auto &add =
+      static_cast<const Bytecode::Instruction::Add &>(*blocks[0].instructions[2]);
+  REQUIRE(add.src1 == 0);
+  REQUIRE(add.src2 == 1);
+  REQUIRE(add.dst == 3);
+}
+
+// Copy propagation can resolve a copied constant branch condition to an
+// unconditional Jump; DCE then removes now-dead condition setup instructions.
+TEST_CASE("copy_prop_and_dce_prune_constant_branch_setup") {
+  std::vector<Bytecode::BasicBlock> blocks(3);
+  blocks[0].append<Bytecode::Instruction::Load>(0, 1);
+  blocks[0].append<Bytecode::Instruction::Move>(1, 0);
+  blocks[0].append<Bytecode::Instruction::JumpConditional>(1, 1, 2);
+
+  blocks[1].append<Bytecode::Instruction::Load>(2, 11);
+  blocks[1].append<Bytecode::Instruction::Return>(2);
+
+  blocks[2].append<Bytecode::Instruction::Load>(3, 22);
+  blocks[2].append<Bytecode::Instruction::Return>(3);
+
+  BytecodeOptimizer opt;
+  opt.copy_propagation(blocks);
+  opt.dead_code_elimination(blocks);
+
+  REQUIRE(blocks[0].instructions.size() == 2);
+  REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
+  REQUIRE(blocks[0].instructions[1]->type() == Type::Jump);
+  const auto &jump =
+      static_cast<const Bytecode::Instruction::Jump &>(*blocks[0].instructions[1]);
+  REQUIRE(jump.label == 1);
+  REQUIRE_FALSE(has_instruction_type(blocks, Type::JumpConditional));
+  REQUIRE_FALSE(has_instruction_type(blocks, Type::Move));
+
+  BytecodeInterpreter interp;
+  REQUIRE(interp.interpret(blocks) == 11);
+}
