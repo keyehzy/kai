@@ -53,7 +53,7 @@ class BytecodeOptimizer {
   // Pass 3.5: CFG cleanup.
   // - trims instructions after the first block terminator
   // - rewrites branch targets through jump-only trampoline chains
-  // - removes unreferenced jump-only trampoline blocks
+  // - removes unreachable blocks (from entry @0 via Jump/JumpConditional/Call/TailCall)
   void cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks);
 
   // Pass 4: peephole optimization.

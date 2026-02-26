@@ -43,7 +43,7 @@ TEST_CASE("const_cond_jump_conditional_false_simplifies_to_jump_false_label") {
   REQUIRE(blocks[0].instructions[0]->type() == Type::Jump);
   const auto &jump =
       static_cast<const Bytecode::Instruction::Jump &>(*blocks[0].instructions[0]);
-  REQUIRE(jump.label == 2);
+  REQUIRE(jump.label == 1);
 }
 
 TEST_CASE("const_cond_no_simplify_when_condition_overwritten") {

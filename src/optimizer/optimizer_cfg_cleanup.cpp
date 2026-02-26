@@ -41,6 +41,10 @@ void BytecodeOptimizer::cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks) {
     }
   }
 
+  if (blocks.empty()) {
+    return;
+  }
+
   // 2) Collapse jump-only trampoline chains by retargeting incoming branches.
   const auto resolve_jump_target = [&blocks](Label label) -> Label {
     if (label >= blocks.size()) {
@@ -79,42 +83,50 @@ void BytecodeOptimizer::cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks) {
     }
   }
 
-  // 3) Remove jump-only trampolines that became unreferenced.
-  std::vector<size_t> incoming(blocks.size(), 0);
-  for (const auto &block : blocks) {
-    for (const auto &instr_ptr : block.instructions) {
+  // 3) Keep only blocks reachable from entry block @0.
+  std::vector<bool> keep(blocks.size(), false);
+  std::vector<Label> worklist = {0};
+  while (!worklist.empty()) {
+    const auto label = worklist.back();
+    worklist.pop_back();
+    if (label >= blocks.size() || keep[label]) {
+      continue;
+    }
+
+    keep[label] = true;
+    for (const auto &instr_ptr : blocks[label].instructions) {
       const auto &instr = *instr_ptr;
       switch (instr.type()) {
         case Type::Jump: {
           const auto target = derived_cast<const Bytecode::Instruction::Jump &>(instr).label;
-          if (target < incoming.size()) {
-            ++incoming[target];
+          if (target < blocks.size()) {
+            worklist.push_back(target);
           }
           break;
         }
         case Type::JumpConditional: {
           const auto &jump_cond =
               derived_cast<const Bytecode::Instruction::JumpConditional &>(instr);
-          if (jump_cond.label1 < incoming.size()) {
-            ++incoming[jump_cond.label1];
+          if (jump_cond.label1 < blocks.size()) {
+            worklist.push_back(jump_cond.label1);
           }
-          if (jump_cond.label2 < incoming.size()) {
-            ++incoming[jump_cond.label2];
+          if (jump_cond.label2 < blocks.size()) {
+            worklist.push_back(jump_cond.label2);
           }
           break;
         }
         case Type::Call: {
           const auto target = derived_cast<const Bytecode::Instruction::Call &>(instr).label;
-          if (target < incoming.size()) {
-            ++incoming[target];
+          if (target < blocks.size()) {
+            worklist.push_back(target);
           }
           break;
         }
         case Type::TailCall: {
           const auto target =
               derived_cast<const Bytecode::Instruction::TailCall &>(instr).label;
-          if (target < incoming.size()) {
-            ++incoming[target];
+          if (target < blocks.size()) {
+            worklist.push_back(target);
           }
           break;
         }
@@ -124,12 +136,11 @@ void BytecodeOptimizer::cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks) {
     }
   }
 
-  std::vector<bool> keep(blocks.size(), true);
   bool removed_any = false;
-  for (size_t i = 1; i < blocks.size(); ++i) {
-    if (is_jump_only_block(blocks[i]) && incoming[i] == 0) {
-      keep[i] = false;
+  for (size_t i = 0; i < blocks.size(); ++i) {
+    if (!keep[i]) {
       removed_any = true;
+      break;
     }
   }
   if (!removed_any) {
