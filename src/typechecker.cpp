@@ -108,7 +108,7 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
 
     case T::Variable: {
       const auto& var = derived_cast<const Ast::Variable&>(*node);
-      Shape** value = env_.lookup_variable(var.name);
+      auto value = env_.lookup_variable(var.name);
       if (!value) {
         reporter_.report<UndefinedVariableError>(no_loc(), var.name);
         return make_shape<Shape::Unknown>();
@@ -118,15 +118,15 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
 
     case T::VariableDeclaration: {
       const auto& decl = derived_cast<const Ast::VariableDeclaration&>(*node);
-      Shape* value = visit_expression(decl.initializer.get());
+      auto value = visit_expression(decl.initializer.get());
       env_.bind_variable(decl.name, value);
       return value;
     }
 
     case T::Assignment: {
       const auto& assignment = derived_cast<const Ast::Assignment&>(*node);
-      Shape* value = visit_expression(assignment.value.get());
-      Shape** target = env_.lookup_variable(assignment.name);
+      auto value = visit_expression(assignment.value.get());
+      auto target = env_.lookup_variable(assignment.name);
       if (!target) {
         reporter_.report<UndefinedVariableError>(no_loc(), assignment.name);
       } else {
@@ -197,7 +197,7 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
 
     case T::FieldAccess: {
       const auto& access = derived_cast<const Ast::FieldAccess&>(*node);
-      Shape* object = visit_expression(access.object.get());
+      auto object = visit_expression(access.object.get());
       if (object->kind != Shape::Kind::Struct_Literal) {
         reporter_.report<NotAStructError>(no_loc(), object->describe());
         return make_shape<Shape::Unknown>();
