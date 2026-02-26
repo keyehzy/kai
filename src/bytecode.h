@@ -58,6 +58,7 @@ struct Bytecode::Instruction {
     ArrayCreate,
     ArrayLiteralCreate,
     ArrayLoad,
+    ArrayLoadImmediate,
     ArrayStore,
     StructCreate,
     StructLiteralCreate,
@@ -100,6 +101,7 @@ struct Bytecode::Instruction {
   struct ArrayCreate;
   struct ArrayLiteralCreate;
   struct ArrayLoad;
+  struct ArrayLoadImmediate;
   struct ArrayStore;
   struct StructCreate;
   struct StructLiteralCreate;
@@ -399,6 +401,15 @@ struct Bytecode::Instruction::ArrayLoad final : Bytecode::Instruction {
   Register index;
 };
 
+struct Bytecode::Instruction::ArrayLoadImmediate final : Bytecode::Instruction {
+  ArrayLoadImmediate(Register dst, Register array, Value index);
+  void dump() const override;
+
+  Register dst;
+  Register array;
+  Value index;
+};
+
 struct Bytecode::Instruction::ArrayStore final : Bytecode::Instruction {
   ArrayStore(Register array, Register index, Register value);
   void dump() const override;
@@ -568,6 +579,8 @@ class BytecodeInterpreter {
   void interpret_array_literal_create(
       const Bytecode::Instruction::ArrayLiteralCreate &array_literal_create);
   void interpret_array_load(const Bytecode::Instruction::ArrayLoad &array_load);
+  void interpret_array_load_immediate(
+      const Bytecode::Instruction::ArrayLoadImmediate &array_load_immediate);
   void interpret_array_store(const Bytecode::Instruction::ArrayStore &array_store);
   void interpret_struct_create(const Bytecode::Instruction::StructCreate &struct_create);
   void interpret_struct_literal_create(

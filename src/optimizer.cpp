@@ -71,6 +71,8 @@ static std::optional<Register> get_dst_reg(const Bytecode::Instruction &instr) {
       return derived_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(instr).dst;
     case Type::ArrayLoad:
       return derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr).dst;
+    case Type::ArrayLoadImmediate:
+      return derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(instr).dst;
     case Type::StructCreate:
       return derived_cast<const Bytecode::Instruction::StructCreate &>(instr).dst;
     case Type::StructLiteralCreate:
@@ -382,6 +384,12 @@ static std::unordered_map<Register, size_t> compute_use_count(
           use(al.index);
           break;
         }
+        case Type::ArrayLoadImmediate: {
+          const auto &al =
+              derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(instr);
+          use(al.array);
+          break;
+        }
         case Type::ArrayStore: {
           const auto &as_ =
               derived_cast<const Bytecode::Instruction::ArrayStore &>(instr);
@@ -649,6 +657,12 @@ void BytecodeOptimizer::copy_propagation(std::vector<Bytecode::BasicBlock> &bloc
           invalidate(al.dst);
           break;
         }
+        case Type::ArrayLoadImmediate: {
+          auto &al = derived_cast<Bytecode::Instruction::ArrayLoadImmediate &>(instr);
+          al.array = resolve(al.array);
+          invalidate(al.dst);
+          break;
+        }
         case Type::ArrayStore: {
           auto &as = derived_cast<Bytecode::Instruction::ArrayStore &>(instr);
           as.array = resolve(as.array);
@@ -732,6 +746,16 @@ void BytecodeOptimizer::fold_aggregate_literals(
           instr_ptr = std::make_unique<Bytecode::Instruction::ArrayLiteralCreate>(
               array_create.dst, std::move(elements));
           constant_loads.erase(array_create.dst);
+          continue;
+        }
+      } else if (instr.type() == Type::ArrayLoad) {
+        const auto &array_load =
+            derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
+        if (const auto it = constant_loads.find(array_load.index);
+            it != constant_loads.end()) {
+          instr_ptr = std::make_unique<Bytecode::Instruction::ArrayLoadImmediate>(
+              array_load.dst, array_load.array, it->second);
+          constant_loads.erase(array_load.dst);
           continue;
         }
       } else if (instr.type() == Type::StructCreate) {
@@ -970,6 +994,12 @@ void BytecodeOptimizer::dead_code_elimination(
           live.insert(al.index);
           break;
         }
+        case Type::ArrayLoadImmediate: {
+          const auto &al =
+              derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(instr);
+          live.insert(al.array);
+          break;
+        }
         case Type::ArrayStore: {
           const auto &as =
               derived_cast<const Bytecode::Instruction::ArrayStore &>(instr);
@@ -1161,6 +1191,11 @@ void BytecodeOptimizer::dead_code_elimination(
         case Type::ArrayLoad: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
+          return live.find(al.dst) == live.end();
+        }
+        case Type::ArrayLoadImmediate: {
+          const auto &al =
+              derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(instr);
           return live.find(al.dst) == live.end();
         }
         case Type::StructCreate: {
@@ -1635,6 +1670,13 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           track(al.index);
           break;
         }
+        case Type::ArrayLoadImmediate: {
+          const auto &al =
+              derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(instr);
+          track(al.dst);
+          track(al.array);
+          break;
+        }
         case Type::ArrayStore: {
           const auto &as = derived_cast<const Bytecode::Instruction::ArrayStore &>(instr);
           track(as.array);
@@ -1920,6 +1962,12 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           al.dst = remap(al.dst);
           al.array = remap(al.array);
           al.index = remap(al.index);
+          break;
+        }
+        case Type::ArrayLoadImmediate: {
+          auto &al = derived_cast<Bytecode::Instruction::ArrayLoadImmediate &>(instr);
+          al.dst = remap(al.dst);
+          al.array = remap(al.array);
           break;
         }
         case Type::ArrayStore: {

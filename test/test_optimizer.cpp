@@ -1017,6 +1017,31 @@ TEST_CASE("does_not_fold_array_create_when_any_input_is_not_constant_load") {
   REQUIRE_FALSE(has_instruction_type(blocks, Type::ArrayLiteralCreate));
 }
 
+TEST_CASE("folds_array_load_with_constant_index_to_array_load_immediate") {
+  std::vector<Bytecode::BasicBlock> blocks(1);
+  blocks[0].append<Bytecode::Instruction::ArrayLiteralCreate>(
+      0, std::vector<Bytecode::Value>{10, 20, 30});
+  blocks[0].append<Bytecode::Instruction::Load>(1, 1);
+  blocks[0].append<Bytecode::Instruction::ArrayLoad>(2, 0, 1);
+  blocks[0].append<Bytecode::Instruction::Return>(2);
+
+  BytecodeOptimizer opt;
+  opt.optimize(blocks);
+
+  REQUIRE_FALSE(has_instruction_type(blocks, Type::ArrayLoad));
+  REQUIRE(has_instruction_type(blocks, Type::ArrayLoadImmediate));
+  REQUIRE(blocks[0].instructions.size() == 3);
+
+  REQUIRE(blocks[0].instructions[1]->type() == Type::ArrayLoadImmediate);
+  const auto &ali = static_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(
+      *blocks[0].instructions[1]);
+  REQUIRE(ali.array == 0);
+  REQUIRE(ali.index == 1);
+
+  BytecodeInterpreter interp;
+  REQUIRE(interp.interpret(blocks) == 20);
+}
+
 TEST_CASE("folds_struct_create_to_struct_literal_create_when_all_inputs_are_constant_loads") {
   std::vector<Bytecode::BasicBlock> blocks(1);
   blocks[0].append<Bytecode::Instruction::Load>(0, 9);

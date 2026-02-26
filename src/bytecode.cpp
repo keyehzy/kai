@@ -270,6 +270,13 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
           track(array_load.index);
           break;
         }
+        case Bytecode::Instruction::Type::ArrayLoadImmediate: {
+          const auto &array_load_immediate =
+              derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(*instr);
+          track(array_load_immediate.dst);
+          track(array_load_immediate.array);
+          break;
+        }
         case Bytecode::Instruction::Type::ArrayStore: {
           const auto &array_store =
               derived_cast<const Bytecode::Instruction::ArrayStore &>(*instr);
@@ -617,6 +624,17 @@ Bytecode::Instruction::ArrayLoad::ArrayLoad(Register dst, Register array, Regist
 
 void Bytecode::Instruction::ArrayLoad::dump() const {
   std::printf("ArrayLoad r%llu, r%llu, r%llu", dst, array, index);
+}
+
+Bytecode::Instruction::ArrayLoadImmediate::ArrayLoadImmediate(Register dst, Register array,
+                                                              Value index)
+    : Bytecode::Instruction(Type::ArrayLoadImmediate),
+      dst(dst),
+      array(array),
+      index(index) {}
+
+void Bytecode::Instruction::ArrayLoadImmediate::dump() const {
+  std::printf("ArrayLoadImmediate r%llu, r%llu, %llu", dst, array, index);
 }
 
 Bytecode::Instruction::ArrayStore::ArrayStore(Register array, Register index, Register value)
@@ -1410,6 +1428,11 @@ Bytecode::Value BytecodeInterpreter::interpret(
         interpret_array_load(derived_cast<Bytecode::Instruction::ArrayLoad const &>(*instr));
         ++instr_index_;
         break;
+      case Bytecode::Instruction::Type::ArrayLoadImmediate:
+        interpret_array_load_immediate(
+            derived_cast<Bytecode::Instruction::ArrayLoadImmediate const &>(*instr));
+        ++instr_index_;
+        break;
       case Bytecode::Instruction::Type::ArrayStore:
         interpret_array_store(
             derived_cast<Bytecode::Instruction::ArrayStore const &>(*instr));
@@ -1644,6 +1667,16 @@ void BytecodeInterpreter::interpret_array_load(
   assert(it != arrays_.end());
   assert(index < it->second.size());
   reg(array_load.dst) = it->second[index];
+}
+
+void BytecodeInterpreter::interpret_array_load_immediate(
+    const Bytecode::Instruction::ArrayLoadImmediate &array_load_immediate) {
+  const auto array_id = reg(array_load_immediate.array);
+  const auto index = array_load_immediate.index;
+  const auto it = arrays_.find(array_id);
+  assert(it != arrays_.end());
+  assert(index < it->second.size());
+  reg(array_load_immediate.dst) = it->second[index];
 }
 
 void BytecodeInterpreter::interpret_array_store(
