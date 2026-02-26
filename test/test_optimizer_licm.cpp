@@ -4,53 +4,52 @@
 // Pass 0: Loop-Invariant Code Motion (LICM)
 // ============================================================
 
-// After optimize(), the while condition i < 10 should use a LessThanImmediate
-// instruction and avoid materializing the constant 10 in any Load.
-TEST_CASE("licm_uses_immediate_compare_for_loop_bound") {
-  auto body = std::make_unique<Ast::Block>();
-  body->append(decl("i", lit(0)));
-  auto while_body = std::make_unique<Ast::Block>();
-  while_body->append(inc("i"));
-  body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
-  body->append(ret(var("i")));
+// An invariant bound load in the loop header must be hoisted to pre-header.
+TEST_CASE("licm_hoists_invariant_loop_bound_load") {
+  // block 0: r0=0; Jump @1
+  // block 1: r1=10 (hoistable); r2=i<10; JumpConditional @2,@3
+  // block 2: r3=i+1; r0=r3; Jump @1
+  // block 3: Return r0
+  std::vector<Bytecode::BasicBlock> blocks(4);
 
-  BytecodeGenerator gen;
-  gen.visit_block(*body);
-  gen.finalize();
+  blocks[0].append<Bytecode::Instruction::Load>(0, 0);  // r0 = 0 (i)
+  blocks[0].append<Bytecode::Instruction::Jump>(1);
+
+  blocks[1].append<Bytecode::Instruction::Load>(1, 10);        // r1 = 10 -- hoistable
+  blocks[1].append<Bytecode::Instruction::LessThan>(2, 0, 1);  // r2 = i < 10
+  blocks[1].append<Bytecode::Instruction::JumpConditional>(2, 2, 3);
+
+  blocks[2].append<Bytecode::Instruction::AddImmediate>(3, 0, 1);  // r3 = i+1
+  blocks[2].append<Bytecode::Instruction::Move>(0, 3);             // i = r3
+  blocks[2].append<Bytecode::Instruction::Jump>(1);
+
+  blocks[3].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  opt.loop_invariant_code_motion(blocks);
 
-  // Load(10) must not appear in the condition block.
   bool load_10_in_condition = false;
-  bool has_lt_immediate_in_condition = false;
-  for (const auto &instr_ptr : gen.blocks()[1].instructions) {
-    if (instr_ptr->type() == Type::LessThanImmediate) {
-      has_lt_immediate_in_condition = true;
-    }
+  for (const auto &instr_ptr : blocks[1].instructions) {
     if (instr_ptr->type() == Type::Load) {
       const auto &load =
           static_cast<const Bytecode::Instruction::Load &>(*instr_ptr);
       if (load.value == 10) load_10_in_condition = true;
     }
   }
-  REQUIRE(has_lt_immediate_in_condition);
   REQUIRE_FALSE(load_10_in_condition);
 
-  // Load(10) must not appear anywhere after immediate lowering.
-  bool load_10_anywhere = false;
-  for (const auto &block : gen.blocks()) {
-    for (const auto &instr_ptr : block.instructions) {
-      if (instr_ptr->type() == Type::Load) {
-        const auto &load =
-            static_cast<const Bytecode::Instruction::Load &>(*instr_ptr);
-        if (load.value == 10) {
-          load_10_anywhere = true;
-        }
-      }
+  bool load_10_in_preheader = false;
+  for (const auto &instr_ptr : blocks[0].instructions) {
+    if (instr_ptr->type() == Type::Load) {
+      const auto &load =
+          static_cast<const Bytecode::Instruction::Load &>(*instr_ptr);
+      if (load.value == 10) load_10_in_preheader = true;
     }
   }
-  REQUIRE_FALSE(load_10_anywhere);
+  REQUIRE(load_10_in_preheader);
+
+  BytecodeInterpreter interp;
+  REQUIRE(interp.interpret(blocks) == 10);
 }
 
 // The interpreter must still produce the correct result (10) after LICM.
@@ -67,7 +66,7 @@ TEST_CASE("licm_correctness_while_loop") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  opt.loop_invariant_code_motion(gen.blocks());
 
   BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 10);
@@ -100,7 +99,7 @@ TEST_CASE("licm_hoists_invariant_arithmetic") {
   blocks[3].append<Bytecode::Instruction::Return>(3);  // return a*b
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.loop_invariant_code_motion(blocks);
 
   // Multiply must have been hoisted out of the loop blocks.
   bool multiply_in_loop = false;
@@ -139,7 +138,7 @@ TEST_CASE("licm_does_not_hoist_variant_instruction") {
   blocks[3].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.loop_invariant_code_motion(blocks);
 
   // LessThan must remain somewhere in the loop blocks (1 or 2).
   bool less_than_in_loop = false;
@@ -151,7 +150,7 @@ TEST_CASE("licm_does_not_hoist_variant_instruction") {
   REQUIRE(less_than_in_loop);
 }
 
-// Straight-line code with no loops must survive optimize() without crashing
+// Straight-line code with no loops must survive LICM without crashing
 // and must still produce the correct result.
 TEST_CASE("licm_no_crash_without_loop") {
   auto body = std::make_unique<Ast::Block>();
@@ -164,7 +163,7 @@ TEST_CASE("licm_no_crash_without_loop") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  REQUIRE_NOTHROW(opt.optimize(gen.blocks()));
+  REQUIRE_NOTHROW(opt.loop_invariant_code_motion(gen.blocks()));
 
   BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 7);
@@ -174,42 +173,43 @@ TEST_CASE("licm_no_crash_without_loop") {
 // after LICM because the loop-bound Load is moved to the pre-header.
 TEST_CASE("licm_reduces_instruction_count_in_hot_blocks") {
   auto make_prog = [] {
-    auto body = std::make_unique<Ast::Block>();
-    body->append(decl("i", lit(0)));
-    auto while_body = std::make_unique<Ast::Block>();
-    while_body->append(inc("i"));
-    body->append(while_loop(lt(var("i"), lit(10)), std::move(while_body)));
-    body->append(ret(var("i")));
-    return std::move(*body);
+    std::vector<Bytecode::BasicBlock> blocks(4);
+
+    blocks[0].append<Bytecode::Instruction::Load>(0, 0);  // r0 = 0 (i)
+    blocks[0].append<Bytecode::Instruction::Jump>(1);
+
+    blocks[1].append<Bytecode::Instruction::Load>(1, 10);        // r1 = 10 -- hoistable
+    blocks[1].append<Bytecode::Instruction::LessThan>(2, 0, 1);  // r2 = i < 10
+    blocks[1].append<Bytecode::Instruction::JumpConditional>(2, 2, 3);
+
+    blocks[2].append<Bytecode::Instruction::AddImmediate>(3, 0, 1);  // r3 = i+1
+    blocks[2].append<Bytecode::Instruction::Move>(0, 3);             // i = r3
+    blocks[2].append<Bytecode::Instruction::Jump>(1);
+
+    blocks[3].append<Bytecode::Instruction::Return>(0);
+    return blocks;
   };
 
   // Unoptimized count inside loop blocks (block 1 onward).
-  auto prog1 = make_prog();
-  BytecodeGenerator gen1;
-  gen1.visit_block(prog1);
-  gen1.finalize();
   size_t before = 0;
-  for (size_t i = 1; i < gen1.blocks().size(); ++i) {
-    before += gen1.blocks()[i].instructions.size();
+  auto blocks_before = make_prog();
+  for (size_t i = 1; i < blocks_before.size(); ++i) {
+    before += blocks_before[i].instructions.size();
   }
 
   // Optimized count.
-  auto prog2 = make_prog();
-  BytecodeGenerator gen2;
-  gen2.visit_block(prog2);
-  gen2.finalize();
+  auto blocks_after = make_prog();
   BytecodeOptimizer opt;
-  opt.optimize(gen2.blocks());
+  opt.loop_invariant_code_motion(blocks_after);
   size_t after = 0;
-  for (size_t i = 1; i < gen2.blocks().size(); ++i) {
-    after += gen2.blocks()[i].instructions.size();
+  for (size_t i = 1; i < blocks_after.size(); ++i) {
+    after += blocks_after[i].instructions.size();
   }
 
   REQUIRE(after < before);
 }
 
-// Running optimize() a second time after LICM must not change instruction
-// count (idempotency with LICM included).
+// Running LICM a second time must not change instruction count (idempotency).
 TEST_CASE("licm_is_idempotent") {
   auto body = std::make_unique<Ast::Block>();
   body->append(decl("i", lit(0)));
@@ -223,9 +223,9 @@ TEST_CASE("licm_is_idempotent") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  opt.loop_invariant_code_motion(gen.blocks());
   const size_t after_first = total_instr_count(gen.blocks());
-  opt.optimize(gen.blocks());
+  opt.loop_invariant_code_motion(gen.blocks());
   const size_t after_second = total_instr_count(gen.blocks());
 
   REQUIRE(after_second == after_first);
@@ -256,7 +256,7 @@ TEST_CASE("licm_does_not_hoist_array_store") {
   blocks[3].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.loop_invariant_code_motion(blocks);
 
   // ArrayStore must remain in block 2 (loop body).
   bool has_array_store = false;
@@ -265,5 +265,4 @@ TEST_CASE("licm_does_not_hoist_array_store") {
   }
   REQUIRE(has_array_store);
 }
-
 
