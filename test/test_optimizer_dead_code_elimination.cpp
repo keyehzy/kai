@@ -12,13 +12,13 @@ TEST_CASE("dce_dead_load_removed") {
   blocks[0].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
   const auto &load =
       static_cast<const Bytecode::Instruction::Load &>(*blocks[0].instructions[0]);
-  REQUIRE(load.dst == 0);
+  REQUIRE(load.dst == 1);
   REQUIRE(load.value == 42);
 }
 
@@ -32,7 +32,7 @@ TEST_CASE("dce_dead_binary_op_removed") {
   blocks[0].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   // r2 not in live → Add removed. r0 and r1 remain live (DCE collects sources
   // before removal, so their Loads are kept in this single pass).
@@ -50,7 +50,7 @@ TEST_CASE("dce_dead_move_removed") {
   blocks[0].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   for (const auto &instr : blocks[0].instructions) {
@@ -65,7 +65,7 @@ TEST_CASE("dce_live_load_kept") {
   blocks[0].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
@@ -79,7 +79,7 @@ TEST_CASE("dce_jump_never_removed") {
   blocks[1].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 1);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Jump);
@@ -98,7 +98,7 @@ TEST_CASE("dce_jump_conditional_never_removed") {
   blocks[2].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.back()->type() == Type::JumpConditional);
 }
@@ -110,7 +110,7 @@ TEST_CASE("dce_return_never_removed") {
   blocks[0].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.back()->type() == Type::Return);
 }
@@ -126,7 +126,7 @@ TEST_CASE("dce_array_store_never_removed") {
   blocks[0].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   bool has_array_store = false;
   for (const auto &instr : blocks[0].instructions) {
@@ -144,9 +144,8 @@ TEST_CASE("dce_cross_block_liveness_respected") {
   blocks[1].append<Bytecode::Instruction::Return>(0);  // reads r0 from block 0
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.dead_code_elimination(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
 }
-
