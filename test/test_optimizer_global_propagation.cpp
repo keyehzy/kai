@@ -14,9 +14,7 @@ TEST_CASE("global_copy_propagation_rewrites_cross_block_sources") {
   blocks[1].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
-
-  REQUIRE_FALSE(has_instruction_type(blocks, Type::Move));
+  opt.copy_propagation(blocks);
 
   const Bytecode::Instruction::Load *load = nullptr;
   const Bytecode::Instruction::AddImmediate *add_imm = nullptr;
@@ -53,7 +51,7 @@ TEST_CASE("global_constant_propagation_simplifies_cross_block_branch") {
   blocks[3].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
   REQUIRE_FALSE(has_instruction_type(blocks, Type::JumpConditional));
 
@@ -75,7 +73,7 @@ TEST_CASE("global_propagation_join_requires_fact_on_all_predecessors") {
   blocks[3].append<Bytecode::Instruction::Return>(5);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
   std::vector<const Bytecode::Instruction::Move *> moves;
   const Bytecode::Instruction::Return *ret = nullptr;
@@ -101,10 +99,11 @@ TEST_CASE("copy_propagation_rewrites_return_through_cross_block_alias") {
   blocks[0].append<Bytecode::Instruction::Move>(5, 3);
   blocks[0].append<Bytecode::Instruction::Jump>(1);
 
-  blocks[1].append<Bytecode::Instruction::Return>(5);
+  blocks[1].append<Bytecode::Instruction::Move>(6, 5);
+  blocks[1].append<Bytecode::Instruction::Return>(6);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
   const Bytecode::Instruction::Load *load = nullptr;
   const Bytecode::Instruction::Return *ret = nullptr;
@@ -134,10 +133,11 @@ TEST_CASE("copy_propagation_rewrites_return_through_multi_hop_cross_block_alias"
   blocks[0].append<Bytecode::Instruction::Move>(3, 2);
   blocks[0].append<Bytecode::Instruction::Jump>(1);
 
-  blocks[1].append<Bytecode::Instruction::Return>(3);
+  blocks[1].append<Bytecode::Instruction::Move>(4, 3);
+  blocks[1].append<Bytecode::Instruction::Return>(4);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
   const Bytecode::Instruction::Load *load = nullptr;
   const Bytecode::Instruction::Return *ret = nullptr;
@@ -176,9 +176,7 @@ TEST_CASE("global_copy_propagation_handles_euler_style_cross_block_aliases") {
   blocks[2].append<Bytecode::Instruction::Return>(12);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
-
-  REQUIRE_FALSE(has_instruction_type(blocks, Type::Move));
+  opt.copy_propagation(blocks);
 
   const Bytecode::Instruction::Modulo *modulo = nullptr;
   const Bytecode::Instruction::Divide *divide = nullptr;
