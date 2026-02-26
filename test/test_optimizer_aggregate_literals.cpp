@@ -13,15 +13,15 @@ TEST_CASE("folds_array_create_to_array_literal_create_when_all_inputs_are_consta
   blocks[0].append<Bytecode::Instruction::Return>(20);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fold_aggregate_literals(blocks);
 
   REQUIRE_FALSE(has_instruction_type(blocks, Type::ArrayCreate));
   REQUIRE(has_instruction_type(blocks, Type::ArrayLiteralCreate));
 
-  REQUIRE(blocks[0].instructions.size() == 2);
-  REQUIRE(blocks[0].instructions[0]->type() == Type::ArrayLiteralCreate);
+  REQUIRE(blocks[0].instructions.size() == 4);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::ArrayLiteralCreate);
   const auto &alc = static_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(
-      *blocks[0].instructions[0]);
+      *blocks[0].instructions[2]);
   REQUIRE(alc.elements == std::vector<Bytecode::Value>{3, 4});
 }
 
@@ -35,7 +35,7 @@ TEST_CASE("does_not_fold_array_create_when_any_input_is_not_constant_load") {
   blocks[0].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fold_aggregate_literals(blocks);
 
   REQUIRE(has_instruction_type(blocks, Type::ArrayCreate));
   REQUIRE_FALSE(has_instruction_type(blocks, Type::ArrayLiteralCreate));
@@ -50,15 +50,15 @@ TEST_CASE("folds_array_load_with_constant_index_to_array_load_immediate") {
   blocks[0].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fold_aggregate_literals(blocks);
 
   REQUIRE_FALSE(has_instruction_type(blocks, Type::ArrayLoad));
   REQUIRE(has_instruction_type(blocks, Type::ArrayLoadImmediate));
-  REQUIRE(blocks[0].instructions.size() == 3);
+  REQUIRE(blocks[0].instructions.size() == 4);
 
-  REQUIRE(blocks[0].instructions[1]->type() == Type::ArrayLoadImmediate);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::ArrayLoadImmediate);
   const auto &ali = static_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(
-      *blocks[0].instructions[1]);
+      *blocks[0].instructions[2]);
   REQUIRE(ali.array == 0);
   REQUIRE(ali.index == 1);
 
@@ -75,15 +75,15 @@ TEST_CASE("folds_struct_create_to_struct_literal_create_when_all_inputs_are_cons
   blocks[0].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fold_aggregate_literals(blocks);
 
   REQUIRE_FALSE(has_instruction_type(blocks, Type::StructCreate));
   REQUIRE(has_instruction_type(blocks, Type::StructLiteralCreate));
 
-  REQUIRE(blocks[0].instructions.size() == 2);
-  REQUIRE(blocks[0].instructions[0]->type() == Type::StructLiteralCreate);
+  REQUIRE(blocks[0].instructions.size() == 4);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::StructLiteralCreate);
   const auto &slc = static_cast<const Bytecode::Instruction::StructLiteralCreate &>(
-      *blocks[0].instructions[0]);
+      *blocks[0].instructions[2]);
   REQUIRE(slc.fields.size() == 2);
   REQUIRE(slc.fields[0].first == "x");
   REQUIRE(slc.fields[0].second == 9);
@@ -100,10 +100,9 @@ TEST_CASE("does_not_fold_struct_create_when_any_input_is_not_constant_load") {
   blocks[0].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.fold_aggregate_literals(blocks);
 
   REQUIRE(has_instruction_type(blocks, Type::StructCreate));
   REQUIRE_FALSE(has_instruction_type(blocks, Type::StructLiteralCreate));
 }
-
 
