@@ -3,6 +3,7 @@
 #include "cxxopts.hpp"
 #include "optimizer.h"
 #include "parser.h"
+#include "typechecker.h"
 
 #include <cctype>
 #include <fstream>
@@ -64,16 +65,30 @@ struct ParseResult {
   bool has_errors;
 };
 
+void print_errors(const std::string &source, const kai::ErrorReporter &reporter) {
+  for (const auto &error : reporter.errors()) {
+    if (error->location.begin != nullptr) {
+      const auto lc = kai::line_column(source, error->location.begin);
+      std::cerr << lc.line << ":" << lc.column << ": ";
+    }
+    std::cerr << "error: " << error->format_error() << "\n";
+  }
+}
+
 ParseResult parse_program(const std::string &source) {
   kai::ErrorReporter reporter;
   kai::Parser parser(source, reporter);
   auto program = parser.parse_program();
-  for (const auto &error : reporter.errors()) {
-    const auto lc = kai::line_column(source, error->location.begin);
-    std::cerr << lc.line << ":" << lc.column << ": error: " << error->format_error()
-              << "\n";
-  }
+  print_errors(source, reporter);
   return {std::move(program), reporter.has_errors()};
+}
+
+bool typecheck_program(const std::string &source, const kai::ast::Ast::Block &program) {
+  kai::ErrorReporter reporter;
+  kai::TypeChecker checker(reporter);
+  checker.visit_program(program);
+  print_errors(source, reporter);
+  return !reporter.has_errors();
 }
 
 std::optional<kai::ast::Value> run_source(const std::string &source, Backend backend) {
@@ -82,6 +97,9 @@ std::optional<kai::ast::Value> run_source(const std::string &source, Backend bac
     return std::nullopt;
   }
   auto &program = *parse_result.program;
+  if (!typecheck_program(source, program)) {
+    return std::nullopt;
+  }
 
   if (backend == Backend::Ast) {
     kai::ast::AstInterpreter interpreter;
@@ -106,6 +124,9 @@ bool dump_source(const std::string &source, Backend backend) {
     return false;
   }
   auto &program = *parse_result.program;
+  if (!typecheck_program(source, program)) {
+    return false;
+  }
   if (backend == Backend::Ast) {
     program.dump(std::cout);
     std::cout << "\n";

@@ -252,4 +252,48 @@ std::string ExpectedBlockError::format_error() const {
   return msg;
 }
 
+// ---------------------------------------------------------------------------
+// Type error formatters
+// ---------------------------------------------------------------------------
+
+std::string TypeMismatchError::format_error() const {
+  std::string msg = "type mismatch: expected '";
+  msg += expected;
+  msg += "', got '";
+  msg += got;
+  msg += "'";
+  return msg;
+}
+
+std::string UndefinedVariableError::format_error() const {
+  return "undefined variable '" + name + "'";
+}
+
+std::string UndefinedFunctionError::format_error() const {
+  return "undefined function '" + name + "'";
+}
+
+std::string WrongArgCountError::format_error() const {
+  std::string msg = "function '";
+  msg += name;
+  msg += "' expects ";
+  msg += std::to_string(expected);
+  msg += " argument";
+  if (expected != 1) msg += "s";
+  msg += ", got ";
+  msg += std::to_string(got);
+  return msg;
+}
+
+std::string NotAStructError::format_error() const {
+  std::string msg = "field access on non-struct value of type '";
+  msg += actual_type;
+  msg += "'";
+  return msg;
+}
+
+std::string UndefinedFieldError::format_error() const {
+  return "struct has no field '" + field + "'";
+}
+
 }  // namespace kai

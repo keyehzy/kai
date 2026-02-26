@@ -54,6 +54,13 @@ struct Error {
     ExpectedLiteralStart,
     ExpectedBlock,
     UnexpectedChar,
+    // Type errors
+    TypeMismatch,
+    UndefinedVariable,
+    UndefinedFunction,
+    WrongArgCount,
+    NotAStruct,
+    UndefinedField,
   };
 
   Type type;
@@ -290,6 +297,81 @@ struct ExpectedBlockError final : public Error {
 
   std::string format_error() const override;
 };
+
+// ---------------------------------------------------------------------------
+// Type errors
+// ---------------------------------------------------------------------------
+
+// Type mismatch: the checker expected one type but found another.
+struct TypeMismatchError final : public Error {
+  std::string expected;
+  std::string got;
+
+  TypeMismatchError(SourceLocation location, std::string expected, std::string got)
+      : Error(Type::TypeMismatch, location),
+        expected(std::move(expected)),
+        got(std::move(got)) {}
+
+  std::string format_error() const override;
+};
+
+// A variable name was used but is not bound in any enclosing scope.
+struct UndefinedVariableError final : public Error {
+  std::string name;
+
+  UndefinedVariableError(SourceLocation location, std::string name)
+      : Error(Type::UndefinedVariable, location), name(std::move(name)) {}
+
+  std::string format_error() const override;
+};
+
+// A function was called but is not defined.
+struct UndefinedFunctionError final : public Error {
+  std::string name;
+
+  UndefinedFunctionError(SourceLocation location, std::string name)
+      : Error(Type::UndefinedFunction, location), name(std::move(name)) {}
+
+  std::string format_error() const override;
+};
+
+// A call site passed the wrong number of arguments.
+struct WrongArgCountError final : public Error {
+  std::string name;
+  size_t expected;
+  size_t got;
+
+  WrongArgCountError(SourceLocation location, std::string name,
+                     size_t expected, size_t got)
+      : Error(Type::WrongArgCount, location),
+        name(std::move(name)),
+        expected(expected),
+        got(got) {}
+
+  std::string format_error() const override;
+};
+
+// Field access was attempted on a value whose type is not a struct.
+struct NotAStructError final : public Error {
+  std::string actual_type;
+
+  NotAStructError(SourceLocation location, std::string actual_type)
+      : Error(Type::NotAStruct, location), actual_type(std::move(actual_type)) {}
+
+  std::string format_error() const override;
+};
+
+// A struct field name that does not exist on the struct type was accessed.
+struct UndefinedFieldError final : public Error {
+  std::string field;
+
+  UndefinedFieldError(SourceLocation location, std::string field)
+      : Error(Type::UndefinedField, location), field(std::move(field)) {}
+
+  std::string format_error() const override;
+};
+
+// ---------------------------------------------------------------------------
 
 class ErrorReporter {
  public:
