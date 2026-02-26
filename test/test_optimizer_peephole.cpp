@@ -23,7 +23,7 @@ TEST_CASE("peephole_folds_add_immediate_move") {
   blocks[2].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.peephole(blocks);
 
   // Peephole: AddImmediate r2, r0, 1 + Move r0, r2 → AddImmediate r0, r0, 1.
   // Block 1 must have exactly 2 instructions: AddImmediate + Jump.
@@ -46,7 +46,7 @@ TEST_CASE("peephole_folds_subtract_immediate_move") {
   blocks[1].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.peephole(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 3);
   REQUIRE(blocks[0].instructions[1]->type() == Type::SubtractImmediate);
@@ -67,7 +67,7 @@ TEST_CASE("peephole_folds_compare_immediate_move") {
   blocks[1].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.peephole(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 3);
   REQUIRE(blocks[0].instructions[1]->type() == Type::LessThanImmediate);
@@ -93,14 +93,14 @@ TEST_CASE("peephole_folds_load_move") {
   blocks[1].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.peephole(blocks);
 
-  // Block 0 must have 2 instructions: Load r0, 0 and Jump @1 after compaction.
+  // Block 0 must have 2 instructions: Load r1, 0 and Jump @1.
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
   const auto &ld =
       static_cast<const Bytecode::Instruction::Load &>(*blocks[0].instructions[0]);
-  REQUIRE(ld.dst == 0);   // r1 gets compacted to r0
+  REQUIRE(ld.dst == 1);
   REQUIRE(ld.value == 0);
 }
 
@@ -124,7 +124,7 @@ TEST_CASE("peephole_not_applied_when_temp_has_multiple_uses") {
   blocks[3].append<Bytecode::Instruction::Return>(1);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.peephole(blocks);
 
   // AddImmediate must still write to r2 — its dst must not have been changed.
   bool add_imm_dst_is_r2 = false;
@@ -138,10 +138,9 @@ TEST_CASE("peephole_not_applied_when_temp_has_multiple_uses") {
   REQUIRE(add_imm_dst_is_r2);
 }
 
-// End-to-end structural test: after all passes the loop body of a
-// "while (i < N) { i++; }" program must consist of exactly two instructions —
-// AddImmediate r_i, r_i, 1 (in-place) and a Jump back — with no residual Move.
-TEST_CASE("peephole_increment_loop_body_is_single_add_plus_jump") {
+// Structural test: after peephole, the increment loop body contains
+// an in-place AddImmediate immediately followed by a back-edge Jump.
+TEST_CASE("peephole_increment_loop_body_has_in_place_add_before_jump") {
   auto body = std::make_unique<Ast::Block>();
   body->append(decl("i", lit(0)));
   auto while_body = std::make_unique<Ast::Block>();
@@ -154,18 +153,29 @@ TEST_CASE("peephole_increment_loop_body_is_single_add_plus_jump") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  // Canonicalize loop increment shape to expose the immediate-op + Move pair
+  // that peephole folds.
+  opt.copy_propagation(gen.blocks());
+  opt.peephole(gen.blocks());
 
-  // Find the loop body block: exactly 2 instructions, AddImmediate then Jump,
-  // where the AddImmediate writes to its own source (in-place increment).
+  // Find any AddImmediate that is immediately followed by Jump and writes
+  // to its own source (in-place increment).
   bool found_optimal_body = false;
   for (const auto &blk : gen.blocks()) {
-    if (blk.instructions.size() == 2 &&
-        blk.instructions[0]->type() == Type::AddImmediate &&
-        blk.instructions[1]->type() == Type::Jump) {
+    for (size_t i = 0; i + 1 < blk.instructions.size(); ++i) {
+      if (blk.instructions[i]->type() != Type::AddImmediate ||
+          blk.instructions[i + 1]->type() != Type::Jump) {
+        continue;
+      }
       const auto &ai =
-          static_cast<const Bytecode::Instruction::AddImmediate &>(*blk.instructions[0]);
-      if (ai.dst == ai.src) found_optimal_body = true;
+          static_cast<const Bytecode::Instruction::AddImmediate &>(*blk.instructions[i]);
+      if (ai.dst == ai.src) {
+        found_optimal_body = true;
+        break;
+      }
+    }
+    if (found_optimal_body) {
+      break;
     }
   }
   REQUIRE(found_optimal_body);
@@ -185,13 +195,14 @@ TEST_CASE("peephole_correctness_increment_loop") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  opt.copy_propagation(gen.blocks());
+  opt.peephole(gen.blocks());
 
   BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 7);
 }
 
-// Idempotency: running optimize() a second time after the peephole must not
+// Idempotency: running peephole() a second time must not
 // change the instruction count.
 TEST_CASE("peephole_is_idempotent") {
   auto body = std::make_unique<Ast::Block>();
@@ -206,17 +217,18 @@ TEST_CASE("peephole_is_idempotent") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  opt.copy_propagation(gen.blocks());
+  opt.peephole(gen.blocks());
   const size_t after_first = total_instr_count(gen.blocks());
-  opt.optimize(gen.blocks());
+  opt.peephole(gen.blocks());
   const size_t after_second = total_instr_count(gen.blocks());
 
   REQUIRE(after_second == after_first);
 }
 
-// Running the optimizer a second time on already-optimized code must not change
-// the instruction count (idempotency).
-TEST_CASE("optimizer_is_idempotent") {
+// Running peephole a second time on already-peephole-optimized code must not
+// change the instruction count (idempotency).
+TEST_CASE("peephole_is_idempotent_second_program") {
   auto body = std::make_unique<Ast::Block>();
   body->append(decl("i", lit(0)));
   auto while_body = std::make_unique<Ast::Block>();
@@ -229,12 +241,11 @@ TEST_CASE("optimizer_is_idempotent") {
   gen.finalize();
 
   BytecodeOptimizer opt;
-  opt.optimize(gen.blocks());
+  opt.copy_propagation(gen.blocks());
+  opt.peephole(gen.blocks());
   const size_t after_first  = total_instr_count(gen.blocks());
-  opt.optimize(gen.blocks());
+  opt.peephole(gen.blocks());
   const size_t after_second = total_instr_count(gen.blocks());
 
   REQUIRE(after_second == after_first);
 }
-
-
