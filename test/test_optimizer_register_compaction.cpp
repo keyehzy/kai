@@ -4,16 +4,16 @@
 // Pass 5: Register Compaction
 // ============================================================
 
-TEST_CASE("register_compaction_removes_gaps_left_by_copy_prop") {
+TEST_CASE("register_compaction_removes_explicit_register_gaps") {
   std::vector<Bytecode::BasicBlock> blocks(1);
   blocks[0].append<Bytecode::Instruction::Load>(0, 40);
   blocks[0].append<Bytecode::Instruction::Load>(1, 2);
-  blocks[0].append<Bytecode::Instruction::Move>(2, 0);   // removed after copy-prop + DCE
-  blocks[0].append<Bytecode::Instruction::Add>(3, 2, 1); // src1 rewritten to r0
+  // Intentional gap: no instruction references r2.
+  blocks[0].append<Bytecode::Instruction::Add>(3, 0, 1);
   blocks[0].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.compact_registers(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 4);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
@@ -48,7 +48,7 @@ TEST_CASE("register_compaction_renumbers_call_parameter_slots_consistently") {
   blocks[1].append<Bytecode::Instruction::Return>(9);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.compact_registers(blocks);
 
   REQUIRE(blocks[0].instructions[1]->type() == Type::Call);
   REQUIRE(blocks[1].instructions[0]->type() == Type::AddImmediate);
@@ -75,4 +75,3 @@ TEST_CASE("register_compaction_renumbers_call_parameter_slots_consistently") {
   BytecodeInterpreter interp;
   REQUIRE(interp.interpret(blocks) == 8);
 }
-
