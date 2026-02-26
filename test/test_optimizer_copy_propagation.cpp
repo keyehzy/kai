@@ -14,15 +14,14 @@ TEST_CASE("copy_prop_move_chain_collapsed") {
   blocks[0].append<Bytecode::Instruction::Return>(2);    // return r2  →  r0 after resolve
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
-  // Copy prop: Move r2 becomes Move r2, r0; Return becomes Return r0.
-  // DCE: r1 and r2 are never read after substitution → both Moves removed.
-  REQUIRE(blocks[0].instructions.size() == 2);
+  // Copy prop rewrites through the move chain but does not run DCE.
+  REQUIRE(blocks[0].instructions.size() == 4);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
-  REQUIRE(blocks[0].instructions[1]->type() == Type::Return);
+  REQUIRE(blocks[0].instructions[3]->type() == Type::Return);
   const auto &ret =
-      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[1]);
+      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[3]);
   REQUIRE(ret.reg == 0);
 }
 
@@ -34,7 +33,7 @@ TEST_CASE("copy_prop_trivial_self_move_removed") {
   blocks[0].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
   REQUIRE(blocks[0].instructions.size() == 2);
   REQUIRE(blocks[0].instructions[0]->type() == Type::Load);
@@ -52,18 +51,15 @@ TEST_CASE("copy_prop_substitutes_source_in_binary_op") {
   blocks[0].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
-  // After copy prop: Add r3, r0, r1 (r2 substituted with r0).
-  // After DCE: Move r2 has no live readers → removed.
-  // 4 instructions: Load r0, Load r1, Add r2, Return r2 after compaction.
-  REQUIRE(blocks[0].instructions.size() == 4);
-  REQUIRE(blocks[0].instructions[2]->type() == Type::Add);
+  REQUIRE(blocks[0].instructions.size() == 5);
+  REQUIRE(blocks[0].instructions[3]->type() == Type::Add);
   const auto &add =
-      static_cast<const Bytecode::Instruction::Add &>(*blocks[0].instructions[2]);
+      static_cast<const Bytecode::Instruction::Add &>(*blocks[0].instructions[3]);
   REQUIRE(add.src1 == 0);  // was r2, now r0
   REQUIRE(add.src2 == 1);
-  REQUIRE(add.dst  == 2);
+  REQUIRE(add.dst  == 3);
 }
 
 // AddImmediate (used by i++) has its source register substituted through a
@@ -77,18 +73,12 @@ TEST_CASE("copy_prop_substitutes_source_in_add_immediate") {
   blocks[0].append<Bytecode::Instruction::Return>(0);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
-  // After copy prop:
-  //   Move r1, r0: copies={r1:r0}
-  //   AddImmediate r2, r1, 1 → src=resolve(r1)=r0 → AddImmediate r2, r0, 1
-  //   Move r0, r2: copies={r0:r2}; Return r0 → Return r2
-  // After DCE: Move r1 is dead (r1 not in live) → removed.
-  // Remaining: Load r0 / AddImmediate r2,r0,1 / Move r0,r2 / Return r2 = 4 instructions.
-  REQUIRE(blocks[0].instructions.size() == 4);
-  REQUIRE(blocks[0].instructions[1]->type() == Type::AddImmediate);
+  REQUIRE(blocks[0].instructions.size() == 5);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::AddImmediate);
   const auto &ai =
-      static_cast<const Bytecode::Instruction::AddImmediate &>(*blocks[0].instructions[1]);
+      static_cast<const Bytecode::Instruction::AddImmediate &>(*blocks[0].instructions[2]);
   REQUIRE(ai.src   == 0);  // was r1, now r0
   REQUIRE(ai.value == 1);
 }
@@ -104,7 +94,7 @@ TEST_CASE("copy_prop_copy_invalidated_when_source_overwritten") {
   blocks[0].append<Bytecode::Instruction::Return>(2);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
   // After Load r0, 20 the copy r1→r0 is gone. Add must NOT substitute r1 with r0.
   // All 5 instructions live.
@@ -130,13 +120,12 @@ TEST_CASE("copy_prop_resolves_jump_conditional_cond") {
   blocks[2].append<Bytecode::Instruction::Return>(3);
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
-  // JumpConditional cond should be r0 after substitution; Move r1 then dead.
-  REQUIRE(blocks[0].instructions.size() == 3);
-  REQUIRE(blocks[0].instructions[2]->type() == Type::JumpConditional);
+  REQUIRE(blocks[0].instructions.size() == 4);
+  REQUIRE(blocks[0].instructions[3]->type() == Type::JumpConditional);
   const auto &jc = static_cast<const Bytecode::Instruction::JumpConditional &>(
-      *blocks[0].instructions[2]);
+      *blocks[0].instructions[3]);
   REQUIRE(jc.cond == 0);
 }
 
@@ -148,12 +137,11 @@ TEST_CASE("copy_prop_resolves_return_register") {
   blocks[0].append<Bytecode::Instruction::Return>(1);    // return r1
 
   BytecodeOptimizer opt;
-  opt.optimize(blocks);
+  opt.copy_propagation(blocks);
 
-  REQUIRE(blocks[0].instructions.size() == 2);
-  REQUIRE(blocks[0].instructions[1]->type() == Type::Return);
+  REQUIRE(blocks[0].instructions.size() == 3);
+  REQUIRE(blocks[0].instructions[2]->type() == Type::Return);
   const auto &ret =
-      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[1]);
+      static_cast<const Bytecode::Instruction::Return &>(*blocks[0].instructions[2]);
   REQUIRE(ret.reg == 0);
 }
-
