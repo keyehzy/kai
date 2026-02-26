@@ -22,11 +22,11 @@ TEST_CASE("test_bytecode_fibonacci") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(fib);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 55);
 }
 
@@ -46,11 +46,11 @@ TEST_CASE("test_bytecode_factorial") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(factorial);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 120);
 }
 
@@ -63,11 +63,11 @@ TEST_CASE("test_bytecode_subtract") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(difference);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12);
 }
 
@@ -80,11 +80,11 @@ TEST_CASE("test_bytecode_divide") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(quotient);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 4);
 }
 
@@ -97,11 +97,11 @@ TEST_CASE("test_bytecode_modulo") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(remainder);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 2);
 }
 
@@ -114,10 +114,10 @@ TEST_CASE("test_bytecode_greater_than") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(comparison);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 1);
 }

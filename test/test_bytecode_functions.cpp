@@ -1,9 +1,9 @@
 #include "catch.hpp"
 #include "test_bytecode_cases.h"
 
-using Type = kai::bytecode::Bytecode::Instruction::Type;
+using Type = kai::Bytecode::Instruction::Type;
 
-static bool is_single_jump_block(const kai::bytecode::Bytecode::BasicBlock &block) {
+static bool is_single_jump_block(const kai::Bytecode::BasicBlock &block) {
   return block.instructions.size() == 1 &&
          block.instructions[0]->type() == Type::Jump;
 }
@@ -21,11 +21,11 @@ TEST_CASE("test_bytecode_function_declaration") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 6);
 }
 
@@ -40,11 +40,11 @@ TEST_CASE("test_bytecode_function_parameters") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 6);
 }
 
@@ -67,11 +67,11 @@ TEST_CASE("test_bytecode_function_parameter_recursion") {
       return std::move(*program);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 120);
 }
 
@@ -88,11 +88,11 @@ TEST_CASE("test_bytecode_function_forward_call") {
       return std::move(*program);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
 }
 
@@ -109,11 +109,11 @@ TEST_CASE("test_bytecode_function_forward_call_with_parameters") {
       return std::move(*program);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
 }
 
@@ -127,11 +127,11 @@ TEST_CASE("test_bytecode_bug_missing_function_block") {
 
     program->append(ret(call("f")));
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(*program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
 }
 
@@ -148,11 +148,11 @@ TEST_CASE("test_bytecode_bug_implicit_fallthrough") {
 
     program->append(ret(call("f")));
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(*program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 0);
 }
 
@@ -169,11 +169,11 @@ TEST_CASE("test_bytecode_bug_generator_scope_poisoning") {
     program->append(decl("dummy", call("shadow")));
     program->append(ret(var("val")));
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(*program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 10);
 }
 
@@ -194,11 +194,11 @@ TEST_CASE("test_bytecode_function_entry_starts_with_if_without_trampoline_jump")
       return std::move(*root);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::Bytecode::Label call_label = 0;
+    kai::Bytecode::Label call_label = 0;
     bool found_call = false;
     for (const auto &block : gen.blocks()) {
       for (const auto &instr_ptr : block.instructions) {
@@ -206,7 +206,7 @@ TEST_CASE("test_bytecode_function_entry_starts_with_if_without_trampoline_jump")
           continue;
         }
         call_label =
-            static_cast<const kai::bytecode::Bytecode::Instruction::Call &>(*instr_ptr).label;
+            static_cast<const kai::Bytecode::Instruction::Call &>(*instr_ptr).label;
         found_call = true;
         break;
       }
@@ -219,7 +219,7 @@ TEST_CASE("test_bytecode_function_entry_starts_with_if_without_trampoline_jump")
     REQUIRE(call_label < gen.blocks().size());
     REQUIRE_FALSE(is_single_jump_block(gen.blocks()[call_label]));
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 1);
 }
 
@@ -239,11 +239,11 @@ TEST_CASE("test_bytecode_function_entry_starts_with_while_without_trampoline_jum
       return std::move(*root);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::Bytecode::Label call_label = 0;
+    kai::Bytecode::Label call_label = 0;
     bool found_call = false;
     for (const auto &block : gen.blocks()) {
       for (const auto &instr_ptr : block.instructions) {
@@ -251,7 +251,7 @@ TEST_CASE("test_bytecode_function_entry_starts_with_while_without_trampoline_jum
           continue;
         }
         call_label =
-            static_cast<const kai::bytecode::Bytecode::Instruction::Call &>(*instr_ptr).label;
+            static_cast<const kai::Bytecode::Instruction::Call &>(*instr_ptr).label;
         found_call = true;
         break;
       }
@@ -264,6 +264,6 @@ TEST_CASE("test_bytecode_function_entry_starts_with_while_without_trampoline_jum
     REQUIRE(call_label < gen.blocks().size());
     REQUIRE_FALSE(is_single_jump_block(gen.blocks()[call_label]));
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 1);
 }

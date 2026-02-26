@@ -9,10 +9,10 @@ TEST_CASE("test_bytecode_struct_field_access_minimal") {
       return std::move(*body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
 }

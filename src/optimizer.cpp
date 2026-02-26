@@ -6,7 +6,6 @@
 #include <unordered_set>
 
 namespace kai {
-namespace bytecode {
 
 using Register = Bytecode::Register;
 using Type = Bytecode::Instruction::Type;
@@ -1850,5 +1849,4 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
   }
 }
 
-}  // namespace bytecode
 }  // namespace kai

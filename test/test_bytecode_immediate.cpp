@@ -5,15 +5,15 @@
 #include <functional>
 #include <vector>
 
-using kai::bytecode::Bytecode;
+using kai::Bytecode;
 using Type = Bytecode::Instruction::Type;
 
 namespace {
 
-kai::bytecode::BytecodeGenerator compile_return_expr(std::unique_ptr<Ast> expr) {
+kai::BytecodeGenerator compile_return_expr(std::unique_ptr<Ast> expr) {
   Ast::Block program;
   program.append(ret(std::move(expr)));
-  kai::bytecode::BytecodeGenerator gen;
+  kai::BytecodeGenerator gen;
   gen.visit_block(program);
   gen.finalize();
   return gen;
@@ -84,7 +84,7 @@ TEST_CASE("bytecode_emits_immediate_binary_and_comparison_variants") {
       REQUIRE(instrs.size() == 3);
       REQUIRE(instrs[1]->type() == tc.immediate_type);
 
-      kai::bytecode::BytecodeInterpreter interp;
+      kai::BytecodeInterpreter interp;
       REQUIRE(interp.interpret(gen.blocks()) == tc.expected_value);
     }
   }
@@ -95,17 +95,17 @@ TEST_CASE("bytecode_uses_subtract_immediate_for_repeated_n_minus_constants") {
   program.append(decl("n", lit(8)));
   program.append(ret(add(sub(var("n"), lit(1)), sub(var("n"), lit(2)))));
 
-  kai::bytecode::BytecodeGenerator gen;
+  kai::BytecodeGenerator gen;
   gen.visit_block(program);
   gen.finalize();
 
-  kai::bytecode::BytecodeOptimizer opt;
+  kai::BytecodeOptimizer opt;
   opt.optimize(gen.blocks());
 
   REQUIRE(count_type(gen.blocks(), Type::SubtractImmediate) == 2);
   REQUIRE(!has_load_immediate(gen.blocks(), 1));
   REQUIRE(!has_load_immediate(gen.blocks(), 2));
 
-  kai::bytecode::BytecodeInterpreter interp;
+  kai::BytecodeInterpreter interp;
   REQUIRE(interp.interpret(gen.blocks()) == 13);
 }

@@ -19,11 +19,11 @@ TEST_CASE("test_parser_expression_end_to_end_literal_42") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
 }
 
@@ -40,11 +40,11 @@ TEST_CASE("test_parser_expression_end_to_end_modulo_minimal") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 3);
 }
 
@@ -61,11 +61,11 @@ TEST_CASE("test_parser_expression_end_to_end_equality_minimal") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -82,11 +82,11 @@ TEST_CASE("test_parser_expression_end_to_end_not_equal_minimal") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -103,11 +103,11 @@ TEST_CASE("test_parser_expression_end_to_end_less_than") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -124,11 +124,11 @@ TEST_CASE("test_parser_expression_end_to_end_greater_than") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -145,11 +145,11 @@ TEST_CASE("test_parser_expression_end_to_end_equal") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -166,11 +166,11 @@ TEST_CASE("test_parser_expression_end_to_end_array_index_assignment") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 8);
 }
 
@@ -187,11 +187,11 @@ TEST_CASE("test_parser_expression_end_to_end_less_than_or_equal_minimal") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -211,11 +211,11 @@ return i;
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 10);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 10);
 }
 
@@ -235,11 +235,11 @@ return i;
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 1);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -262,11 +262,11 @@ return x;
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 42);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
 }
 
@@ -284,11 +284,11 @@ x = 99;
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 7);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 7);
 }
 
@@ -309,11 +309,11 @@ return early();
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 1);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -339,11 +339,11 @@ return find_three();
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 3);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 3);
 }
 
@@ -362,11 +362,11 @@ return add(40, 2);
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 42);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
 }
 
@@ -389,11 +389,11 @@ return fib(10);
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 55);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 55);
 }
 
@@ -415,11 +415,11 @@ return fib(2);
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 1);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -438,24 +438,24 @@ return sum_down(10000, 0);
   std::unique_ptr<Ast::Block> program = parser.parse_program();
   REQUIRE(program != nullptr);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeOptimizer optimizer;
+  kai::BytecodeOptimizer optimizer;
   optimizer.optimize(generator.blocks());
 
   bool has_tail_call = false;
   for (const auto &block : generator.blocks()) {
     for (const auto &instr : block.instructions) {
-      if (instr->type() == kai::bytecode::Bytecode::Instruction::Type::TailCall) {
+      if (instr->type() == kai::Bytecode::Instruction::Type::TailCall) {
         has_tail_call = true;
       }
     }
   }
   REQUIRE(has_tail_call);
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 50005000);
 }
 
@@ -507,11 +507,11 @@ return values[0] * 10000 + values[1] * 1000 + values[2] * 100 + values[3] * 10 +
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 12345);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 12345);
 }
 
@@ -528,11 +528,11 @@ TEST_CASE("test_parser_expression_end_to_end_logical_not_zero") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
 }
 
@@ -549,11 +549,11 @@ TEST_CASE("test_parser_expression_end_to_end_logical_not_nonzero") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 0);
 }
 
@@ -570,11 +570,11 @@ TEST_CASE("test_parser_expression_end_to_end_negate_minimal") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 5);
 }
 
@@ -591,11 +591,11 @@ TEST_CASE("test_parser_expression_end_to_end_unary_plus") {
   Ast::Block program;
   program.append(std::make_unique<Ast::Return>(std::move(parsed_expression)));
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 5);
 }
 
@@ -612,10 +612,10 @@ return point.x + point.y;
   AstInterpreter ast_interpreter;
   REQUIRE(ast_interpreter.interpret(*program) == 42);
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeInterpreter bytecode_interpreter;
+  kai::BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
 }

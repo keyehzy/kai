@@ -10,7 +10,6 @@
 #include "ast.h"
 
 namespace kai {
-namespace bytecode {
 
 using u64 = uint64_t;
 
@@ -573,5 +572,4 @@ class BytecodeInterpreter {
   Bytecode::Value next_heap_id_ = 1;
 };
 
-}  // namespace bytecode
 }  // namespace kai

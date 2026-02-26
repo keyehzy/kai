@@ -3,7 +3,6 @@
 #include <vector>
 
 namespace kai {
-namespace bytecode {
 
 class BytecodeOptimizer {
  public:
@@ -48,5 +47,4 @@ class BytecodeOptimizer {
   void compact_registers(std::vector<Bytecode::BasicBlock> &blocks);
 };
 
-}  // namespace bytecode
 }  // namespace kai

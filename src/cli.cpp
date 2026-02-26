@@ -94,14 +94,14 @@ std::optional<kai::Value> run_source(const std::string &source, Backend backend)
   }
 
   ensure_bytecode_program_returns_value(*program);
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeOptimizer optimizer;
+  kai::BytecodeOptimizer optimizer;
   optimizer.optimize(generator.blocks());
 
-  kai::bytecode::BytecodeInterpreter interpreter;
+  kai::BytecodeInterpreter interpreter;
   return interpreter.interpret(generator.blocks());
 }
 
@@ -129,11 +129,11 @@ bool dump_source(const std::string &source, Backend backend) {
     return true;
   }
 
-  kai::bytecode::BytecodeGenerator generator;
+  kai::BytecodeGenerator generator;
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::bytecode::BytecodeOptimizer optimizer;
+  kai::BytecodeOptimizer optimizer;
   optimizer.optimize(generator.blocks());
   generator.dump();
   return true;

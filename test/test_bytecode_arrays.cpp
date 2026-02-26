@@ -9,11 +9,11 @@ TEST_CASE("test_bytecode_array_indexing") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 22);
 }
 
@@ -26,10 +26,10 @@ TEST_CASE("test_bytecode_array_index_assignment_minimal_example") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
 }

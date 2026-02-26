@@ -20,11 +20,11 @@ TEST_CASE("test_bytecode_if_else") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(max);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 7);
 }
 
@@ -32,11 +32,11 @@ TEST_CASE("test_bytecode_top_level_block_example") {
     Ast::Block program;
     program.append(ret(lit(42)));
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 42);
 }
 
@@ -61,11 +61,11 @@ TEST_CASE("test_bytecode_nested_if_inside_while") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12);
 }
 
@@ -84,15 +84,15 @@ TEST_CASE("test_bytecode_interpreter_reuse_across_programs") {
     Ast::Block simple;
     simple.append(ret(lit(7)));
 
-    kai::bytecode::BytecodeGenerator gen_with_loop;
+    kai::BytecodeGenerator gen_with_loop;
     gen_with_loop.visit_block(with_loop);
     gen_with_loop.finalize();
 
-    kai::bytecode::BytecodeGenerator gen_simple;
+    kai::BytecodeGenerator gen_simple;
     gen_simple.visit(simple);
     gen_simple.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen_with_loop.blocks()) == 1);
     REQUIRE(interp.interpret(gen_simple.blocks()) == 7);
 }
@@ -110,11 +110,11 @@ TEST_CASE("test_bytecode_count_to_ten_using_while_loop") {
       return std::move(*body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 10);
 }
 
@@ -131,10 +131,10 @@ TEST_CASE("test_bytecode_count_down_from_ten_to_one_using_while_loop") {
       return std::move(*body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(program);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 1);
 }

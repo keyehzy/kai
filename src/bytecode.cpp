@@ -5,7 +5,6 @@
 #include <optional>
 
 namespace kai {
-namespace bytecode {
 
 
 namespace {
@@ -1594,5 +1593,4 @@ void BytecodeInterpreter::interpret_logical_not(
   reg(logical_not.dst) = reg(logical_not.src) == 0 ? 1 : 0;
 }
 
-}  // namespace bytecode
 }  // namespace kai

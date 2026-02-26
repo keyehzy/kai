@@ -23,11 +23,11 @@ TEST_CASE("test_bytecode_quicksort_minimal_example") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(quicksort_two);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12);
 }
 
@@ -58,11 +58,11 @@ TEST_CASE("test_bytecode_quicksort") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(quicksort_three);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 123);
 }
 
@@ -130,10 +130,10 @@ TEST_CASE("test_bytecode_quicksort_complete") {
       return std::move(*decl_body);
     }();
 
-    kai::bytecode::BytecodeGenerator gen;
+    kai::BytecodeGenerator gen;
     gen.visit_block(quicksort_five);
     gen.finalize();
 
-    kai::bytecode::BytecodeInterpreter interp;
+    kai::BytecodeInterpreter interp;
     REQUIRE(interp.interpret(gen.blocks()) == 12345);
 }
