@@ -25,9 +25,10 @@ class BytecodeOptimizer {
   // block that executes once.
   void loop_invariant_code_motion(std::vector<Bytecode::BasicBlock> &blocks);
 
-  // Pass 1: within-block copy propagation.
-  // Substitutes all register reads through Move chains, then removes
-  // trivial moves (dst == src after substitution).
+  // Pass 1: global copy + constant propagation.
+  // Forward dataflow over CFG blocks with intersection at joins. Rewrites
+  // source registers through copy chains, propagates Load constants through
+  // Moves, and simplifies constant-resolved branch conditions.
   void copy_propagation(std::vector<Bytecode::BasicBlock> &blocks);
 
   // Pass 1.25: compare+branch fusion.

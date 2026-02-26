@@ -9,7 +9,9 @@ void BytecodeOptimizer::optimize(std::vector<Bytecode::BasicBlock> &blocks) {
   // Pass 0: loop-invariant code motion.
   loop_invariant_code_motion(blocks);
 
-  // Pass 1: within-block copy propagation.
+  // Pass 1: global copy + constant propagation.
+  // Runs before branch fusion and DCE so rewritten operands and simplified
+  // branches expose more dead aliases and cleaner control flow.
   copy_propagation(blocks);
 
   // Pass 1.25: fuse compare + branch pairs.
