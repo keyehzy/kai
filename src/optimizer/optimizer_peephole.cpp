@@ -216,16 +216,27 @@ void BytecodeOptimizer::peephole(std::vector<Bytecode::BasicBlock> &blocks) {
   const auto is_foldable_producer = [](Type t) {
     switch (t) {
       case Type::Load:
+      case Type::LessThan:
       case Type::LessThanImmediate:
+      case Type::GreaterThan:
       case Type::GreaterThanImmediate:
+      case Type::LessThanOrEqual:
       case Type::LessThanOrEqualImmediate:
+      case Type::GreaterThanOrEqual:
       case Type::GreaterThanOrEqualImmediate:
+      case Type::Equal:
       case Type::EqualImmediate:
+      case Type::NotEqual:
       case Type::NotEqualImmediate:
+      case Type::Add:
       case Type::AddImmediate:
+      case Type::Subtract:
       case Type::SubtractImmediate:
+      case Type::Multiply:
       case Type::MultiplyImmediate:
+      case Type::Divide:
       case Type::DivideImmediate:
+      case Type::Modulo:
       case Type::ModuloImmediate:
         return true;
       default:
@@ -238,35 +249,68 @@ void BytecodeOptimizer::peephole(std::vector<Bytecode::BasicBlock> &blocks) {
       case Type::Load:
         derived_cast<Bytecode::Instruction::Load &>(instr).dst = dst;
         break;
+      case Type::LessThan:
+        derived_cast<Bytecode::Instruction::LessThan &>(instr).dst = dst;
+        break;
       case Type::LessThanImmediate:
         derived_cast<Bytecode::Instruction::LessThanImmediate &>(instr).dst = dst;
+        break;
+      case Type::GreaterThan:
+        derived_cast<Bytecode::Instruction::GreaterThan &>(instr).dst = dst;
         break;
       case Type::GreaterThanImmediate:
         derived_cast<Bytecode::Instruction::GreaterThanImmediate &>(instr).dst = dst;
         break;
+      case Type::LessThanOrEqual:
+        derived_cast<Bytecode::Instruction::LessThanOrEqual &>(instr).dst = dst;
+        break;
       case Type::LessThanOrEqualImmediate:
         derived_cast<Bytecode::Instruction::LessThanOrEqualImmediate &>(instr).dst = dst;
+        break;
+      case Type::GreaterThanOrEqual:
+        derived_cast<Bytecode::Instruction::GreaterThanOrEqual &>(instr).dst = dst;
         break;
       case Type::GreaterThanOrEqualImmediate:
         derived_cast<Bytecode::Instruction::GreaterThanOrEqualImmediate &>(instr).dst = dst;
         break;
+      case Type::Equal:
+        derived_cast<Bytecode::Instruction::Equal &>(instr).dst = dst;
+        break;
       case Type::EqualImmediate:
         derived_cast<Bytecode::Instruction::EqualImmediate &>(instr).dst = dst;
+        break;
+      case Type::NotEqual:
+        derived_cast<Bytecode::Instruction::NotEqual &>(instr).dst = dst;
         break;
       case Type::NotEqualImmediate:
         derived_cast<Bytecode::Instruction::NotEqualImmediate &>(instr).dst = dst;
         break;
+      case Type::Add:
+        derived_cast<Bytecode::Instruction::Add &>(instr).dst = dst;
+        break;
       case Type::AddImmediate:
         derived_cast<Bytecode::Instruction::AddImmediate &>(instr).dst = dst;
+        break;
+      case Type::Subtract:
+        derived_cast<Bytecode::Instruction::Subtract &>(instr).dst = dst;
         break;
       case Type::SubtractImmediate:
         derived_cast<Bytecode::Instruction::SubtractImmediate &>(instr).dst = dst;
         break;
+      case Type::Multiply:
+        derived_cast<Bytecode::Instruction::Multiply &>(instr).dst = dst;
+        break;
       case Type::MultiplyImmediate:
         derived_cast<Bytecode::Instruction::MultiplyImmediate &>(instr).dst = dst;
         break;
+      case Type::Divide:
+        derived_cast<Bytecode::Instruction::Divide &>(instr).dst = dst;
+        break;
       case Type::DivideImmediate:
         derived_cast<Bytecode::Instruction::DivideImmediate &>(instr).dst = dst;
+        break;
+      case Type::Modulo:
+        derived_cast<Bytecode::Instruction::Modulo &>(instr).dst = dst;
         break;
       case Type::ModuloImmediate:
         derived_cast<Bytecode::Instruction::ModuloImmediate &>(instr).dst = dst;
