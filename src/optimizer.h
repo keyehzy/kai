@@ -8,7 +8,6 @@ class BytecodeOptimizer {
  public:
   void optimize(std::vector<Bytecode::BasicBlock> &blocks);
 
- private:
   // Pass -1: constant-condition simplification.
   // Tracks block-local register constants and rewrites:
   //   JumpConditional rC, @T, @F
