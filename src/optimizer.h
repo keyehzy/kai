@@ -9,6 +9,12 @@ class BytecodeOptimizer {
   void optimize(std::vector<Bytecode::BasicBlock> &blocks);
 
  private:
+  // Pass 0: loop-invariant code motion.
+  // Detects natural loops via back edges, then hoists pure instructions
+  // whose operands are not modified anywhere in the loop to a pre-header
+  // block that executes once.
+  void loop_invariant_code_motion(std::vector<Bytecode::BasicBlock> &blocks);
+
   // Pass 1: within-block copy propagation.
   // Substitutes all register reads through Move chains, then removes
   // trivial moves (dst == src after substitution).
@@ -34,11 +40,11 @@ class BytecodeOptimizer {
   // so the interpreter can reuse the current frame.
   void tail_call_optimization(std::vector<Bytecode::BasicBlock> &blocks);
 
-  // Pass 0: loop-invariant code motion.
-  // Detects natural loops via back edges, then hoists pure instructions
-  // whose operands are not modified anywhere in the loop to a pre-header
-  // block that executes once.
-  void loop_invariant_code_motion(std::vector<Bytecode::BasicBlock> &blocks);
+  // Pass 3.5: CFG cleanup.
+  // - trims instructions after the first block terminator
+  // - rewrites branch targets through jump-only trampoline chains
+  // - removes unreferenced jump-only trampoline blocks
+  void cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks);
 
   // Pass 4: peephole optimization.
   // Collapses two-instruction sequences where a pure producer writes to a
@@ -46,12 +52,6 @@ class BytecodeOptimizer {
   //   <immediate-op> r_tmp, r_src, K + Move r_var, r_tmp -> <immediate-op> r_var, r_src, K
   //   Load r_tmp, K                  + Move r_var, r_tmp -> Load r_var, K
   void peephole(std::vector<Bytecode::BasicBlock> &blocks);
-
-  // CFG cleanup:
-  // - trims instructions after the first block terminator
-  // - rewrites branch targets through jump-only trampoline chains
-  // - removes unreferenced jump-only trampoline blocks
-  void cfg_cleanup(std::vector<Bytecode::BasicBlock> &blocks);
 
   // Pass 5: register compaction.
   // Renumbers all referenced registers to a dense 0..N-1 range to eliminate
