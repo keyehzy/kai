@@ -64,6 +64,7 @@ struct Error {
     UndefinedField,
     NotCallable,
     NotIndexable,
+    DanglingReference,
   };
 
   Type type;
@@ -396,6 +397,14 @@ struct NotIndexableError final : public Error {
 
   NotIndexableError(SourceLocation location, Shape::Kind kind)
       : Error(Type::NotIndexable, location), kind(kind) {}
+
+  std::string format_error() const override;
+};
+
+// A function returned a reference to memory owned by its own stack frame.
+struct DanglingReferenceError final : public Error {
+  DanglingReferenceError(SourceLocation location)
+      : Error(Type::DanglingReference, location) {}
 
   std::string format_error() const override;
 };

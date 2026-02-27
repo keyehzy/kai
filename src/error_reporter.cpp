@@ -319,4 +319,8 @@ std::string NotIndexableError::format_error() const {
   return msg;
 }
 
+std::string DanglingReferenceError::format_error() const {
+  return "cannot return a reference to a local variable";
+}
+
 }  // namespace kai

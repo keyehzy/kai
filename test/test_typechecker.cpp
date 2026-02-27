@@ -5,6 +5,7 @@
 #include "../src/shape.h"
 #include "../src/typechecker.h"
 
+#include <algorithm>
 #include <string_view>
 #include <vector>
 
@@ -302,13 +303,73 @@ read_ptr(1);
 
 TEST_CASE("type_checker_reports_mismatch_assigning_pointer_to_non_pointer_variable") {
   const auto errors = typecheck_source(R"(
-let gp = 0;
 fn make(v) {
+  let gp = 0;
   let x = v;
   gp = &x;
-  return 0;
+  return gp;
 }
 make(1);
 )");
   REQUIRE(errors == std::vector<kai::Error::Type>{kai::Error::Type::TypeMismatch});
+}
+
+TEST_CASE(
+    "type_checker_allows_returning_argument_pointer_when_other_argument_is_local_pointer") {
+  const auto errors = typecheck_source(R"(
+fn pick(a, b) {
+  return a;
+}
+
+fn wrap(a) {
+  let x = 1;
+  return pick(a, &x);
+}
+
+let y = 1;
+let py = &y;
+wrap(py);
+)");
+  REQUIRE(errors.empty());
+}
+
+TEST_CASE("type_checker_rejects_function_capture_of_outer_variable") {
+  const auto errors = typecheck_source(R"(
+let x = 1;
+fn f() {
+  return x;
+}
+f();
+)");
+  REQUIRE(std::find(errors.begin(), errors.end(),
+                    kai::Error::Type::UndefinedVariable) != errors.end());
+}
+
+TEST_CASE("type_checker_rejects_returning_reference_to_local_variable") {
+  const auto errors = typecheck_source(R"(
+fn make(v) {
+  let x = v;
+  return &x;
+}
+make(1);
+)");
+  REQUIRE_FALSE(errors.empty());
+}
+
+TEST_CASE(
+    "type_checker_rejects_returning_local_reference_via_address_of_dereference_composition") {
+  const auto errors = typecheck_source(R"(
+fn id(p) {
+  return &*p;
+}
+
+fn make(v) {
+  let x = v;
+  return id(&x);
+}
+
+make(1);
+)");
+  REQUIRE(std::find(errors.begin(), errors.end(),
+                    kai::Error::Type::DanglingReference) != errors.end());
 }
