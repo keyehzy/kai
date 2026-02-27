@@ -207,6 +207,12 @@ std::unordered_map<Register, size_t> compute_use_count(
         case Type::StructLoad:
           use(derived_cast<const Bytecode::Instruction::StructLoad &>(instr).object);
           break;
+        case Type::AddressOf:
+          use(derived_cast<const Bytecode::Instruction::AddressOf &>(instr).src);
+          break;
+        case Type::LoadIndirect:
+          use(derived_cast<const Bytecode::Instruction::LoadIndirect &>(instr).pointer);
+          break;
         case Type::Negate:
           use(derived_cast<const Bytecode::Instruction::Negate &>(instr).src);
           break;
@@ -252,6 +258,8 @@ void BytecodeOptimizer::peephole(std::vector<Bytecode::BasicBlock> &blocks) {
       case Type::DivideImmediate:
       case Type::Modulo:
       case Type::ModuloImmediate:
+      case Type::AddressOf:
+      case Type::LoadIndirect:
         return true;
       default:
         return false;
@@ -328,6 +336,12 @@ void BytecodeOptimizer::peephole(std::vector<Bytecode::BasicBlock> &blocks) {
         break;
       case Type::ModuloImmediate:
         derived_cast<Bytecode::Instruction::ModuloImmediate &>(instr).dst = dst;
+        break;
+      case Type::AddressOf:
+        derived_cast<Bytecode::Instruction::AddressOf &>(instr).dst = dst;
+        break;
+      case Type::LoadIndirect:
+        derived_cast<Bytecode::Instruction::LoadIndirect &>(instr).dst = dst;
         break;
       default:
         assert(false);

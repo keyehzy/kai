@@ -9,6 +9,7 @@ std::string_view describe(Shape::Kind kind) {
     case Shape::Kind::Struct_Literal: return "Struct_Literal";
     case Shape::Kind::Array:          return "Array";
     case Shape::Kind::Function:       return "Function";
+    case Shape::Kind::Pointer:        return "Pointer";
   }
 }
 

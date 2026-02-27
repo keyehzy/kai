@@ -72,6 +72,10 @@ std::optional<Register> get_dst_reg(const Bytecode::Instruction &instr) {
       return derived_cast<const Bytecode::Instruction::StructLiteralCreate &>(instr).dst;
     case Type::StructLoad:
       return derived_cast<const Bytecode::Instruction::StructLoad &>(instr).dst;
+    case Type::AddressOf:
+      return derived_cast<const Bytecode::Instruction::AddressOf &>(instr).dst;
+    case Type::LoadIndirect:
+      return derived_cast<const Bytecode::Instruction::LoadIndirect &>(instr).dst;
     case Type::Negate:
       return derived_cast<const Bytecode::Instruction::Negate &>(instr).dst;
     case Type::LogicalNot:

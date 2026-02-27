@@ -15,6 +15,7 @@ struct Shape {
     Struct_Literal,
     Array,
     Function,
+    Pointer,
   };
 
   struct Unknown;
@@ -22,6 +23,7 @@ struct Shape {
   struct Struct_Literal;
   struct Array;
   struct Function;
+  struct Pointer;
 
   explicit Shape(Kind kind) : kind(kind) {}
   virtual ~Shape() = default;
@@ -49,6 +51,12 @@ struct Shape::Array final : public Shape {
 
 struct Shape::Function final : public Shape {
   Function() : Shape(Kind::Function) {}
+};
+
+struct Shape::Pointer final : public Shape {
+  explicit Pointer(Shape* pointee) : Shape(Kind::Pointer), pointee_(pointee) {}
+
+  Shape* pointee_;
 };
 
 std::string_view describe(Shape::Kind kind);

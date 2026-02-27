@@ -11,6 +11,7 @@ using Type = Bytecode::Instruction::Type;
 void BytecodeOptimizer::dead_code_elimination(
     std::vector<Bytecode::BasicBlock> &blocks) {
   std::unordered_set<Register> live;
+  std::unordered_set<Register> address_taken;
 
   // Collect all registers that are read (source operands) across all blocks.
   for (const auto &block : blocks) {
@@ -264,6 +265,19 @@ void BytecodeOptimizer::dead_code_elimination(
           live.insert(sl.object);
           break;
         }
+        case Type::AddressOf: {
+          const auto &address_of =
+              derived_cast<const Bytecode::Instruction::AddressOf &>(instr);
+          live.insert(address_of.src);
+          address_taken.insert(address_of.src);
+          break;
+        }
+        case Type::LoadIndirect: {
+          const auto &load_indirect =
+              derived_cast<const Bytecode::Instruction::LoadIndirect &>(instr);
+          live.insert(load_indirect.pointer);
+          break;
+        }
         case Type::Negate: {
           const auto &neg =
               derived_cast<const Bytecode::Instruction::Negate &>(instr);
@@ -304,166 +318,281 @@ void BytecodeOptimizer::dead_code_elimination(
         case Type::Move: {
           const auto &m =
               derived_cast<const Bytecode::Instruction::Move &>(instr);
+          if (address_taken.contains(m.dst)) {
+            return false;
+          }
           return live.find(m.dst) == live.end();
         }
         case Type::Load: {
           const auto &l =
               derived_cast<const Bytecode::Instruction::Load &>(instr);
+          if (address_taken.contains(l.dst)) {
+            return false;
+          }
           return live.find(l.dst) == live.end();
         }
         case Type::LessThan: {
           const auto &lt =
               derived_cast<const Bytecode::Instruction::LessThan &>(instr);
+          if (address_taken.contains(lt.dst)) {
+            return false;
+          }
           return live.find(lt.dst) == live.end();
         }
         case Type::LessThanImmediate: {
           const auto &lti =
               derived_cast<const Bytecode::Instruction::LessThanImmediate &>(instr);
+          if (address_taken.contains(lti.dst)) {
+            return false;
+          }
           return live.find(lti.dst) == live.end();
         }
         case Type::GreaterThan: {
           const auto &gt =
               derived_cast<const Bytecode::Instruction::GreaterThan &>(instr);
+          if (address_taken.contains(gt.dst)) {
+            return false;
+          }
           return live.find(gt.dst) == live.end();
         }
         case Type::GreaterThanImmediate: {
           const auto &gti =
               derived_cast<const Bytecode::Instruction::GreaterThanImmediate &>(instr);
+          if (address_taken.contains(gti.dst)) {
+            return false;
+          }
           return live.find(gti.dst) == live.end();
         }
         case Type::LessThanOrEqual: {
           const auto &lte =
               derived_cast<const Bytecode::Instruction::LessThanOrEqual &>(instr);
+          if (address_taken.contains(lte.dst)) {
+            return false;
+          }
           return live.find(lte.dst) == live.end();
         }
         case Type::LessThanOrEqualImmediate: {
           const auto &ltei =
               derived_cast<const Bytecode::Instruction::LessThanOrEqualImmediate &>(instr);
+          if (address_taken.contains(ltei.dst)) {
+            return false;
+          }
           return live.find(ltei.dst) == live.end();
         }
         case Type::GreaterThanOrEqual: {
           const auto &gte = derived_cast<
               const Bytecode::Instruction::GreaterThanOrEqual &>(instr);
+          if (address_taken.contains(gte.dst)) {
+            return false;
+          }
           return live.find(gte.dst) == live.end();
         }
         case Type::GreaterThanOrEqualImmediate: {
           const auto &gtei = derived_cast<
               const Bytecode::Instruction::GreaterThanOrEqualImmediate &>(instr);
+          if (address_taken.contains(gtei.dst)) {
+            return false;
+          }
           return live.find(gtei.dst) == live.end();
         }
         case Type::Equal: {
           const auto &e =
               derived_cast<const Bytecode::Instruction::Equal &>(instr);
+          if (address_taken.contains(e.dst)) {
+            return false;
+          }
           return live.find(e.dst) == live.end();
         }
         case Type::EqualImmediate: {
           const auto &ei =
               derived_cast<const Bytecode::Instruction::EqualImmediate &>(instr);
+          if (address_taken.contains(ei.dst)) {
+            return false;
+          }
           return live.find(ei.dst) == live.end();
         }
         case Type::NotEqual: {
           const auto &ne =
               derived_cast<const Bytecode::Instruction::NotEqual &>(instr);
+          if (address_taken.contains(ne.dst)) {
+            return false;
+          }
           return live.find(ne.dst) == live.end();
         }
         case Type::NotEqualImmediate: {
           const auto &nei =
               derived_cast<const Bytecode::Instruction::NotEqualImmediate &>(instr);
+          if (address_taken.contains(nei.dst)) {
+            return false;
+          }
           return live.find(nei.dst) == live.end();
         }
         case Type::Add: {
           const auto &a =
               derived_cast<const Bytecode::Instruction::Add &>(instr);
+          if (address_taken.contains(a.dst)) {
+            return false;
+          }
           return live.find(a.dst) == live.end();
         }
         case Type::AddImmediate: {
           const auto &ai =
               derived_cast<const Bytecode::Instruction::AddImmediate &>(instr);
+          if (address_taken.contains(ai.dst)) {
+            return false;
+          }
           return live.find(ai.dst) == live.end();
         }
         case Type::Subtract: {
           const auto &s =
               derived_cast<const Bytecode::Instruction::Subtract &>(instr);
+          if (address_taken.contains(s.dst)) {
+            return false;
+          }
           return live.find(s.dst) == live.end();
         }
         case Type::SubtractImmediate: {
           const auto &si =
               derived_cast<const Bytecode::Instruction::SubtractImmediate &>(instr);
+          if (address_taken.contains(si.dst)) {
+            return false;
+          }
           return live.find(si.dst) == live.end();
         }
         case Type::Multiply: {
           const auto &m =
               derived_cast<const Bytecode::Instruction::Multiply &>(instr);
+          if (address_taken.contains(m.dst)) {
+            return false;
+          }
           return live.find(m.dst) == live.end();
         }
         case Type::MultiplyImmediate: {
           const auto &mi =
               derived_cast<const Bytecode::Instruction::MultiplyImmediate &>(instr);
+          if (address_taken.contains(mi.dst)) {
+            return false;
+          }
           return live.find(mi.dst) == live.end();
         }
         case Type::Divide: {
           const auto &d =
               derived_cast<const Bytecode::Instruction::Divide &>(instr);
+          if (address_taken.contains(d.dst)) {
+            return false;
+          }
           return live.find(d.dst) == live.end();
         }
         case Type::DivideImmediate: {
           const auto &di =
               derived_cast<const Bytecode::Instruction::DivideImmediate &>(instr);
+          if (address_taken.contains(di.dst)) {
+            return false;
+          }
           return live.find(di.dst) == live.end();
         }
         case Type::Modulo: {
           const auto &mo =
               derived_cast<const Bytecode::Instruction::Modulo &>(instr);
+          if (address_taken.contains(mo.dst)) {
+            return false;
+          }
           return live.find(mo.dst) == live.end();
         }
         case Type::ModuloImmediate: {
           const auto &mi =
               derived_cast<const Bytecode::Instruction::ModuloImmediate &>(instr);
+          if (address_taken.contains(mi.dst)) {
+            return false;
+          }
           return live.find(mi.dst) == live.end();
         }
         case Type::ArrayCreate: {
           const auto &ac =
               derived_cast<const Bytecode::Instruction::ArrayCreate &>(instr);
+          if (address_taken.contains(ac.dst)) {
+            return false;
+          }
           return live.find(ac.dst) == live.end();
         }
         case Type::ArrayLiteralCreate: {
           const auto &alc =
               derived_cast<const Bytecode::Instruction::ArrayLiteralCreate &>(instr);
+          if (address_taken.contains(alc.dst)) {
+            return false;
+          }
           return live.find(alc.dst) == live.end();
         }
         case Type::ArrayLoad: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoad &>(instr);
+          if (address_taken.contains(al.dst)) {
+            return false;
+          }
           return live.find(al.dst) == live.end();
         }
         case Type::ArrayLoadImmediate: {
           const auto &al =
               derived_cast<const Bytecode::Instruction::ArrayLoadImmediate &>(instr);
+          if (address_taken.contains(al.dst)) {
+            return false;
+          }
           return live.find(al.dst) == live.end();
         }
         case Type::StructCreate: {
           const auto &sc =
               derived_cast<const Bytecode::Instruction::StructCreate &>(instr);
+          if (address_taken.contains(sc.dst)) {
+            return false;
+          }
           return live.find(sc.dst) == live.end();
         }
         case Type::StructLiteralCreate: {
           const auto &slc =
               derived_cast<const Bytecode::Instruction::StructLiteralCreate &>(instr);
+          if (address_taken.contains(slc.dst)) {
+            return false;
+          }
           return live.find(slc.dst) == live.end();
         }
         case Type::StructLoad: {
           const auto &sl =
               derived_cast<const Bytecode::Instruction::StructLoad &>(instr);
+          if (address_taken.contains(sl.dst)) {
+            return false;
+          }
           return live.find(sl.dst) == live.end();
+        }
+        case Type::AddressOf: {
+          const auto &address_of =
+              derived_cast<const Bytecode::Instruction::AddressOf &>(instr);
+          if (address_taken.contains(address_of.dst)) {
+            return false;
+          }
+          return live.find(address_of.dst) == live.end();
+        }
+        case Type::LoadIndirect: {
+          const auto &load_indirect =
+              derived_cast<const Bytecode::Instruction::LoadIndirect &>(instr);
+          if (address_taken.contains(load_indirect.dst)) {
+            return false;
+          }
+          return live.find(load_indirect.dst) == live.end();
         }
         case Type::Negate: {
           const auto &neg =
               derived_cast<const Bytecode::Instruction::Negate &>(instr);
+          if (address_taken.contains(neg.dst)) {
+            return false;
+          }
           return live.find(neg.dst) == live.end();
         }
         case Type::LogicalNot: {
           const auto &ln =
               derived_cast<const Bytecode::Instruction::LogicalNot &>(instr);
+          if (address_taken.contains(ln.dst)) {
+            return false;
+          }
           return live.find(ln.dst) == live.end();
         }
         default:

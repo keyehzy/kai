@@ -205,6 +205,12 @@ std::unordered_map<Register, size_t> compute_use_count(
         case Type::StructLoad:
           use(derived_cast<const Bytecode::Instruction::StructLoad &>(instr).object);
           break;
+        case Type::AddressOf:
+          use(derived_cast<const Bytecode::Instruction::AddressOf &>(instr).src);
+          break;
+        case Type::LoadIndirect:
+          use(derived_cast<const Bytecode::Instruction::LoadIndirect &>(instr).pointer);
+          break;
         case Type::Negate:
           use(derived_cast<const Bytecode::Instruction::Negate &>(instr).src);
           break;

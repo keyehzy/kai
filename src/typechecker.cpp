@@ -14,6 +14,10 @@ bool shapes_compatible(const Shape* a, const Shape* b) {
     return derived_cast<const Shape::Struct_Literal&>(*a).fields_ ==
            derived_cast<const Shape::Struct_Literal&>(*b).fields_;
   }
+  if (a->kind == Shape::Kind::Pointer) {
+    return shapes_compatible(derived_cast<const Shape::Pointer&>(*a).pointee_,
+                             derived_cast<const Shape::Pointer&>(*b).pointee_);
+  }
   return true;
 }
 
@@ -148,6 +152,8 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
         reporter_.report<TypeMismatchError>(
             no_loc(), TypeMismatchError::Ctx::Assignment, describe((*target)->kind), describe(value->kind));
       }
+      // TODO(pointer): add dereference-assignment (`*p = v`) typing once the
+      // parser/AST support dereference assignment targets.
       return value;
     }
 
@@ -363,6 +369,18 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
       const auto& n = derived_cast<const Ast::LogicalNot&>(*node);
       static_cast<void>(visit_expression(n.operand.get()));
       return make_shape<Shape::Non_Struct>();
+    }
+    case T::AddressOf: {
+      const auto& n = derived_cast<const Ast::AddressOf&>(*node);
+      return make_shape<Shape::Pointer>(visit_expression(n.operand.get()));
+    }
+    case T::Dereference: {
+      const auto& n = derived_cast<const Ast::Dereference&>(*node);
+      const auto* operand = visit_expression(n.operand.get());
+      if (operand->kind == Shape::Kind::Pointer) {
+        return derived_cast<const Shape::Pointer&>(*operand).pointee_;
+      }
+      return make_shape<Shape::Unknown>();
     }
   }
 

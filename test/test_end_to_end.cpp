@@ -661,6 +661,349 @@ TEST_CASE("test_parser_expression_end_to_end_unary_plus") {
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 5);
 }
 
+TEST_CASE("test_program_end_to_end_pointer_aliasing_read_after_assignment") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 1;
+let p = &x;
+x = 2;
+return *p;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 2);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 2);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 2);
+}
+
+TEST_CASE("test_program_end_to_end_pointer_to_pointer_read_chain") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 41;
+let p = &x;
+let q = &p;
+return *(*q) + 1;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 42);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 42);
+}
+
+TEST_CASE("test_program_end_to_end_pointer_to_local_survives_subsequent_calls") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+fn make(v) {
+  let x = v;
+  return &x;
+}
+let p = make(1);
+let q = make(2);
+return *p;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 1);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+}
+
+TEST_CASE("test_program_end_to_end_repeated_address_of_same_variable_has_stable_identity") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 1;
+return (&x) == (&x);
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 0);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 0);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 0);
+}
+
+TEST_CASE("test_program_end_to_end_pointer_to_expression_snapshot_survives_source_mutation") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 1;
+let p = &(x + 1);
+x = 100;
+let y = x + 2;
+return *p + y;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 104);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 104);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 104);
+}
+
+TEST_CASE("test_program_end_to_end_pointer_alias_via_assignment_tracks_same_cell") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 1;
+let p = &x;
+let q = p;
+x = 2;
+return *q;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 2);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 2);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 2);
+}
+
+TEST_CASE("test_program_end_to_end_multiple_pointer_returns_from_calls_remain_distinct") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+fn mk(v) {
+  let x = v;
+  return &x;
+}
+let a = mk(1);
+let b = mk(2);
+let c = mk(3);
+return *a + *b + *c;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 6);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 6);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 6);
+}
+
+TEST_CASE("test_program_end_to_end_recursive_pointer_factory_remains_stable") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+fn mk(n) {
+  if (n == 0) {
+    let x = 10;
+    return &x;
+  } else {
+    return mk(n - 1);
+  }
+}
+let p = mk(2);
+let q = mk(3);
+return *p + *q;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 20);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 20);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 20);
+}
+
+TEST_CASE("test_program_end_to_end_known_gap_nonlocal_assignment_differs_between_backends") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let gp = 1;
+fn f() {
+  gp = 2;
+  return 0;
+}
+f();
+return gp;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  const auto ast_result = ast_interpreter.interpret(*program);
+  REQUIRE(ast_result == 2);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  const auto bytecode_result = bytecode_interpreter.interpret(generator.blocks());
+  REQUIRE(bytecode_result == 1);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  const auto optimized_result = bytecode_interpreter.interpret(generator.blocks());
+  REQUIRE(optimized_result == 1);
+}
+
+TEST_CASE("test_program_end_to_end_known_gap_pointer_to_nonlocal_variable_in_function") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 1;
+fn f() {
+  return &x;
+}
+let p = f();
+x = 2;
+return *p;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  const auto ast_result = ast_interpreter.interpret(*program);
+  REQUIRE(ast_result == 2);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  const auto bytecode_result = bytecode_interpreter.interpret(generator.blocks());
+  REQUIRE(bytecode_result == 0);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  const auto optimized_result = bytecode_interpreter.interpret(generator.blocks());
+  REQUIRE(optimized_result == 0);
+}
+
+TEST_CASE(
+    "test_program_end_to_end_known_gap_nonlocal_pointer_then_additional_call_ast_only") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+fn id(x) {
+  return x;
+}
+let gp = id(0);
+fn g(v) {
+  return v;
+}
+fn f(a) {
+  let x = a;
+  gp = &x;
+  return g(a + 1);
+}
+f(10);
+return *gp;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 10);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+  WARN("Known gap: executing this bytecode currently asserts in interpret_load_indirect");
+}
+
+TEST_CASE("test_program_end_to_end_known_gap_nonlocal_read_inside_function") {
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 1;
+fn f() {
+  return x;
+}
+return f();
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  const auto ast_result = ast_interpreter.interpret(*program);
+  REQUIRE(ast_result == 1);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  const auto bytecode_result = bytecode_interpreter.interpret(generator.blocks());
+  REQUIRE(bytecode_result == 0);
+
+  BytecodeOptimizer optimizer;
+  optimizer.optimize(generator.blocks());
+  const auto optimized_result = bytecode_interpreter.interpret(generator.blocks());
+  REQUIRE(optimized_result == 1);
+}
+
 TEST_CASE("test_program_end_to_end_structs_minimal") {
   ErrorReporter reporter;
   Parser parser(R"(

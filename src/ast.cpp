@@ -220,6 +220,18 @@ void Ast::FieldAccess::dump(std::ostream &os) const {
   os << ", " << field << ")";
 }
 
+void Ast::AddressOf::dump(std::ostream &os) const {
+  os << "AddressOf(";
+  operand->dump(os);
+  os << ")";
+}
+
+void Ast::Dereference::dump(std::ostream &os) const {
+  os << "Dereference(";
+  operand->dump(os);
+  os << ")";
+}
+
 void Ast::Negate::dump(std::ostream &os) const {
   os << "Negate(";
   operand->dump(os);
@@ -439,6 +451,16 @@ void Ast::StructLiteral::to_string(std::ostream &os, int indent) const {
 void Ast::FieldAccess::to_string(std::ostream &os, int indent) const {
   object->to_string(os, indent);
   os << "." << field;
+}
+
+void Ast::AddressOf::to_string(std::ostream &os, int indent) const {
+  os << "&";
+  operand->to_string(os, indent);
+}
+
+void Ast::Dereference::to_string(std::ostream &os, int indent) const {
+  os << "*";
+  operand->to_string(os, indent);
 }
 
 void Ast::Negate::to_string(std::ostream &os, int indent) const {

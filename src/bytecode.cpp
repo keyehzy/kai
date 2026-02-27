@@ -8,6 +8,25 @@ namespace kai {
 
 
 namespace {
+constexpr Bytecode::Value k_pointer_tag = Bytecode::Value{1} << 63;
+
+Bytecode::Value pointer_handle(Bytecode::Value id) {
+  return k_pointer_tag | id;
+}
+
+void initialize_frame_slots(
+    std::vector<std::shared_ptr<Bytecode::Value>> &register_stack,
+    size_t frame_base,
+    size_t register_count) {
+  const size_t needed = frame_base + register_count;
+  if (needed > register_stack.size()) {
+    register_stack.resize(needed);
+  }
+  for (size_t i = 0; i < register_count; ++i) {
+    register_stack[frame_base + i] = std::make_shared<Bytecode::Value>(0);
+  }
+}
+
 bool has_terminator(const Bytecode::BasicBlock &block) {
   if (block.instructions.empty()) {
     return false;
@@ -327,6 +346,20 @@ size_t register_count(const std::vector<Bytecode::BasicBlock> &blocks) {
               derived_cast<const Bytecode::Instruction::StructLoad &>(*instr);
           track(struct_load.dst);
           track(struct_load.object);
+          break;
+        }
+        case Bytecode::Instruction::Type::AddressOf: {
+          const auto &address_of =
+              derived_cast<const Bytecode::Instruction::AddressOf &>(*instr);
+          track(address_of.dst);
+          track(address_of.src);
+          break;
+        }
+        case Bytecode::Instruction::Type::LoadIndirect: {
+          const auto &load_indirect =
+              derived_cast<const Bytecode::Instruction::LoadIndirect &>(*instr);
+          track(load_indirect.dst);
+          track(load_indirect.pointer);
           break;
         }
         case Bytecode::Instruction::Type::Negate: {
@@ -748,6 +781,20 @@ void Bytecode::Instruction::StructLoad::dump() const {
   std::printf("StructLoad r%llu, r%llu, %s", dst, object, field.c_str());
 }
 
+Bytecode::Instruction::AddressOf::AddressOf(Register dst, Register src)
+    : Bytecode::Instruction(Type::AddressOf), dst(dst), src(src) {}
+
+void Bytecode::Instruction::AddressOf::dump() const {
+  std::printf("AddressOf r%llu, r%llu", dst, src);
+}
+
+Bytecode::Instruction::LoadIndirect::LoadIndirect(Register dst, Register pointer)
+    : Bytecode::Instruction(Type::LoadIndirect), dst(dst), pointer(pointer) {}
+
+void Bytecode::Instruction::LoadIndirect::dump() const {
+  std::printf("LoadIndirect r%llu, r%llu", dst, pointer);
+}
+
 Bytecode::Instruction::Negate::Negate(Register dst, Register src)
     : Bytecode::Instruction(Type::Negate), dst(dst), src(src) {}
 
@@ -864,6 +911,12 @@ void BytecodeGenerator::visit(const Ast &ast) {
       break;
     case Ast::Type::Assignment:
       visit_assignment(derived_cast<Ast::Assignment const &>(ast));
+      break;
+    case Ast::Type::AddressOf:
+      visit_address_of(derived_cast<Ast::AddressOf const &>(ast));
+      break;
+    case Ast::Type::Dereference:
+      visit_dereference(derived_cast<Ast::Dereference const &>(ast));
       break;
     case Ast::Type::Negate:
       visit_negate(derived_cast<Ast::Negate const &>(ast));
@@ -1415,8 +1468,30 @@ void BytecodeGenerator::visit_field_access(const Ast::FieldAccess &field_access)
 
 void BytecodeGenerator::visit_assignment(const Ast::Assignment &assignment) {
   visit(*assignment.value);
+  // TODO(pointer): emit pointer stores for `*p = v` once dereference-assignment
+  // is represented as an assignment target in the AST.
   current_block().append<Bytecode::Instruction::Move>(vars_[assignment.name],
                                                       reg_alloc_.current());
+}
+
+void BytecodeGenerator::visit_address_of(const Ast::AddressOf &address_of) {
+  if (address_of.operand->type == Ast::Type::Variable) {
+    const auto &variable = derived_cast<const Ast::Variable &>(*address_of.operand);
+    current_block().append<Bytecode::Instruction::AddressOf>(
+        reg_alloc_.allocate(), vars_[variable.name]);
+    return;
+  }
+
+  visit(*address_of.operand);
+  const auto src_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::AddressOf>(reg_alloc_.allocate(), src_reg);
+}
+
+void BytecodeGenerator::visit_dereference(const Ast::Dereference &dereference) {
+  visit(*dereference.operand);
+  const auto pointer_reg = reg_alloc_.current();
+  current_block().append<Bytecode::Instruction::LoadIndirect>(reg_alloc_.allocate(),
+                                                              pointer_reg);
 }
 
 void BytecodeGenerator::visit_negate(const Ast::Negate &negate) {
@@ -1443,10 +1518,12 @@ Bytecode::Value BytecodeInterpreter::interpret(
   call_stack_.clear();
   register_count_ = register_count(blocks);
   frame_base_ = 0;
-  register_stack_.assign(register_count_, 0);
+  initialize_frame_slots(register_stack_, frame_base_, register_count_);
   arrays_.clear();
   structs_.clear();
+  pointers_.clear();
   next_heap_id_ = 1;
+  next_pointer_id_ = 1;
 
   for (;;) {
     assert(block_index < blocks.size());
@@ -1530,14 +1607,14 @@ Bytecode::Value BytecodeInterpreter::interpret(
         break;
       case Bytecode::Instruction::Type::Return: {
         const auto ret_reg = derived_cast<Bytecode::Instruction::Return const &>(*instr).reg;
-        const auto value = register_stack_[frame_base_ + ret_reg];
+        const auto value = reg(ret_reg);
         if (call_stack_.empty()) {
           return value;
         }
         auto frame = std::move(call_stack_.back());
         call_stack_.pop_back();
         frame_base_ = frame.frame_base;
-        register_stack_[frame_base_ + frame.dst_register] = value;
+        reg(frame.dst_register) = value;
         block_index = frame.return_block_index;
         instr_index_ = frame.return_instr_index;
         break;
@@ -1643,6 +1720,16 @@ Bytecode::Value BytecodeInterpreter::interpret(
       case Bytecode::Instruction::Type::StructLoad:
         interpret_struct_load(
             derived_cast<Bytecode::Instruction::StructLoad const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::AddressOf:
+        interpret_address_of(
+            derived_cast<Bytecode::Instruction::AddressOf const &>(*instr));
+        ++instr_index_;
+        break;
+      case Bytecode::Instruction::Type::LoadIndirect:
+        interpret_load_indirect(
+            derived_cast<Bytecode::Instruction::LoadIndirect const &>(*instr));
         ++instr_index_;
         break;
       case Bytecode::Instruction::Type::Negate:
@@ -1765,12 +1852,10 @@ void BytecodeInterpreter::interpret_call(const Bytecode::Instruction::Call &call
   assert(call.arg_registers.size() == call.param_registers.size());
 
   const size_t new_frame_base = frame_base_ + register_count_;
-  if (new_frame_base + register_count_ > register_stack_.size()) {
-    register_stack_.resize(new_frame_base + register_count_, 0);
-  }
+  initialize_frame_slots(register_stack_, new_frame_base, register_count_);
   for (size_t i = 0; i < call.param_registers.size(); ++i) {
-    register_stack_[new_frame_base + call.param_registers[i]] =
-        register_stack_[frame_base_ + call.arg_registers[i]];
+    *register_stack_[new_frame_base + call.param_registers[i]] =
+        reg(call.arg_registers[i]);
   }
   call_stack_.push_back({block_index, next_instr_index, call.dst, frame_base_});
   frame_base_ = new_frame_base;
@@ -1940,6 +2025,24 @@ void BytecodeInterpreter::interpret_struct_load(
   const auto field_it = struct_it->second.find(struct_load.field);
   assert(field_it != struct_it->second.end());
   reg(struct_load.dst) = field_it->second;
+}
+
+void BytecodeInterpreter::interpret_address_of(
+    const Bytecode::Instruction::AddressOf &address_of) {
+  const auto absolute_register_index = frame_base_ + address_of.src;
+  assert(absolute_register_index < register_stack_.size());
+  const auto handle = pointer_handle(next_pointer_id_++);
+  pointers_[handle] = register_stack_[absolute_register_index];
+  reg(address_of.dst) = handle;
+}
+
+void BytecodeInterpreter::interpret_load_indirect(
+    const Bytecode::Instruction::LoadIndirect &load_indirect) {
+  const auto pointer_value = reg(load_indirect.pointer);
+  const auto it = pointers_.find(pointer_value);
+  assert(it != pointers_.end());
+  assert(it->second);
+  reg(load_indirect.dst) = *it->second;
 }
 
 void BytecodeInterpreter::interpret_negate(const Bytecode::Instruction::Negate &negate) {

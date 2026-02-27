@@ -279,3 +279,36 @@ add(point.x, point.y);
 )");
   REQUIRE(errors.empty());
 }
+
+TEST_CASE("type_checker_accepts_address_of_and_dereference_read_flow") {
+  const auto errors = typecheck_source(R"(
+let x = 1;
+let p = &x;
+let y = *p;
+y = 2;
+)");
+  REQUIRE(errors.empty());
+}
+
+TEST_CASE("type_checker_allows_dereference_of_unknown_pointer_shape") {
+  const auto errors = typecheck_source(R"(
+fn read_ptr(p) {
+  return *p;
+}
+read_ptr(1);
+)");
+  REQUIRE(errors.empty());
+}
+
+TEST_CASE("type_checker_reports_mismatch_assigning_pointer_to_non_pointer_variable") {
+  const auto errors = typecheck_source(R"(
+let gp = 0;
+fn make(v) {
+  let x = v;
+  gp = &x;
+  return 0;
+}
+make(1);
+)");
+  REQUIRE(errors == std::vector<kai::Error::Type>{kai::Error::Type::TypeMismatch});
+}

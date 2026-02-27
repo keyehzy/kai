@@ -255,6 +255,19 @@ TEST_CASE("test_lexer_recognizes_logical_and_operator") {
                    });
 }
 
+TEST_CASE("test_lexer_distinguishes_single_ampersand_and_logical_and") {
+  const auto types = lex_types("a & b && c");
+
+  REQUIRE(types == std::vector<TokenType>{
+                       Token::Type::identifier,
+                       Token::Type::ampersand,
+                       Token::Type::identifier,
+                       Token::Type::ampersand_ampersand,
+                       Token::Type::identifier,
+                       Token::Type::end_of_file,
+                   });
+}
+
 TEST_CASE("test_lexer_recognizes_logical_or_operator") {
   const auto types = lex_types("a || b");
 

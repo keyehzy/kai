@@ -277,6 +277,20 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           track(sl.object);
           break;
         }
+        case Type::AddressOf: {
+          const auto &address_of =
+              derived_cast<const Bytecode::Instruction::AddressOf &>(instr);
+          track(address_of.dst);
+          track(address_of.src);
+          break;
+        }
+        case Type::LoadIndirect: {
+          const auto &load_indirect =
+              derived_cast<const Bytecode::Instruction::LoadIndirect &>(instr);
+          track(load_indirect.dst);
+          track(load_indirect.pointer);
+          break;
+        }
         case Type::Negate: {
           const auto &n = derived_cast<const Bytecode::Instruction::Negate &>(instr);
           track(n.dst);
@@ -585,6 +599,18 @@ void BytecodeOptimizer::compact_registers(std::vector<Bytecode::BasicBlock> &blo
           auto &sl = derived_cast<Bytecode::Instruction::StructLoad &>(instr);
           sl.dst = remap(sl.dst);
           sl.object = remap(sl.object);
+          break;
+        }
+        case Type::AddressOf: {
+          auto &address_of = derived_cast<Bytecode::Instruction::AddressOf &>(instr);
+          address_of.dst = remap(address_of.dst);
+          address_of.src = remap(address_of.src);
+          break;
+        }
+        case Type::LoadIndirect: {
+          auto &load_indirect = derived_cast<Bytecode::Instruction::LoadIndirect &>(instr);
+          load_indirect.dst = remap(load_indirect.dst);
+          load_indirect.pointer = remap(load_indirect.pointer);
           break;
         }
         case Type::Negate: {

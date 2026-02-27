@@ -66,6 +66,8 @@ struct Bytecode::Instruction {
     StructCreate,
     StructLiteralCreate,
     StructLoad,
+    AddressOf,
+    LoadIndirect,
     Negate,
     LogicalNot,
   };
@@ -112,6 +114,8 @@ struct Bytecode::Instruction {
   struct StructCreate;
   struct StructLiteralCreate;
   struct StructLoad;
+  struct AddressOf;
+  struct LoadIndirect;
   struct Negate;
   struct LogicalNot;
 
@@ -480,6 +484,22 @@ struct Bytecode::Instruction::StructLoad final : Bytecode::Instruction {
   std::string field;
 };
 
+struct Bytecode::Instruction::AddressOf final : Bytecode::Instruction {
+  AddressOf(Register dst, Register src);
+  void dump() const override;
+
+  Register dst;
+  Register src;
+};
+
+struct Bytecode::Instruction::LoadIndirect final : Bytecode::Instruction {
+  LoadIndirect(Register dst, Register pointer);
+  void dump() const override;
+
+  Register dst;
+  Register pointer;
+};
+
 struct Bytecode::Instruction::Negate final : Bytecode::Instruction {
   Negate(Register dst, Register src);
   void dump() const override;
@@ -558,6 +578,8 @@ class BytecodeGenerator {
   void visit_struct_literal(const Ast::StructLiteral &struct_literal);
   void visit_field_access(const Ast::FieldAccess &field_access);
   void visit_assignment(const Ast::Assignment &assignment);
+  void visit_address_of(const Ast::AddressOf &address_of);
+  void visit_dereference(const Ast::Dereference &dereference);
   void visit_negate(const Ast::Negate &negate);
   void visit_unary_plus(const Ast::UnaryPlus &unary_plus);
   void visit_logical_not(const Ast::LogicalNot &logical_not);
@@ -630,10 +652,12 @@ class BytecodeInterpreter {
   void interpret_struct_literal_create(
       const Bytecode::Instruction::StructLiteralCreate &struct_literal_create);
   void interpret_struct_load(const Bytecode::Instruction::StructLoad &struct_load);
+  void interpret_address_of(const Bytecode::Instruction::AddressOf &address_of);
+  void interpret_load_indirect(const Bytecode::Instruction::LoadIndirect &load_indirect);
   void interpret_negate(const Bytecode::Instruction::Negate &negate);
   void interpret_logical_not(const Bytecode::Instruction::LogicalNot &logical_not);
 
-  Bytecode::Value& reg(Bytecode::Register r) { return register_stack_[frame_base_ + r]; }
+  Bytecode::Value& reg(Bytecode::Register r) { return *register_stack_[frame_base_ + r]; }
 
   u64 block_index = 0;
   size_t instr_index_ = 0;
@@ -644,13 +668,15 @@ class BytecodeInterpreter {
     size_t frame_base;
   };
   std::vector<CallFrame> call_stack_;
-  std::vector<Bytecode::Value> register_stack_;
+  std::vector<std::shared_ptr<Bytecode::Value>> register_stack_;
   size_t frame_base_ = 0;
   size_t register_count_ = 0;
   std::unordered_map<Bytecode::Value, std::vector<Bytecode::Value>> arrays_;
   std::unordered_map<Bytecode::Value, std::unordered_map<std::string, Bytecode::Value>>
       structs_;
+  std::unordered_map<Bytecode::Value, std::shared_ptr<Bytecode::Value>> pointers_;
   Bytecode::Value next_heap_id_ = 1;
+  Bytecode::Value next_pointer_id_ = 1;
 };
 
 }  // namespace kai

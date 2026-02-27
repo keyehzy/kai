@@ -580,6 +580,19 @@ void rewrite_instruction(std::unique_ptr<Bytecode::Instruction> &instr_ptr,
       invalidate(facts, struct_load.dst);
       break;
     }
+    case Type::AddressOf: {
+      auto &address_of = derived_cast<Bytecode::Instruction::AddressOf &>(instr);
+      // `AddressOf` must preserve the exact source register identity. Rewriting
+      // through copy aliases changes pointee identity and breaks semantics.
+      invalidate(facts, address_of.dst);
+      break;
+    }
+    case Type::LoadIndirect: {
+      auto &load_indirect = derived_cast<Bytecode::Instruction::LoadIndirect &>(instr);
+      load_indirect.pointer = resolve_register(load_indirect.pointer);
+      invalidate(facts, load_indirect.dst);
+      break;
+    }
     case Type::Negate: {
       auto &negate = derived_cast<Bytecode::Instruction::Negate &>(instr);
       negate.src = resolve_register(negate.src);

@@ -238,6 +238,8 @@ std::unique_ptr<Ast> Parser::parse_assignment() {
         std::move(index.array), std::move(index.index), std::move(value));
   }
 
+  // TODO(pointer): support dereference assignment targets (`*p = v`) by
+  // lowering l-value dereferences here once pointer stores are implemented.
   error_reporter_.report<InvalidAssignmentTargetError>(equals_token.source_location());
   return left;
 }
@@ -356,6 +358,14 @@ std::unique_ptr<Ast> Parser::parse_multiplicative() {
 }
 
 std::unique_ptr<Ast> Parser::parse_unary() {
+  if (lexer_.peek().type == Token::Type::ampersand) {
+    lexer_.skip();
+    return std::make_unique<Ast::AddressOf>(parse_unary());
+  }
+  if (lexer_.peek().type == Token::Type::star) {
+    lexer_.skip();
+    return std::make_unique<Ast::Dereference>(parse_unary());
+  }
   if (lexer_.peek().type == Token::Type::minus) {
     lexer_.skip();
     return std::make_unique<Ast::Negate>(parse_unary());

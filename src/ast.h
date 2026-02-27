@@ -43,6 +43,8 @@ struct Ast {
     IndexAssignment,
     StructLiteral,
     FieldAccess,
+    AddressOf,
+    Dereference,
     Negate,
     UnaryPlus,
     LogicalNot,
@@ -77,6 +79,8 @@ struct Ast {
   struct IndexAssignment;
   struct StructLiteral;
   struct FieldAccess;
+  struct AddressOf;
+  struct Dereference;
   struct Negate;
   struct UnaryPlus;
   struct LogicalNot;
@@ -438,6 +442,26 @@ struct Ast::FieldAccess final : public Ast {
   void to_string(std::ostream &os, int indent = 0) const override;
 };
 
+struct Ast::AddressOf final : public Ast {
+  std::unique_ptr<Ast> operand;
+
+  explicit AddressOf(std::unique_ptr<Ast> operand)
+      : Ast(Type::AddressOf), operand(std::move(operand)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::Dereference final : public Ast {
+  std::unique_ptr<Ast> operand;
+
+  explicit Dereference(std::unique_ptr<Ast> operand)
+      : Ast(Type::Dereference), operand(std::move(operand)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
 struct Ast::Negate final : public Ast {
   std::unique_ptr<Ast> operand;
 
@@ -478,9 +502,9 @@ struct AstInterpreter {
   }
 
   Value interpret_variable(const Ast::Variable &variable) {
-    auto it = find_variable_scope(variable.name);
-    assert(it != scopes.rend());
-    return it->at(variable.name);
+    auto cell = find_variable_cell(variable.name);
+    assert(cell);
+    return *cell;
   }
 
   Value interpret_literal(const Ast::Literal &literal) { return literal.value; }
@@ -507,14 +531,16 @@ struct AstInterpreter {
     const Value init_value = interpret(*variable_declaration.initializer);
     auto &scope = current_scope();
     assert(scope.find(variable_declaration.name) == scope.end());
-    scope[variable_declaration.name] = init_value;
+    scope[variable_declaration.name] = std::make_shared<Value>(init_value);
     return init_value;
   }
 
   Value interpret_increment(const Ast::Increment &increment) {
-    auto it = find_variable_scope(increment.variable->name);
-    assert(it != scopes.rend());
-    return it->at(increment.variable->name)++;
+    auto cell = find_variable_cell(increment.variable->name);
+    assert(cell);
+    const Value previous = *cell;
+    ++(*cell);
+    return previous;
   }
 
   Value interpret_block(const Ast::Block &block) {
@@ -566,7 +592,8 @@ struct AstInterpreter {
 
     push_scope();
     for (size_t i = 0; i < argument_values.size(); ++i) {
-      current_scope()[function_declaration->parameters[i]] = argument_values[i];
+      current_scope()[function_declaration->parameters[i]] =
+          std::make_shared<Value>(argument_values[i]);
     }
 
     return_active_ = false;
@@ -582,9 +609,11 @@ struct AstInterpreter {
 
   Value interpret_assignment(const Ast::Assignment &assignment) {
     const Value assigned_value = interpret(*assignment.value);
-    auto it = find_variable_scope(assignment.name);
-    assert(it != scopes.rend());
-    it->at(assignment.name) = assigned_value;
+    auto cell = find_variable_cell(assignment.name);
+    assert(cell);
+    // TODO(pointer): support `*p = v` assignments when dereference l-values are
+    // represented in the AST and assignment evaluator.
+    *cell = assigned_value;
     return assigned_value;
   }
 
@@ -683,6 +712,30 @@ struct AstInterpreter {
     return handle;
   }
 
+  Value interpret_address_of(const Ast::AddressOf &address_of) {
+    if (address_of.operand->type == Ast::Type::Variable) {
+      const auto &variable = derived_cast<const Ast::Variable &>(*address_of.operand);
+      auto cell = find_variable_cell(variable.name);
+      assert(cell);
+      const Value handle = pointer_handle(next_pointer_handle_++);
+      pointers_[handle] = std::move(cell);
+      return handle;
+    }
+
+    const Value value = interpret(*address_of.operand);
+    const Value handle = pointer_handle(next_pointer_handle_++);
+    pointers_[handle] = std::make_shared<Value>(value);
+    return handle;
+  }
+
+  Value interpret_dereference(const Ast::Dereference &dereference) {
+    const Value pointer_value = interpret(*dereference.operand);
+    const auto it = pointers_.find(pointer_value);
+    assert(it != pointers_.end());
+    assert(it->second);
+    return *it->second;
+  }
+
   Value interpret_negate(const Ast::Negate &negate) {
     return static_cast<Value>(-static_cast<int64_t>(interpret(*negate.operand)));
   }
@@ -765,6 +818,10 @@ struct AstInterpreter {
         return interpret_struct_literal(derived_cast<Ast::StructLiteral const &>(ast));
       case Ast::Type::FieldAccess:
         return interpret_field_access(derived_cast<Ast::FieldAccess const &>(ast));
+      case Ast::Type::AddressOf:
+        return interpret_address_of(derived_cast<Ast::AddressOf const &>(ast));
+      case Ast::Type::Dereference:
+        return interpret_dereference(derived_cast<Ast::Dereference const &>(ast));
       case Ast::Type::Negate:
         return interpret_negate(derived_cast<Ast::Negate const &>(ast));
       case Ast::Type::UnaryPlus:
@@ -783,25 +840,33 @@ struct AstInterpreter {
     scopes.pop_back();
   }
 
-  std::unordered_map<std::string, Value> &current_scope() {
+  std::unordered_map<std::string, std::shared_ptr<Value>> &current_scope() {
     return scopes.back();
   }
 
-  std::vector<std::unordered_map<std::string, Value>>::reverse_iterator find_variable_scope(const std::string &name) {
+  std::shared_ptr<Value> find_variable_cell(const std::string &name) {
     auto it = scopes.rbegin();
     for (; it != scopes.rend(); ++it) {
-      if (it->find(name) != it->end()) {
-        return it;
+      const auto found = it->find(name);
+      if (found != it->end()) {
+        return found->second;
       }
     }
-    return it;
+    return nullptr;
   }
 
-  std::vector<std::unordered_map<std::string, Value>> scopes;
+  static constexpr Value k_pointer_tag = Value{1} << 63;
+  static Value pointer_handle(Value id) {
+    return k_pointer_tag | id;
+  }
+
+  std::vector<std::unordered_map<std::string, std::shared_ptr<Value>>> scopes;
   std::unordered_map<std::string, const Ast::FunctionDeclaration *> functions;
   std::unordered_map<Value, std::vector<Value>> arrays;
   std::unordered_map<Value, std::unordered_map<std::string, Value>> structs;
+  std::unordered_map<Value, std::shared_ptr<Value>> pointers_;
   Value next_heap_handle = 1;
+  Value next_pointer_handle_ = 1;
   bool return_active_ = false;
   Value return_value_ = 0;
 };

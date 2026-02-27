@@ -122,6 +122,60 @@ TEST_CASE("test_parser_modulo_has_multiplicative_precedence") {
   REQUIRE(derived_cast<const Ast::Literal &>(*modulo.right).value == 5);
 }
 
+TEST_CASE("test_parser_parses_address_of_variable") {
+  ErrorReporter reporter;
+  Parser parser("&x", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::AddressOf);
+  const auto &address_of = derived_cast<const Ast::AddressOf &>(*parsed);
+  REQUIRE(address_of.operand->type == Ast::Type::Variable);
+  REQUIRE(derived_cast<const Ast::Variable &>(*address_of.operand).name == "x");
+}
+
+TEST_CASE("test_parser_parses_dereference_variable") {
+  ErrorReporter reporter;
+  Parser parser("*p", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Dereference);
+  const auto &deref = derived_cast<const Ast::Dereference &>(*parsed);
+  REQUIRE(deref.operand->type == Ast::Type::Variable);
+  REQUIRE(derived_cast<const Ast::Variable &>(*deref.operand).name == "p");
+}
+
+TEST_CASE("test_parser_keeps_binary_star_with_unary_dereference_rhs") {
+  ErrorReporter reporter;
+  Parser parser("a * *p", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Multiply);
+  const auto &multiply = derived_cast<const Ast::Multiply &>(*parsed);
+  REQUIRE(multiply.left->type == Ast::Type::Variable);
+  REQUIRE(derived_cast<const Ast::Variable &>(*multiply.left).name == "a");
+  REQUIRE(multiply.right->type == Ast::Type::Dereference);
+  const auto &deref = derived_cast<const Ast::Dereference &>(*multiply.right);
+  REQUIRE(deref.operand->type == Ast::Type::Variable);
+  REQUIRE(derived_cast<const Ast::Variable &>(*deref.operand).name == "p");
+}
+
+TEST_CASE("test_parser_parses_dereference_of_address_of") {
+  ErrorReporter reporter;
+  Parser parser("*&x", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Dereference);
+  const auto &deref = derived_cast<const Ast::Dereference &>(*parsed);
+  REQUIRE(deref.operand->type == Ast::Type::AddressOf);
+  const auto &address_of = derived_cast<const Ast::AddressOf &>(*deref.operand);
+  REQUIRE(address_of.operand->type == Ast::Type::Variable);
+  REQUIRE(derived_cast<const Ast::Variable &>(*address_of.operand).name == "x");
+}
+
 TEST_CASE("test_parser_equality_has_lower_precedence_than_additive") {
   ErrorReporter reporter;
   Parser parser("1 + 2 == 3", reporter);
@@ -525,6 +579,18 @@ TEST_CASE("test_parser_reports_invalid_assignment_target") {
   REQUIRE(reporter.errors()[0]->format_error() ==
           "invalid assignment target; expected variable or index expression before '=', found '='");
   REQUIRE(reporter.errors()[0]->location.text() == "=");
+}
+
+TEST_CASE("test_parser_reports_invalid_assignment_target_for_dereference_assignment_todo") {
+  ErrorReporter reporter;
+  Parser parser("*p = v", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::Dereference);
+  REQUIRE(reporter.has_errors());
+  REQUIRE(reporter.errors().size() == 1);
+  REQUIRE(reporter.errors()[0]->type == Error::Type::InvalidAssignmentTarget);
 }
 
 TEST_CASE("test_parser_reports_expected_primary_expression_for_standalone_semicolon") {
