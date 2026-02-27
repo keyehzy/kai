@@ -186,6 +186,7 @@ private:
       }
       break;
     // TODO: add minus_minus (--) to mirror plus_plus (++)
+    // TODO: add ampersand (&) token for unary take-by-pointer expressions.
     // TODO: add ampersand_ampersand (&&) and pipe_pipe (||) for logical AND/OR
     default:
       error_reporter_.report<UnexpectedCharError>(SourceLocation{input_, input_ + 1},
