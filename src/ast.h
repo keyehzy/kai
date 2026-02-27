@@ -31,6 +31,8 @@ struct Ast {
     IfElse,
     Equal,
     NotEqual,
+    LogicalAnd,
+    LogicalOr,
     Add,
     Subtract,
     Multiply,
@@ -63,6 +65,8 @@ struct Ast {
   struct IfElse;
   struct Equal;
   struct NotEqual;
+  struct LogicalAnd;
+  struct LogicalOr;
   struct Add;
   struct Subtract;
   struct Multiply;
@@ -294,6 +298,28 @@ struct Ast::NotEqual final : public Ast {
 
   NotEqual(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
       : Ast(Type::NotEqual), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::LogicalAnd final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  LogicalAnd(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::LogicalAnd), left(std::move(left)), right(std::move(right)) {}
+
+  void dump(std::ostream &os) const override;
+  void to_string(std::ostream &os, int indent = 0) const override;
+};
+
+struct Ast::LogicalOr final : public Ast {
+  std::unique_ptr<Ast> left;
+  std::unique_ptr<Ast> right;
+
+  LogicalOr(std::unique_ptr<Ast> left, std::unique_ptr<Ast> right)
+      : Ast(Type::LogicalOr), left(std::move(left)), right(std::move(right)) {}
 
   void dump(std::ostream &os) const override;
   void to_string(std::ostream &os, int indent = 0) const override;
@@ -584,6 +610,22 @@ struct AstInterpreter {
     return interpret(*not_equal.left) != interpret(*not_equal.right);
   }
 
+  Value interpret_logical_and(const Ast::LogicalAnd &logical_and) {
+    const Value left_value = interpret(*logical_and.left);
+    if (left_value == 0) {
+      return 0;
+    }
+    return interpret(*logical_and.right) != 0 ? 1 : 0;
+  }
+
+  Value interpret_logical_or(const Ast::LogicalOr &logical_or) {
+    const Value left_value = interpret(*logical_or.left);
+    if (left_value != 0) {
+      return 1;
+    }
+    return interpret(*logical_or.right) != 0 ? 1 : 0;
+  }
+
   Value interpret_add(const Ast::Add &add) { return interpret(*add.left) + interpret(*add.right); }
 
   Value interpret_subtract(const Ast::Subtract &subtract) {
@@ -699,6 +741,10 @@ struct AstInterpreter {
         return interpret_equal(derived_cast<Ast::Equal const &>(ast));
       case Ast::Type::NotEqual:
         return interpret_not_equal(derived_cast<Ast::NotEqual const &>(ast));
+      case Ast::Type::LogicalAnd:
+        return interpret_logical_and(derived_cast<Ast::LogicalAnd const &>(ast));
+      case Ast::Type::LogicalOr:
+        return interpret_logical_or(derived_cast<Ast::LogicalOr const &>(ast));
       case Ast::Type::Add:
         return interpret_add(derived_cast<Ast::Add const &>(ast));
       case Ast::Type::Subtract:

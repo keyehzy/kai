@@ -117,6 +117,22 @@ void Ast::NotEqual::dump(std::ostream &os) const {
   os << ")";
 }
 
+void Ast::LogicalAnd::dump(std::ostream &os) const {
+  os << "LogicalAnd(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
+void Ast::LogicalOr::dump(std::ostream &os) const {
+  os << "LogicalOr(";
+  left->dump(os);
+  os << ", ";
+  right->dump(os);
+  os << ")";
+}
+
 void Ast::Add::dump(std::ostream &os) const {
   os << "Add(";
   left->dump(os);
@@ -333,6 +349,18 @@ void Ast::Equal::to_string(std::ostream &os, int indent) const {
 void Ast::NotEqual::to_string(std::ostream &os, int indent) const {
   left->to_string(os, indent);
   os << " != ";
+  right->to_string(os, indent);
+}
+
+void Ast::LogicalAnd::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " && ";
+  right->to_string(os, indent);
+}
+
+void Ast::LogicalOr::to_string(std::ostream &os, int indent) const {
+  left->to_string(os, indent);
+  os << " || ";
   right->to_string(os, indent);
 }
 

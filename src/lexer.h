@@ -185,9 +185,36 @@ private:
         last_token_.end = input_;
       }
       break;
+    case '&':
+      last_token_.begin = input_;
+      if (next_char() == '&') {
+        last_token_.type = Token::Type::ampersand_ampersand;
+        input_ += 2;
+        last_token_.end = input_;
+      } else {
+        error_reporter_.report<UnexpectedCharError>(
+            SourceLocation{input_, input_ + 1}, input_[0]);
+        last_token_.type = Token::Type::unknown;
+        ++input_;
+        last_token_.end = input_;
+      }
+      break;
+    case '|':
+      last_token_.begin = input_;
+      if (next_char() == '|') {
+        last_token_.type = Token::Type::pipe_pipe;
+        input_ += 2;
+        last_token_.end = input_;
+      } else {
+        error_reporter_.report<UnexpectedCharError>(
+            SourceLocation{input_, input_ + 1}, input_[0]);
+        last_token_.type = Token::Type::unknown;
+        ++input_;
+        last_token_.end = input_;
+      }
+      break;
     // TODO: add minus_minus (--) to mirror plus_plus (++)
     // TODO: add ampersand (&) token for unary take-by-pointer expressions.
-    // TODO: add ampersand_ampersand (&&) and pipe_pipe (||) for logical AND/OR
     default:
       error_reporter_.report<UnexpectedCharError>(SourceLocation{input_, input_ + 1},
                                                   input_[0]);

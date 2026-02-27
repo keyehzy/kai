@@ -826,6 +826,12 @@ void BytecodeGenerator::visit(const Ast &ast) {
     case Ast::Type::NotEqual:
       visit_not_equal(derived_cast<Ast::NotEqual const &>(ast));
       break;
+    case Ast::Type::LogicalAnd:
+      visit_logical_and(derived_cast<Ast::LogicalAnd const &>(ast));
+      break;
+    case Ast::Type::LogicalOr:
+      visit_logical_or(derived_cast<Ast::LogicalOr const &>(ast));
+      break;
     case Ast::Type::Add:
       visit_add(derived_cast<Ast::Add const &>(ast));
       break;
@@ -1157,6 +1163,84 @@ void BytecodeGenerator::visit_not_equal(const Ast::NotEqual &not_equal) {
   const auto reg_right = reg_alloc_.current();
   current_block().append<Bytecode::Instruction::NotEqual>(reg_alloc_.allocate(), reg_left,
                                                           reg_right);
+}
+
+void BytecodeGenerator::visit_logical_and(const Ast::LogicalAnd &logical_and) {
+  visit(*logical_and.left);
+  const auto lhs_reg = reg_alloc_.current();
+  auto &lhs_jump =
+      current_block().append<Bytecode::Instruction::JumpConditional>(lhs_reg, -1, -1);
+
+  const auto rhs_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  visit(*logical_and.right);
+  const auto rhs_reg = reg_alloc_.current();
+  const auto rhs_bool_reg = reg_alloc_.allocate();
+  current_block().append<Bytecode::Instruction::NotEqualImmediate>(rhs_bool_reg, rhs_reg, 0);
+  auto &rhs_jump = current_block().append<Bytecode::Instruction::JumpConditional>(
+      rhs_bool_reg, -1, -1);
+
+  const auto result_reg = reg_alloc_.allocate();
+  const auto false_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  current_block().append<Bytecode::Instruction::Load>(result_reg, 0);
+  auto &false_jump_to_end = current_block().append<Bytecode::Instruction::Jump>(-1);
+
+  const auto true_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  current_block().append<Bytecode::Instruction::Load>(result_reg, 1);
+  auto &true_jump_to_end = current_block().append<Bytecode::Instruction::Jump>(-1);
+
+  const auto end_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  const auto output_reg = reg_alloc_.allocate();
+  current_block().append<Bytecode::Instruction::Move>(output_reg, result_reg);
+
+  lhs_jump.label1 = rhs_label;
+  lhs_jump.label2 = false_label;
+  rhs_jump.label1 = true_label;
+  rhs_jump.label2 = false_label;
+  false_jump_to_end.label = end_label;
+  true_jump_to_end.label = end_label;
+}
+
+void BytecodeGenerator::visit_logical_or(const Ast::LogicalOr &logical_or) {
+  visit(*logical_or.left);
+  const auto lhs_reg = reg_alloc_.current();
+  auto &lhs_jump =
+      current_block().append<Bytecode::Instruction::JumpConditional>(lhs_reg, -1, -1);
+
+  const auto rhs_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  visit(*logical_or.right);
+  const auto rhs_reg = reg_alloc_.current();
+  const auto rhs_bool_reg = reg_alloc_.allocate();
+  current_block().append<Bytecode::Instruction::NotEqualImmediate>(rhs_bool_reg, rhs_reg, 0);
+  auto &rhs_jump = current_block().append<Bytecode::Instruction::JumpConditional>(
+      rhs_bool_reg, -1, -1);
+
+  const auto result_reg = reg_alloc_.allocate();
+  const auto true_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  current_block().append<Bytecode::Instruction::Load>(result_reg, 1);
+  auto &true_jump_to_end = current_block().append<Bytecode::Instruction::Jump>(-1);
+
+  const auto false_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  current_block().append<Bytecode::Instruction::Load>(result_reg, 0);
+  auto &false_jump_to_end = current_block().append<Bytecode::Instruction::Jump>(-1);
+
+  const auto end_label = static_cast<Bytecode::Label>(blocks_.size());
+  blocks_.emplace_back();
+  const auto output_reg = reg_alloc_.allocate();
+  current_block().append<Bytecode::Instruction::Move>(output_reg, result_reg);
+
+  lhs_jump.label1 = true_label;
+  lhs_jump.label2 = rhs_label;
+  rhs_jump.label1 = true_label;
+  rhs_jump.label2 = false_label;
+  true_jump_to_end.label = end_label;
+  false_jump_to_end.label = end_label;
 }
 
 void BytecodeGenerator::visit_add(const Ast::Add &add) {

@@ -1,10 +1,29 @@
 #include "../src/ast.h"
 #include "../src/bytecode.h"
 #include "catch.hpp"
+#include "../src/lexer.h"
 #include "../src/optimizer.h"
 #include "../src/parser.h"
 
 using namespace kai;
+
+namespace {
+
+std::vector<Token::Type> lex_token_types(std::string_view source) {
+  ErrorReporter reporter;
+  Lexer lexer(source, reporter);
+  std::vector<Token::Type> tokens;
+  while (true) {
+    tokens.push_back(lexer.peek().type);
+    if (lexer.peek().type == Token::Type::end_of_file) {
+      break;
+    }
+    lexer.skip();
+  }
+  return tokens;
+}
+
+}  // namespace
 
 TEST_CASE("test_parser_expression_end_to_end_literal_42") {
   ErrorReporter reporter;
@@ -193,6 +212,49 @@ TEST_CASE("test_parser_expression_end_to_end_less_than_or_equal_minimal") {
 
   BytecodeInterpreter bytecode_interpreter;
   REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 1);
+}
+
+TEST_CASE("test_logical_ops_pipeline_lexer_parser_ast_bytecode_short_circuit") {
+  const auto tokens = lex_token_types("1 || 0 && 1");
+  REQUIRE(tokens == std::vector<Token::Type>{
+                        Token::Type::number,
+                        Token::Type::pipe_pipe,
+                        Token::Type::number,
+                        Token::Type::ampersand_ampersand,
+                        Token::Type::number,
+                        Token::Type::end_of_file,
+                    });
+
+  ErrorReporter expression_reporter;
+  Parser expression_parser("1 || 0 && 1", expression_reporter);
+  std::unique_ptr<Ast> parsed_expression = expression_parser.parse_expression();
+  REQUIRE(parsed_expression != nullptr);
+  REQUIRE(parsed_expression->type == Ast::Type::LogicalOr);
+  const auto &logical_or = derived_cast<const Ast::LogicalOr &>(*parsed_expression);
+  REQUIRE(logical_or.right->type == Ast::Type::LogicalAnd);
+
+  ErrorReporter reporter;
+  Parser parser(R"(
+let x = 0;
+let y = 0;
+x = 0 && (y = 1);
+x = 1 || (y = 2);
+x = 1 && (y = 3);
+x = 0 || (y = 4);
+return y;
+)", reporter);
+  std::unique_ptr<Ast::Block> program = parser.parse_program();
+  REQUIRE(program != nullptr);
+
+  AstInterpreter ast_interpreter;
+  REQUIRE(ast_interpreter.interpret(*program) == 4);
+
+  BytecodeGenerator generator;
+  generator.visit_block(*program);
+  generator.finalize();
+
+  BytecodeInterpreter bytecode_interpreter;
+  REQUIRE(bytecode_interpreter.interpret(generator.blocks()) == 4);
 }
 
 TEST_CASE("test_program_end_to_end_count_to_ten_while_loop") {

@@ -336,6 +336,18 @@ Shape* TypeChecker::visit_expression(const Ast* node) {
       static_cast<void>(visit_expression(n.right.get()));
       return make_shape<Shape::Non_Struct>();
     }
+    case T::LogicalAnd: {
+      const auto& n = derived_cast<const Ast::LogicalAnd&>(*node);
+      static_cast<void>(visit_expression(n.left.get()));
+      static_cast<void>(visit_expression(n.right.get()));
+      return make_shape<Shape::Non_Struct>();
+    }
+    case T::LogicalOr: {
+      const auto& n = derived_cast<const Ast::LogicalOr&>(*node);
+      static_cast<void>(visit_expression(n.left.get()));
+      static_cast<void>(visit_expression(n.right.get()));
+      return make_shape<Shape::Non_Struct>();
+    }
 
     case T::Negate: {
       const auto& n = derived_cast<const Ast::Negate&>(*node);

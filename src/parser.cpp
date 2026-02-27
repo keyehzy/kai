@@ -217,7 +217,7 @@ std::unique_ptr<Ast::Block> Parser::parse_block(std::optional<Token> block_owner
 }
 
 std::unique_ptr<Ast> Parser::parse_assignment() {
-  std::unique_ptr<Ast> left = parse_equality();
+  std::unique_ptr<Ast> left = parse_logical_or();
 
   if (lexer_.peek().type != Token::Type::equals) {
     return left;
@@ -239,6 +239,30 @@ std::unique_ptr<Ast> Parser::parse_assignment() {
   }
 
   error_reporter_.report<InvalidAssignmentTargetError>(equals_token.source_location());
+  return left;
+}
+
+std::unique_ptr<Ast> Parser::parse_logical_or() {
+  std::unique_ptr<Ast> left = parse_logical_and();
+
+  while (lexer_.peek().type == Token::Type::pipe_pipe) {
+    lexer_.skip();
+    std::unique_ptr<Ast> right = parse_logical_and();
+    left = std::make_unique<Ast::LogicalOr>(std::move(left), std::move(right));
+  }
+
+  return left;
+}
+
+std::unique_ptr<Ast> Parser::parse_logical_and() {
+  std::unique_ptr<Ast> left = parse_equality();
+
+  while (lexer_.peek().type == Token::Type::ampersand_ampersand) {
+    lexer_.skip();
+    std::unique_ptr<Ast> right = parse_equality();
+    left = std::make_unique<Ast::LogicalAnd>(std::move(left), std::move(right));
+  }
+
   return left;
 }
 

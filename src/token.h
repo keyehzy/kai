@@ -16,6 +16,8 @@ struct Token {
     plus_plus,
     equals_equals,
     bang_equals,
+    ampersand_ampersand,
+    pipe_pipe,
     bang,
     less_than_equals,
     greater_than_equals,

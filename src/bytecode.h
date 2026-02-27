@@ -545,6 +545,8 @@ class BytecodeGenerator {
   void visit_return(const Ast::Return &return_);
   void visit_equal(const Ast::Equal &equal);
   void visit_not_equal(const Ast::NotEqual &not_equal);
+  void visit_logical_and(const Ast::LogicalAnd &logical_and);
+  void visit_logical_or(const Ast::LogicalOr &logical_or);
   void visit_add(const Ast::Add &add);
   void visit_subtract(const Ast::Subtract &subtract);
   void visit_multiply(const Ast::Multiply &multiply);

@@ -22,6 +22,8 @@ class Parser {
   std::unique_ptr<Ast> parse_statement();
   std::unique_ptr<Ast::Block> parse_block(std::optional<Token> block_owner);
   std::unique_ptr<Ast> parse_assignment();
+  std::unique_ptr<Ast> parse_logical_or();
+  std::unique_ptr<Ast> parse_logical_and();
   std::unique_ptr<Ast> parse_equality();
   std::unique_ptr<Ast> parse_comparison();
   std::unique_ptr<Ast> parse_additive();

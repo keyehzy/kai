@@ -158,6 +158,32 @@ TEST_CASE("test_parser_not_equal_has_lower_precedence_than_additive") {
   REQUIRE(derived_cast<const Ast::Literal &>(*not_equal.right).value == 4);
 }
 
+TEST_CASE("test_parser_parses_logical_and_expression") {
+  ErrorReporter reporter;
+  Parser parser("1 == 1 && 2 == 2", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::LogicalAnd);
+
+  const auto &logical_and = derived_cast<const Ast::LogicalAnd &>(*parsed);
+  REQUIRE(logical_and.left->type == Ast::Type::Equal);
+  REQUIRE(logical_and.right->type == Ast::Type::Equal);
+}
+
+TEST_CASE("test_parser_logical_or_has_lower_precedence_than_logical_and") {
+  ErrorReporter reporter;
+  Parser parser("1 || 0 && 0", reporter);
+  std::unique_ptr<Ast> parsed = parser.parse_expression();
+
+  REQUIRE(parsed != nullptr);
+  REQUIRE(parsed->type == Ast::Type::LogicalOr);
+
+  const auto &logical_or = derived_cast<const Ast::LogicalOr &>(*parsed);
+  REQUIRE(logical_or.left->type == Ast::Type::Literal);
+  REQUIRE(logical_or.right->type == Ast::Type::LogicalAnd);
+}
+
 TEST_CASE("test_parser_parses_greater_than_expression") {
   ErrorReporter reporter;
   Parser parser("1 + 3 > 3", reporter);
