@@ -70,7 +70,8 @@ void print_errors(const std::string &source, const kai::ErrorReporter &reporter)
   }
 }
 
-std::optional<kai::Value> run_source(const std::string &source, Backend backend) {
+std::optional<kai::Value> run_source(const std::string &source, Backend backend,
+                                     bool optimize_bytecode) {
   kai::ErrorReporter reporter;
   kai::Parser parser(source, reporter);
   auto program = parser.parse_program();
@@ -98,14 +99,16 @@ std::optional<kai::Value> run_source(const std::string &source, Backend backend)
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::BytecodeOptimizer optimizer;
-  optimizer.optimize(generator.blocks());
+  if (optimize_bytecode) {
+    kai::BytecodeOptimizer optimizer;
+    optimizer.optimize(generator.blocks());
+  }
 
   kai::BytecodeInterpreter interpreter;
   return interpreter.interpret(generator.blocks());
 }
 
-bool dump_source(const std::string &source, Backend backend) {
+bool dump_source(const std::string &source, Backend backend, bool optimize_bytecode) {
   kai::ErrorReporter reporter;
   kai::Parser parser(source, reporter);
   auto program = parser.parse_program();
@@ -133,8 +136,10 @@ bool dump_source(const std::string &source, Backend backend) {
   generator.visit_block(*program);
   generator.finalize();
 
-  kai::BytecodeOptimizer optimizer;
-  optimizer.optimize(generator.blocks());
+  if (optimize_bytecode) {
+    kai::BytecodeOptimizer optimizer;
+    optimizer.optimize(generator.blocks());
+  }
   generator.dump();
   return true;
 }
@@ -152,7 +157,7 @@ std::string normalize_repl_input(std::string_view line) {
   return normalized;
 }
 
-void repl(Backend backend) {
+void repl(Backend backend, bool optimize_bytecode) {
   std::string source;
   std::string line;
   int brace_depth = 0;
@@ -194,7 +199,7 @@ void repl(Backend backend) {
       continue;
     }
 
-    const auto value = run_source(source, backend);
+    const auto value = run_source(source, backend, optimize_bytecode);
     if (!value.has_value()) {
       source = previous_source;
       brace_depth = previous_brace_depth;
@@ -214,6 +219,7 @@ int main(int argc, char **argv) {
     options.add_options()
         ("ast", "Use the AST interpreter backend")
         ("bytecode", "Use the bytecode interpreter backend (default)")
+        ("opt", "Enable bytecode optimizations")
         ("dump", "Dump the representation for the active backend and exit")
         ("h,help", "Show help")
         ("file", "Input source file", cxxopts::value<std::vector<std::string>>());
@@ -234,6 +240,7 @@ int main(int argc, char **argv) {
     }
 
     const Backend backend = use_ast ? Backend::Ast : Backend::Bytecode;
+    const bool optimize_bytecode = result.count("opt") != 0;
     const bool do_dump = result.count("dump") != 0;
 
     std::vector<std::string> files;
@@ -249,10 +256,10 @@ int main(int argc, char **argv) {
     if (files.size() == 1) {
       const std::string source = read_file(files[0]);
       if (do_dump) {
-        return dump_source(source, backend) ? 0 : 1;
+        return dump_source(source, backend, optimize_bytecode) ? 0 : 1;
       }
 
-      const auto value = run_source(source, backend);
+      const auto value = run_source(source, backend, optimize_bytecode);
       if (!value.has_value()) {
         return 1;
       }
@@ -265,7 +272,7 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    repl(backend);
+    repl(backend, optimize_bytecode);
     return 0;
   } catch (const cxxopts::exceptions::exception &ex) {
     std::cerr << "error: " << ex.what() << "\n";
