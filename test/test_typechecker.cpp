@@ -353,7 +353,8 @@ fn make(v) {
 }
 make(1);
 )");
-  REQUIRE_FALSE(errors.empty());
+  REQUIRE(errors ==
+          std::vector<kai::Error::Type>{kai::Error::Type::DanglingReference});
 }
 
 TEST_CASE(
