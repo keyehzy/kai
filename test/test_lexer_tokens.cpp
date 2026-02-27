@@ -229,6 +229,21 @@ TEST_CASE("test_lexer_recognizes_not_equal_operator") {
                    });
 }
 
+TEST_CASE("test_lexer_recognizes_single_ampersand_operator") {
+  const auto tokens = lex_all("a & b");
+
+  REQUIRE(tokens == std::vector<LexedToken>{
+                       {Token::Type::identifier, "a"},
+                       {Token::Type::ampersand, "&"},
+                       {Token::Type::identifier, "b"},
+                       {Token::Type::end_of_file, ""},
+                   });
+
+  for (const auto &token : tokens) {
+    REQUIRE(token.first != Token::Type::unknown);
+  }
+}
+
 TEST_CASE("test_lexer_recognizes_logical_and_operator") {
   const auto types = lex_types("a && b");
 

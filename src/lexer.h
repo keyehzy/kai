@@ -192,9 +192,7 @@ private:
         input_ += 2;
         last_token_.end = input_;
       } else {
-        error_reporter_.report<UnexpectedCharError>(
-            SourceLocation{input_, input_ + 1}, input_[0]);
-        last_token_.type = Token::Type::unknown;
+        last_token_.type = Token::Type::ampersand;
         ++input_;
         last_token_.end = input_;
       }
@@ -214,7 +212,6 @@ private:
       }
       break;
     // TODO: add minus_minus (--) to mirror plus_plus (++)
-    // TODO: add ampersand (&) token for unary take-by-pointer expressions.
     default:
       error_reporter_.report<UnexpectedCharError>(SourceLocation{input_, input_ + 1},
                                                   input_[0]);
